@@ -131,8 +131,8 @@ Every major character has **three layers**, revealed over repeat visits:
 
 ### Character sketches
 - **Grandma (奶奶):** heart of the game. Tiny, fierce, cooks everything you bring home, no matter how awful. Plays mahjong, has spies everywhere.
-- **The Neighbour (老王, "Old Wang"):** villain of the chain restaurant. Twist idea: he didn't steal it, grandpa *gave* it to him years ago, or they're estranged brothers. His chain food is technically perfect and has no soul.
-- **The Rival Rider:** works for the competitor app (blue vs. yellow). Faster than you, always cheerful, becomes a friend. Has their own reason to be riding.
+- **The Neighbour (老王, "Old Wang"):** just grandpa's next-door neighbour, no secret family twist. He took grandpa's recipe and buried it under *everything*: 48 toppings, gold leaf, cheese, neon signs, ads on every bus, influencer livestreams. His **"Supreme Mega Cross-Bridge Noodle"** (超级至尊过桥米线) chain is winning. Loud, smug, a little pathetic, very funny.
+- **The Rival Rider:** rides for **Blueberry** (蓝莓), the blue rival app. Faster than you, always cheerful, becomes a friend. Has their own reason to be riding.
 - **Your Boss (in Ireland):** keeps messaging. "Quick one 🙏 can you just prompt the Q3 deck?" You can answer at red lights (a funny mini-game) for small extra cash and a running joke.
 - **The AI chatbot:** still on your phone. You can ask it about food. It's confident and often wrong ("Cross-bridge noodles are traditionally served with cheddar"). A soft satire of where you came from.
 
@@ -159,7 +159,19 @@ Every Finding you bring home unlocks options. Each evening you choose a combinat
 - **Each correct slot unlocks a memory of grandpa** (a short flashback scene). The recipe puzzle and the grandpa mystery are **the same progress bar**.
 - Bad bowls get the best reactions: grandma's face goes through 5 emotions, the cat leaves the room, the neighbour's dog won't eat it. Still useful, because it rules things out.
 
-**Final twist:** you can get every slot "right" and it still isn't grandpa's bowl. The missing piece isn't an ingredient. It's that the bowl is made *for someone* and brought to them hot, across the bridge. Simplicity.
+### The real lesson: subtract, don't add
+
+**Decided:** grandpa's original secret was **simplicity**. The neighbour won with *more*: more toppings, more ads, more "extra". Greatness is in simple things done perfectly.
+
+The Bowl Lab should teach this through play instead of telling you:
+- **Early game, adding feels good.** Every Finding unlocks a shiny new option, and customers at the neighbour's chain cheer for big, loaded bowls. If you test your bowl on customers, extra toppings score "hype points" fast.
+- **Grandma's feedback says the opposite.** The more you pile on, the further it drifts from grandpa's bowl.
+- **Late game, the puzzle flips to taking things away.** The final bowl has only a few things in it, each done perfectly: broth simmered the right number of hours, the oil layer, the soup at the right heat, the ingredients going in the right order.
+- **The joke ending:** a player who stacks every topping gets told the bowl tastes *exactly like the neighbour's*.
+
+It also mirrors where the protagonist came from. The tech world is "add more features, more hype, more AI". The protagonist recognises the neighbour's playbook, and the journey is learning to stop.
+
+**Final twist:** you can get every slot "right" and it still isn't grandpa's bowl. The missing piece isn't an ingredient. It's that the bowl is made *for someone* and brought to them hot, across the bridge.
 
 ---
 
@@ -169,18 +181,94 @@ Every Finding you bring home unlocks options. Each evening you choose a combinat
 
 That's a stronger premise than family: nobody *expects* you to help. You're the foreigner who showed up, which is funny, touching, and everyone in town has an opinion about it.
 
+**The protagonist (decided):** Irish, barely any Chinese, completely dazed. Gets by on a translator app and the AI chatbot. See section 9.
+
 1. **Prologue, Ireland:** you're typing business prompts to an AI. Your prompts slowly drift: "Q3 synergy deck" → "Q3 deck, noodle themed" → "show me how cross-bridge noodles are made". This is the tutorial; the player is literally typing.
 2. You look up grandpa's shop in Kunming, the one from your trip… **CLOSED.** ("What?!?!") You tell your boss it's an emergency and book a flight.
 3. **Arrival in Kunming:** the shutters are down. Grandma (who somehow remembers you, "the tall foreigner who ate three bowls") tells you grandpa has disappeared, the neighbour stole the recipe, and the neighbour's shiny chain is opening across the street.
 4. **You're broke.** First paycheck isn't until you're back at work, and you have **22 days of annual leave**. You sign up as a delivery rider.
 5. **Days 1–21:** deliver, taste, befriend, experiment, follow the plain-broth customer.
-6. **The truth about grandpa:** suggestion: he lost his sense of taste and was too ashamed to cook, so he left to find "the taste of his youth" before he forgot it completely. (God of Cookery's fall-and-rise, from the grandpa's side.)
+6. **The truth about grandpa:** the neighbour's flashy chain took all his customers. Grandpa started doubting himself ("maybe simple isn't enough any more"), tried adding toppings and gimmicks, and his bowl got *worse*. Ashamed, he closed the shop and disappeared. (God of Cookery's fall-and-rise, from grandpa's side.) Your bowl proves he was right all along.
 7. **Day 22, the finale:** cook the bowl and deliver it, hot, across the bridge to grandpa. He tastes it, and the shop reopens. Everyone you met along the way shows up.
 8. **Ending choice:** fly back to the laptop… or not?
 
 ---
 
-## 9. Endings & what happens if you fail
+## 9. The protagonist: Irish, lost in translation
+
+**Decided:** from Ireland, barely speaks Chinese, dazed, survives on a translator app and AI.
+
+- **Translator app (parody name, e.g. "Goggle Translate"):** point your phone at menus, signs and order notes to translate them, AR-style. It's *usually* right. Real Yunnan dish names translate hilariously: 饵块 (erkuai, a rice cake) → **"Bait Block"**, 乳扇 → "Milk Fan", 过桥米线 → "Crossing Bridge Rice Thread", 臭豆腐 → "Stinky Tofu" (accurate, sadly).
+- **Speech bubbles start half in Chinese.** The app fills in a translation, sometimes wrong. A wrongly translated order note can send you to the wrong place, which is a delivery twist in itself.
+- **You learn as you play.** Words you've picked up (from grandma, customers, signs) stop needing translation and appear in English straight away. By day 22 the bubbles are mostly readable. This is a progress bar you *feel*.
+- **Vocabulary carries over on Restart**, like all knowledge (good for speedrunners and very satisfying).
+- **The AI chatbot:** confident, eager, often wrong. Useful for hints, terrible for facts.
+- **The Irish connection: potatoes.** Kunming *loves* potatoes: fried potato chunks (炸洋芋) on every corner, Yunnan grows tons of them. Potatoes are the one thing the Irishman truly understands. A running gag, and a real moment where locals start respecting you. (Also: Irish breakfast tea vs. Pu'er tea.)
+
+---
+
+## 10. Being Plankton: stealing secret recipes (and failing)
+
+**Decided:** like Plankton in SpongeBob trying to steal the Krabby Patty formula, you scheme to discover every restaurant's secret recipe. **It's hard, you fail a lot, and the failing is the fun.**
+
+Every restaurant guards one signature secret. The owners won't tell a random foreigner. So you scheme:
+
+| Scheme | How it might go |
+|---|---|
+| **Use the uniform** | You're a delivery rider, so you're *allowed* in to pick up. Stall at the counter and peek into the kitchen. |
+| **Disguises** | Fake moustache, "health inspector", "famous food vlogger" with your phone on a stick. |
+| **Eavesdrop with the translator** | Hold your phone up to the chef's conversation… and get a terrible translation ("add the grandmother to the pot"). |
+| **Dig through the bins** | Empty packets and labels reveal ingredients. Smelly. |
+| **Follow them to the 5 a.m. market** | See what they buy. Don't get spotted. |
+| **Bribe the cat / the kid / the dishwasher** | Everyone wants something. |
+| **Ask the AI** | "Step 1: Become the restaurant." Useless. Very funny. |
+
+How failing works:
+- **Failure is never wasted.** Every failed scheme gives a funny scene *and* a clue fragment.
+- **Getting caught has consequences:** trust drops, and some owners ban you, so you can't pick up from them. That changes your route and your income.
+- **Escalating disasters:** chased out by grandma with a cleaver, locked in the walk-in fridge, accidentally hired as the dishwasher (which actually gets you the recipe).
+
+**The honest route also works:** become a regular, help out, and the owner may just *teach* you. The game never says which way is right:
+- **Plankton route:** faster and riskier (the speedrun favourite).
+- **Friendship route:** slower, deeper, and needed for the best ending.
+- **The mirror:** the more you scheme, the more grandma notices that you're starting to act like the neighbour.
+
+---
+
+## 11. Our delivery app: 小黄鸭 "Little Yellow Duck"
+
+**Decided:** no real brands. A funny fruit/veg/animal name, a yellow outfit, an e-bike.
+
+Suggestion: **Little Yellow Duck (小黄鸭 Xiǎo Huáng Yā)**
+- Yellow jacket, yellow helmet **with a little duck bill on the front**
+- E-bike horn goes *quack*
+- The app is a cheerful duck that gives you ratings with increasingly passive-aggressive emojis
+- Rival app: **Blueberry (蓝莓)**, riders in blue
+
+Other options if the duck doesn't land: Mango Dash (芒果), Banana Bolt, Corn Rush, Lemon Zoom.
+
+---
+
+## 12. Home base: Kunming (春城, the Spring City)
+
+**Decided:** Kunming is the no. 1 region and the heart of the game. It's mild all year round (hence "Spring City"), the perfect e-bike city.
+
+Most of the game happens here. Other regions (Dali, Jianshui, Mengzi where the noodle legend began, Xishuangbanna, Lijiang, Shangri-La) are **day trips by high-speed train** later in the 22 days, with their own customers and rules.
+
+**Kunming delivery zones** (unlocked over time):
+- **Grandpa's street:** the hub. Grandma, the shuttered shop, the neighbour's neon chain across the road, mahjong aunties.
+- **Green Lake (翠湖):** in winter, thousands of **red-billed gulls** fly in from Siberia and dive at anything edible. A delivery hazard *and* a postcard. Students from Yunnan University nearby order at 2 a.m.
+- **Old town & the Golden Horse and Jade Rooster Arches (金马碧鸡坊):** crowds, tourists, food stalls. Crowd-search deliveries.
+- **Dounan Flower Market (斗南):** one of the biggest flower markets in Asia. Night deliveries through a maze of flowers, flower cakes (鲜花饼).
+- **Dianchi Lake & the Western Hills:** a long scenic climb to Dragon Gate. A "keep the soup hot uphill" challenge.
+- **Guandu Ancient Town (官渡古镇):** temples, old snacks, grandmas with opinions.
+- **Stone Forest (石林), on the outskirts:** the far delivery. Sani (Yi) customers, a maze of rock pillars.
+
+**Kunming food to collect:** small-pot rice noodles (小锅米线), tofu-pudding rice noodles (豆花米线), grilled erkuai (烧饵块), fried potato chunks (炸洋芋), steam-pot chicken (汽锅鸡), flower cakes (鲜花饼), Yiliang roast duck (宜良烤鸭), cold rice noodles (凉米线), grilled tofu (烤豆腐), and wild mushroom hotpot in season.
+
+---
+
+## 13. Endings & what happens if you fail
 
 **Decided:** missing the deadline doesn't mean game over. The world moves on without you, and it's harder.
 
@@ -204,7 +292,7 @@ So the endings ladder from best to worst:
 
 ---
 
-## 10. Freedom & speedrunning
+## 14. Freedom & speedrunning
 
 **Decided:** the story guides you, the gameplay leaves you free. It should be friendly for new players **and** tempting for speedrunners.
 
@@ -233,7 +321,7 @@ The best reference is **Zelda: Majora's Mask** (and **Outer Wilds** for the know
 
 ---
 
-## 11. 2D or 3D? Decide by gameplay
+## 15. 2D or 3D? Decide by gameplay
 
 **Decided:** gameplay first, no 2D/3D war.
 
@@ -247,24 +335,25 @@ The best reference is **Zelda: Majora's Mask** (and **Outer Wilds** for the know
 
 ---
 
-## 12. Remaining open questions
+## 16. Remaining open questions
 
-- **Protagonist details:** name, appearance, how much Chinese they speak at the start (grandma as Chinese teacher would be fun).
-- **Why the neighbour?** Villain, misunderstood rival, or grandpa's estranged brother?
-- **Grandpa's original secret:** what *was* it? (Needed for the Golden Bowl ending.)
-- **Real brand names:** use a parody delivery app (e.g. a yellow-helmet "美单 MeiDan") rather than real company names/logos, to avoid trademark trouble.
-- **Map:** all of Yunnan as separate small regions you travel between (by scooter + high-speed train), or one connected open world? Separate regions are far easier to build and better for speedrun routing.
+- **Protagonist's name and look.** (And grandpa's and grandma's names.)
+- **Season:** winter gives the Green Lake gulls; summer (rainy season) gives wild mushroom season and the "little people" episode. Can't have both in the same 22 days, unless the game starts in late autumn.
+- **Is the duck the app?** Or another fruit/veg/animal?
+- **Map:** confirmed Kunming as the hub; other regions as train day trips (recommended: easier to build, better for speedrun routing).
 
 ---
 
-## 13. Suggested first prototype (vertical slice)
+## 17. Suggested first prototype (vertical slice)
 
 Build **one day** before anything else, to answer the big question: *are deliveries fun?*
 
 1. One Kunming neighbourhood (grandpa's shuttered shop + the neighbour's chain across the street) with 3 restaurants and 5 customers.
 2. The bag-packing puzzle + a 60-second ride with heat/slosh.
-3. 3 hand-written deliveries with different twists (crowd search, stealth, lonely customer).
+3. 3 hand-written deliveries with different twists (crowd search, stealth, lonely customer), riding for Little Yellow Duck.
 4. One evening Bowl Lab with 3 slots.
-5. Placeholder "animalese" voice with tones.
+5. One Plankton scheme on one restaurant (peek into the kitchen in uniform; get caught, get a clue).
+6. The translator app on order notes, with a few deliberately wrong translations.
+7. Placeholder "animalese" voice with tones.
 
 Engine suggestion: **Godot 4** (free, light, strong 3D for a stylised low-poly look, quick to iterate). For an even faster throwaway test, the bag puzzle and Bowl Lab could be prototyped as a web page first.
