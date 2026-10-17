@@ -12,7 +12,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Shortcuts: `?start=day2` (skip to the delivery day), `?start=evening` (jump to grandma's Bowl Lab), `&name=Niko` (set the rider's name).
+Shortcuts: `?start=day2` or `#day2` (skip to the delivery day), `?start=evening` or `#evening` (jump to grandma's Bowl Lab), `?name=Niko` (set the rider's name).
 
 **Controls:** WASD / arrow keys to move or steer · E / Space / Enter to talk & advance · O to open the Duck app · hold Shift to speed up text. On a phone: on-screen joystick + yellow button.
 

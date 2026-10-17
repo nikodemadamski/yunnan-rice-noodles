@@ -257,7 +257,7 @@ async function endCard(r) {
       Qingming, the trip to Mengzi, and the Supreme Mega Championship.</p>
     <p class="sub">Questions to think about while you play: Were the deliveries fun? Which twist was best? Did the soup physics feel fair?</p>
     <div class="row" style="margin-top:10px">
-      <button class="btn-soft" data-nav="?start=day2">Replay Day 2</button>
-      <button class="btn-soft" data-nav="?">Start over</button>
+      <button class="btn-soft" data-nav="#day2">Replay Day 2</button>
+      <button class="btn-soft" data-nav="#">Start over</button>
     </div>`, 'Keep riding around');
 }

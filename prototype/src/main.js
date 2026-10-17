@@ -62,7 +62,9 @@ $('btn-orders').addEventListener('click', () => openBoard());
 addEventListener('keydown', e => { if (e.code === 'KeyO' || e.code === 'Tab') { e.preventDefault(); openBoard(); } });
 document.addEventListener('click', e => {
   const nav = e.target.closest('[data-nav]');
-  if (nav) location.search = nav.dataset.nav;
+  if (!nav) return;
+  location.hash = nav.dataset.nav;   // '#day2' or '#' (start over)
+  location.reload();
 });
 
 // ---------- ambient gags ----------
@@ -121,7 +123,7 @@ requestAnimationFrame(frame);
 // ---------- title & flow ----------
 
 const params = new URLSearchParams(location.search);
-const start = params.get('start');
+const start = params.get('start') || location.hash.slice(1) || null;
 
 function title() {
   return new Promise(res => {
