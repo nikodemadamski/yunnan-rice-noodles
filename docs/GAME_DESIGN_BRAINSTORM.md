@@ -59,7 +59,15 @@ EVENING       Bring "findings" home → choose which go into tomorrow's bowl
 NIGHT         Phone: texts from grandpa's friends, your boss, the rival, the mystery customer
 ```
 
-The 22-day calendar is the pressure. Festivals land on fixed days (Torch Festival, Water-Splashing Festival, wild mushroom season), so planning *where* you are on *which* day matters.
+The 22-day calendar is the pressure. Festivals land on fixed days, so planning *where* you are on *which* day matters.
+
+**Decided: spring.** Roughly late March to mid-April, which gives:
+- **Kunming in bloom:** cherry blossoms at Yuantong Temple, Dounan flower market at its busiest.
+- **The last gulls at Green Lake** before they fly back to Siberia (a quiet, sad-sweet "goodbye" moment).
+- **Qingming (清明, early April):** the day for remembering family and those who are gone. A natural emotional beat for the grandpa story.
+- **Water-Splashing Festival (泼水节, ~13–15 April)** in Xishuangbanna.
+- **三月三 (the 3rd day of the 3rd lunar month)** folk festivals for several minority peoples.
+- Wild mushroom season (summer) is **not** in the 22 days. It arrives during **Overtime** (see Endings): a small consolation for players who keep going.
 
 ---
 
@@ -84,7 +92,7 @@ Keep rides to **30–90 seconds**. The challenge is the **food**, not the road.
   - Mountain villages: goats, chickens, a buffalo in the road (befriend the herder → shortcut through the pasture)
   - Mushroom season: rain, mud, and…
 
-- **The mushroom episode:** if you eat badly cooked 见手青 wild mushrooms (a real, famous Yunnan thing), you start seeing "little people" for one delivery. The world gets weird and the rides become surreal. Funny, memorable, and very Yunnan.
+- **The mushroom episode (Overtime / summer only):** if you eat badly cooked 见手青 wild mushrooms (a real, famous Yunnan thing), you start seeing "little people" for one delivery. The world gets weird and the rides become surreal. Funny, memorable, and very Yunnan.
 
 ### Beat 3 – The drop-off (finding the customer)
 This is where most of the fun lives. Every order has **customer notes**, and the notes are puzzles:
@@ -239,7 +247,7 @@ How failing works:
 
 **Decided:** no real brands. A funny fruit/veg/animal name, a yellow outfit, an e-bike.
 
-Suggestion: **Little Yellow Duck (小黄鸭 Xiǎo Huáng Yā)**
+**Decided: Little Yellow Duck (小黄鸭 Xiǎo Huáng Yā)**
 - Yellow jacket, yellow helmet **with a little duck bill on the front**
 - E-bike horn goes *quack*
 - The app is a cheerful duck that gives you ratings with increasingly passive-aggressive emojis
@@ -257,7 +265,7 @@ Most of the game happens here. Other regions (Dali, Jianshui, Mengzi where the n
 
 **Kunming delivery zones** (unlocked over time):
 - **Grandpa's street:** the hub. Grandma, the shuttered shop, the neighbour's neon chain across the road, mahjong aunties.
-- **Green Lake (翠湖):** in winter, thousands of **red-billed gulls** fly in from Siberia and dive at anything edible. A delivery hazard *and* a postcard. Students from Yunnan University nearby order at 2 a.m.
+- **Green Lake (翠湖):** every winter, thousands of **red-billed gulls** fly in from Siberia and dive at anything edible. In our spring, the last flocks are still there for the first days, then they leave. A delivery hazard, a postcard, and a goodbye. Students from Yunnan University nearby order at 2 a.m.
 - **Old town & the Golden Horse and Jade Rooster Arches (金马碧鸡坊):** crowds, tourists, food stalls. Crowd-search deliveries.
 - **Dounan Flower Market (斗南):** one of the biggest flower markets in Asia. Night deliveries through a maze of flowers, flower cakes (鲜花饼).
 - **Dianchi Lake & the Western Hills:** a long scenic climb to Dragon Gate. A "keep the soup hot uphill" challenge.
@@ -337,9 +345,11 @@ The best reference is **Zelda: Majora's Mask** (and **Outer Wilds** for the know
 
 ## 16. Remaining open questions
 
-- **Protagonist's name and look.** (And grandpa's and grandma's names.)
-- **Season:** winter gives the Green Lake gulls; summer (rainy season) gives wild mushroom season and the "little people" episode. Can't have both in the same 22 days, unless the game starts in late autumn.
-- **Is the duck the app?** Or another fruit/veg/animal?
+- ~~Protagonist's name~~ **Decided: the player names them.** (Look: still open; a character creator?)
+- ~~Season~~ **Decided: spring.**
+- ~~App~~ **Decided: Little Yellow Duck.**
+- **Story backbone:** decided to follow The God of Cookery's structure. See [`GOD_OF_COOKERY_STUDY.md`](GOD_OF_COOKERY_STUDY.md) for the beat-by-beat mapping and the open choices it raises (who our "Turkey" is, the day-1 public failure, the rigged final).
+- Grandpa's and grandma's names.
 - **Map:** confirmed Kunming as the hub; other regions as train day trips (recommended: easier to build, better for speedrun routing).
 
 ---
