@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Crossing the Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="ui">
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <div id="objective" class="pill hidden"></div>
+      <div id="run-card" class="hidden"></div>
+    </div>
+    <div id="hud-right">
+      <div id="clock" class="pill"></div>
+      <div id="money" class="pill"></div>
+      <button id="btn-orders" class="pill btn hidden">📱 Orders</button>
+      <button id="btn-sound" class="pill btn" title="Sound on/off">🔊</button>
+    </div>
+    <div id="compass" class="hidden"><div id="compass-arrow">▲</div></div>
+  </div>
+
+  <div id="floating"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+
+  <div id="dialogue" class="hidden">
+    <div id="dlg-name"></div>
+    <div id="dlg-zh"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-tr"></div>
+    <div id="dlg-caret">▼</div>
+  </div>
+  <div id="choices" class="hidden"></div>
+
+  <div id="panel" class="hidden"></div>
+  <div id="danmaku"></div>
+  <div id="reveal" class="hidden"></div>
+  <div id="fade"><div id="fade-text"></div></div>
+
+  <div id="touch" class="hidden">
+    <div id="joy"><div id="joy-knob"></div></div>
+    <button id="act-btn">E</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
