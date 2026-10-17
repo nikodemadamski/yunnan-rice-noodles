@@ -165,35 +165,106 @@ Every Finding you bring home unlocks options. Each evening you choose a combinat
 
 ## 8. Story beats (draft, open to change)
 
+**Decided:** grandpa isn't family. He's the old man who ran a small cross-bridge noodle shop in **Kunming**, the best bowl you've ever eaten, from a trip years ago. You're a stranger who loved his noodles so much you drop everything to help him **get his restaurant back**. Grandma (his wife) takes you in. You sleep on a folding bed in the back of the shuttered shop.
+
+That's a stronger premise than family: nobody *expects* you to help. You're the foreigner who showed up, which is funny, touching, and everyone in town has an opinion about it.
+
 1. **Prologue, Ireland:** you're typing business prompts to an AI. Your prompts slowly drift: "Q3 synergy deck" → "Q3 deck, noodle themed" → "show me how cross-bridge noodles are made". This is the tutorial; the player is literally typing.
-2. You look up your favourite noodle shop from your last trip… **CLOSED.** ("What?!?!") You tell your boss it's an emergency.
-3. **Arrival in Yunnan:** grandpa is missing. Grandma says the neighbour stole the secret recipe, and the neighbour's new chain is opening.
+2. You look up grandpa's shop in Kunming, the one from your trip… **CLOSED.** ("What?!?!") You tell your boss it's an emergency and book a flight.
+3. **Arrival in Kunming:** the shutters are down. Grandma (who somehow remembers you, "the tall foreigner who ate three bowls") tells you grandpa has disappeared, the neighbour stole the recipe, and the neighbour's shiny chain is opening across the street.
 4. **You're broke.** First paycheck isn't until you're back at work, and you have **22 days of annual leave**. You sign up as a delivery rider.
 5. **Days 1–21:** deliver, taste, befriend, experiment, follow the plain-broth customer.
 6. **The truth about grandpa:** suggestion: he lost his sense of taste and was too ashamed to cook, so he left to find "the taste of his youth" before he forgot it completely. (God of Cookery's fall-and-rise, from the grandpa's side.)
-7. **Day 22, the finale:** cook the bowl and deliver it, hot, across the bridge to grandpa. Everyone you met along the way shows up.
+7. **Day 22, the finale:** cook the bowl and deliver it, hot, across the bridge to grandpa. He tastes it, and the shop reopens. Everyone you met along the way shows up.
 8. **Ending choice:** fly back to the laptop… or not?
 
 ---
 
-## 9. Open questions
+## 9. Endings & what happens if you fail
 
-- **Who is grandpa?** Your own grandpa (so the protagonist has Yunnan family), your wife's grandpa, or your *boss's* grandpa? The draft summary could be read either way.
-- **Who is the protagonist?** An Irish guy marrying into a Yunnan family is a lovely, true angle ("made by a westerner who loves China"). The fish-out-of-water comedy writes itself, and grandma becomes your Chinese teacher.
-- **Fail state:** if day 22 arrives without the recipe, is it a bad ending, a bittersweet one, or does the game just keep going?
-- **Real brand names:** use a parody delivery app (e.g. a yellow-helmet "美单 MeiDan") rather than real company names/logos, to avoid trademark trouble.
-- **2D or 3D?** Animal Crossing is 3D with a tilted camera, but a 2.5D/isometric look is much cheaper for a small team.
+**Decided:** missing the deadline doesn't mean game over. The world moves on without you, and it's harder.
+
+**Day 22 arrives without the recipe → "Overtime".**
+- The bad ending plays: the shop is sold, and the neighbour's chain puts its sign over grandpa's door.
+- Then the game asks: **Restart** (back to day 1, you keep your knowledge) or **Continue as is**.
+- **Continue as is** keeps playing in a worse world:
+  - You didn't go back to work, so you're fired. The boss's messages stop. Delivering is now your actual job.
+  - The chain spreads: restaurants you loved turn into chain outlets, some NPCs move away, and some Findings are gone for good.
+  - Rent is real now. Money pressure goes up.
+  - You can still win, but it's a **late, bittersweet ending**: grandpa gets a stall instead of his shop, or he gets the shop back but you've lost something along the way.
+
+So the endings ladder from best to worst:
+
+| Ending | How |
+|---|---|
+| **Golden bowl** | Recipe solved + grandpa found by day 22, plus his *original* secret uncovered |
+| **The bridge** | Recipe solved + grandpa found by day 22 |
+| **Late bowl** | Solved in Overtime |
+| **Chain store** | Never solved; the neighbour wins (you can keep playing forever as a rider) |
 
 ---
 
-## 10. Suggested first prototype (vertical slice)
+## 10. Freedom & speedrunning
+
+**Decided:** the story guides you, the gameplay leaves you free. It should be friendly for new players **and** tempting for speedrunners.
+
+The best reference is **Zelda: Majora's Mask** (and **Outer Wilds** for the knowledge side):
+- **Fixed calendar, fixed schedules.** Like Majora's 3 days, the 22 days run on a clock. NPCs, festivals, and restaurant openings happen at set times. Learn the schedule and you can plan a perfect route.
+- **"Order history notebook" = Majora's Bombers' Notebook.** Your phone tracks every customer: their schedule, their orders, how far their story has got. New players use it as a guide; speedrunners use it as a route planner.
+- **Knowledge is progression (Outer Wilds style).** The recipe is something you *know*, not an item you grind for. A first-time player discovers it over 22 days. A returning player who already knows the answer can head straight for the few Findings they need and solve it on day 3. **That's the any% run.**
+- **Many roads to each answer.** Every bowl slot can be unlocked by 2–3 different Findings in different regions. No single mandatory path; casual players stumble into one, speedrunners route the fastest.
+- **Sequence breaks are allowed.** If you work out where grandpa is early and get there, the game lets you. Don't block clever players with invisible walls.
+
+### Built-in speedrun support
+- **In-game timer** (real time + in-game days) and a **"speedrun mode"** toggle that shows it.
+- **All dialogue and cutscenes skippable**, text speed adjustable.
+- **Deterministic systems:** orders, weather and events come from a seed. Same seed = same run (a "set seed" option for races).
+- **A high skill ceiling on movement:** the scooter should have real *tech* (drift boosts, curb hops, a perfect-brake that saves the soup). Easy to ride, hard to master.
+- **Natural categories:**
+  - **Any%**: reach a good ending as fast as possible
+  - **Golden Bowl%**: best ending
+  - **100% / "Every dish in Yunnan"**: complete Food Dex + every NPC story
+  - **Zero Spill%**: never spill a drop (a fun challenge category)
+
+### Open for everyone else
+- No real fail state, just the harder Overtime path.
+- Optional hints from grandma ("Maybe ask the mushroom lady about the broth?").
+- A **Relaxed mode** where the soup doesn't go cold and timers are gentle.
+
+---
+
+## 11. 2D or 3D? Decide by gameplay
+
+**Decided:** gameplay first, no 2D/3D war.
+
+**Recommendation: 3D, Animal Crossing-style low-poly with a tilted, mostly fixed camera.** Because of what the gameplay needs:
+- **Yunnan is mountains.** Switchback roads, terraced fields, bridges over gorges, and the **finale on a bridge**. Height matters, and that reads much better in 3D.
+- **The ride has to feel good.** Soup slosh, drifting, curb hops and speedrun tech are easier to make *feel* great with 3D physics.
+- **"Food Reveal" moments** need the camera to swoop in dramatically, God of Cookery style.
+- **Simple 3D is cheap.** Animal Crossing characters are basic shapes with big faces, much less work than hand-animating every frame of a 2D sprite.
+
+**Where 2D still wins:** the **phone UI** (delivery app, notebook, chats, AI chatbot), the **bag-packing puzzle**, and the **Bowl Lab** can all be flat 2D screens. That's the Animal Crossing approach too: a 3D world with a 2D phone.
+
+---
+
+## 12. Remaining open questions
+
+- **Protagonist details:** name, appearance, how much Chinese they speak at the start (grandma as Chinese teacher would be fun).
+- **Why the neighbour?** Villain, misunderstood rival, or grandpa's estranged brother?
+- **Grandpa's original secret:** what *was* it? (Needed for the Golden Bowl ending.)
+- **Real brand names:** use a parody delivery app (e.g. a yellow-helmet "美单 MeiDan") rather than real company names/logos, to avoid trademark trouble.
+- **Map:** all of Yunnan as separate small regions you travel between (by scooter + high-speed train), or one connected open world? Separate regions are far easier to build and better for speedrun routing.
+
+---
+
+## 13. Suggested first prototype (vertical slice)
 
 Build **one day** before anything else, to answer the big question: *are deliveries fun?*
 
-1. One small town (e.g. Jianshui) with 3 restaurants and 5 customers.
+1. One Kunming neighbourhood (grandpa's shuttered shop + the neighbour's chain across the street) with 3 restaurants and 5 customers.
 2. The bag-packing puzzle + a 60-second ride with heat/slosh.
 3. 3 hand-written deliveries with different twists (crowd search, stealth, lonely customer).
 4. One evening Bowl Lab with 3 slots.
 5. Placeholder "animalese" voice with tones.
 
-Engine suggestion: **Godot 4** (free, light, good for a stylised 2.5D/3D look and quick to iterate). For an even faster throwaway test, the bag puzzle and Bowl Lab could be prototyped as a web page first.
+Engine suggestion: **Godot 4** (free, light, strong 3D for a stylised low-poly look, quick to iterate). For an even faster throwaway test, the bag puzzle and Bowl Lab could be prototyped as a web page first.
