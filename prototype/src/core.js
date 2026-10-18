@@ -14,6 +14,7 @@ export const G = {
   auntieGags: 0,
   bans: new Set(),         // restaurants that caught you scheming
   run: null,               // the active delivery, if any
+  skip: false,             // the player pressed Skip during a cutscene
   flags: {},
 };
 

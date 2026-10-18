@@ -14,7 +14,9 @@ python3 -m http.server 8000
 
 Shortcuts: `?start=day2` or `#day2` (skip to the delivery day), `?start=evening` or `#evening` (jump to grandma's Bowl Lab), `?name=Niko` (set the rider's name).
 
-**Controls:** WASD / arrow keys to move or steer · E / Space / Enter to talk & advance · O to open the Duck app · hold Shift to speed up text. On a phone: on-screen joystick + yellow button.
+**Controls:** WASD / arrow keys to move or steer · E / Space / Enter to interact · O to open the Duck app. On a phone: on-screen joystick + yellow button.
+
+**Cutscenes:** story moments play by themselves, with cinematic bars, a camera that frames each conversation, and lines that advance after a reading pause. A tap / E / Space jumps a line ahead (never required); **Skip ⏭** (or Esc) fast-forwards to the next choice or the end of the scene. Only choices wait for you.
 
 ## What's in it
 

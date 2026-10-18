@@ -22,6 +22,7 @@ export const player = {
   bumpCooldown: 0,
   crashCooldown: 0,
   camFocus: null,    // optional override {x, z}
+  camYaw: 0,         // cutscene camera direction (0 = from the south)
 };
 
 function makeBike() {
@@ -161,7 +162,13 @@ function syncMeshes(dt, t) {
   const c = player.char;
   if (player.mode === 'foot') {
     c.root.position.set(player.pos.x, 0.1, player.pos.z);
-    c.root.rotation.y = player.heading;
+    // in cutscenes, turn partly towards the camera so the face reads
+    let want = player.heading;
+    if (G.flags.cine) {
+      const cam = W.camera.position;
+      want += angleDiff(player.heading, Math.atan2(cam.x - player.pos.x, cam.z - player.pos.z)) * 0.55;
+    }
+    c.root.rotation.y += angleDiff(c.root.rotation.y, want) * Math.min(1, dt * 10 || 1);
     c.animate(dt, player.speed, t);
   } else {
     player.bike.position.set(player.pos.x, 0.1, player.pos.z);
@@ -176,17 +183,23 @@ function syncMeshes(dt, t) {
 
 const camPos = new THREE.Vector3(0, 30, 30);
 const camLook = new THREE.Vector3();
+let camYaw = 0;
 
 export function updateCamera(dt, snap = false) {
   const f = player.camFocus || player.pos;
   const bike = player.mode === 'bike';
-  const ahead = bike ? 4 * player.speed / BIKE_MAX : 0;
+  const cine = G.flags.cine;
+  const ahead = bike && !cine ? 4 * player.speed / BIKE_MAX : 0;
   const tx = f.x + Math.sin(player.heading) * ahead;
   const tz = f.z + Math.cos(player.heading) * ahead;
-  const h = bike ? 16 : 11.5, back = bike ? 19.5 : 15;
-  const k = snap ? 1 : Math.min(1, dt * 4);
-  camPos.lerp(new THREE.Vector3(tx, h, tz + back), k);
-  camLook.lerp(new THREE.Vector3(tx, 1.5, tz), k);
+  // cutscenes: lower, closer, slightly from the side, like a film camera
+  const h = cine ? 5.5 : bike ? 16 : 11.5, back = cine ? 10.5 : bike ? 19.5 : 15, side = cine ? 3 : 0;
+  const k = snap ? 1 : Math.min(1, dt * (cine ? 2.2 : 4));
+  camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : Math.min(1, dt * 2.5));
+  const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;
+  const oz = Math.cos(camYaw) * back - Math.sin(camYaw) * side;
+  camPos.lerp(new THREE.Vector3(tx + ox, h, tz + oz), k);
+  camLook.lerp(new THREE.Vector3(tx, cine ? 2.3 : 1.5, tz), k);
   W.camera.position.copy(camPos);
   W.camera.lookAt(camLook);
 }

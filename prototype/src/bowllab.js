@@ -3,7 +3,7 @@
 // grandpa's bowl and gives per-slot feedback.
 
 import { G, esc, wait } from './core.js';
-import { openPanel, closePanel } from './ui.js';
+import { openPanel, closePanel, beat } from './ui.js';
 import { sfx } from './audio.js';
 
 export const SLOTS = [
@@ -80,7 +80,13 @@ export function bowlLab(mode = 'free') {
     const ai = mode === 'ai';
     const pick = ai ? { broth: 'cube', oil: 'none', top: 'cheese' } : { broth: null, oil: null, top: null };
     let extras = ai ? ['gold', 'sparkler'] : [];
-    let tasted = false;
+    let tasted = false, finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      closePanel();
+      resolve(result());
+    };
 
     const panel = openPanel(`<div class="card" id="lab"></div>`);
     const root = panel.querySelector('#lab');
@@ -124,10 +130,7 @@ export function bowlLab(mode = 'free') {
       const again = root.querySelector('#lab-again');
       if (again) again.addEventListener('click', () => { tasted = false; render(); });
       const done = root.querySelector('#lab-done');
-      if (done) done.addEventListener('click', () => {
-        closePanel();
-        resolve(result());
-      });
+      if (done) done.addEventListener('click', finish);
     }
 
     function verdicts() {
@@ -151,13 +154,15 @@ export function bowlLab(mode = 'free') {
         const el = root.querySelector('#taste-face');
         if (el) el.textContent = f;
         sfx('beep');
-        await wait(0.45);
+        await (ai ? beat(0.45) : wait(0.45));
       }
       const r = result();
       sfx(r.perfect ? 'reveal' : r.greens >= 2 ? 'ding' : 'fail');
       render(verdicts());
+      if (ai) beat(3.6).then(finish);   // the day-1 disaster plays out by itself
     }
 
     render();
+    if (ai) beat(1.8).then(() => { if (!tasted) taste(); });
   });
 }

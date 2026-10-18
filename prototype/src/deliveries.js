@@ -1,16 +1,21 @@
 // Day 2's orders. Each one is pick-up → pack → ride → a twist at the drop-off.
 
 import * as THREE from 'three';
-import { G, until, wait, clamp, esc } from './core.js';
+import { G, until, clamp, esc } from './core.js';
 import { P, W, setMarker } from './world.js';
 import { player } from './player.js';
 import { N, SP, crowd, face } from './npcs.js';
-import { say, talk, hideDialogue, choose, emote, bark, toast, objective, foodReveal, fadeOut, fadeIn } from './ui.js';
+import { say, talk, choose, emote, bark, toast, objective, foodReveal, fadeOut, fadeIn, cutscene, beat, showResult } from './ui.js';
 import { addInteract } from './interact.js';
 import { packBag } from './bag.js';
 import { peekScheme } from './peek.js';
-import { montage, infoCard } from './phone.js';
-import { sfx, setMusic } from './audio.js';
+import { montage } from './phone.js';
+import { sfx, setMusic, blip } from './audio.js';
+
+// a few voice blips so bubble answers still "talk"
+function blipLine(text) {
+  [...text].slice(0, 10).forEach((ch, i) => setTimeout(() => blip(ch, 'crowd'), i * 45));
+}
 
 export const ORDERS = [
   {
@@ -111,19 +116,23 @@ async function pickupRose(run) {
 }
 
 async function pickupFu(run) {
-  face('fu', player);
-  await say(SP.fu, 'Duck! Green Lake order. Two minutes. The noodles cook in their own little pot, one by one.', { zh: '小锅米线，一锅一锅煮！', face: 'normal' });
-  await say(SP.you, '(She keeps glancing at a brown jar by the stove. That must be the secret…)', { face: 'smug' });
-  hideDialogue();
-  const c = await choose(['Wait politely', 'Scheme: sneak a look at the jar 🕵️']);
-  if (c === 0) {
-    await talk([
-      [SP.fu, 'A rider who waits without whining? Here. Taste. Don’t tell anyone I’m nice.', { face: 'happy' }],
-    ]);
-    addDex('Small-pot rice noodles 小锅米线');
-    G.flags.fuPolite = true;
-  } else {
-    const r = await peekScheme();
+  let c = 0;
+  await cutscene(async () => {
+    face('fu', player);
+    await say(SP.fu, 'Duck! Green Lake order. Two minutes. The noodles cook in their own little pot, one by one.', { zh: '小锅米线，一锅一锅煮！', face: 'normal' });
+    await say(SP.you, '(She keeps glancing at a brown jar by the stove. That must be the secret…)', { face: 'smug' });
+    c = await choose(['Wait politely', 'Scheme: sneak a look at the jar 🕵️']);
+    if (c === 0) {
+      await talk([
+        [SP.fu, 'A rider who waits without whining? Here. Taste. Don’t tell anyone I’m nice.', { face: 'happy' }],
+      ]);
+      addDex('Small-pot rice noodles 小锅米线');
+      G.flags.fuPolite = true;
+    }
+  });
+  if (c === 0) return;
+  const r = await peekScheme();
+  await cutscene(async () => {
     if (r === 'success') {
       await foodReveal('🫙', 'Secret Chilli Oil!', 'Dried chillies, Sichuan pepper and a spoon of sugar, fried slowly in rapeseed oil. She pours a shiny red layer on every pot.');
       run.found.push(addFinding('oil:chilli', '🌶️', 'Fried chilli oil', "Auntie Fu's secret jar (you sneaky duck)"));
@@ -138,7 +147,7 @@ async function pickupFu(run) {
       G.bans.add('fu');
       run.notes.push('Auntie Fu banned you. Clue: chillies… and something sweet?');
     }
-  }
+  });
 }
 
 // ---------- drop-off twists ----------
@@ -169,15 +178,16 @@ async function dropRedhat(run) {
       npc.behavior.wait = 3;
       if (npc.id === 'redhat') {
         found = true;
-        await talk([
+        await cutscene(() => talk([
           [SP.redhat, 'My chicken! My wife ordered it for me. She says I don’t eat enough.', { face: 'happy', emote: '❤️' }],
           [SP.you, 'She’s right. You look like you need a steam pot.', { face: 'happy' }],
-        ]);
+        ]));
         done = true;
       } else {
-        const sp = { ...SP.crowd, char: npc.char };
-        await say(sp, CROWD_LINES[i % CROWD_LINES.length], { face: i % 3 ? 'smug' : 'normal' });
-        hideDialogue();
+        // wrong person: they answer in a bubble and you keep moving
+        npc.char.setFace(i % 3 ? 'smug' : 'normal');
+        bark(npc.char, CROWD_LINES[i % CROWD_LINES.length], 3.4);
+        blipLine(CROWD_LINES[i % CROWD_LINES.length]);
         run.asked = (run.asked || 0) + 1;
       }
     },
@@ -218,31 +228,31 @@ async function dropSurprise(run) {
   });
   off();
   gf.char.root.remove(cone);
-  G.flags.cutscene = true;
   const b = gf.behavior;
   gf.behavior = { type: 'idle' };
-  if (spotted) {
-    sfx('gasp');
-    emote(gf.char, '❗');
-    face('gf', player);
-    await talk([
-      [SP.gf, 'Who is that for?! …FLOWER CAKES?! And… a watermelon?', { zh: '这是给谁的？！', face: 'shock' }],
-      [SP.bf, 'It was a SURPRISE! Duck, you had ONE job!', { face: 'sad', emote: '💧' }],
-      [SP.gf, 'Aiya, you silly man. …I love it.', { face: 'happy', emote: '❤️' }],
-    ]);
-  } else {
-    face('bf', player);
-    await talk([
-      [SP.bf, '(whispering) You made it! She didn’t see a thing. Thank you, Duck!', { face: 'happy' }],
-    ]);
-    face('gf', N.bf);
-    await wait(0.3);
-    emote(gf.char, '❤️');
-    await talk([
-      [SP.gf, 'Flower cakes?! For me?! You remembered!', { face: 'happy', emote: '❤️' }],
-    ]);
-  }
-  G.flags.cutscene = false;
+  await cutscene(async () => {
+    if (spotted) {
+      sfx('gasp');
+      emote(gf.char, '❗');
+      face('gf', player);
+      await talk([
+        [SP.gf, 'Who is that for?! …FLOWER CAKES?! And… a watermelon?', { zh: '这是给谁的？！', face: 'shock' }],
+        [SP.bf, 'It was a SURPRISE! Duck, you had ONE job!', { face: 'sad', emote: '💧' }],
+        [SP.gf, 'Aiya, you silly man. …I love it.', { face: 'happy', emote: '❤️' }],
+      ]);
+    } else {
+      face('bf', player);
+      await talk([
+        [SP.bf, '(whispering) You made it! She didn’t see a thing. Thank you, Duck!', { face: 'happy' }],
+      ]);
+      face('gf', N.bf);
+      await beat(0.4);
+      emote(gf.char, '❤️');
+      await talk([
+        [SP.gf, 'Flower cakes?! For me?! You remembered!', { face: 'happy', emote: '❤️' }],
+      ]);
+    }
+  });
   gf.behavior = b;
   return spotted ? { cap: 3, line: 'Surprise ruined… but she loved it anyway.' } : { cap: 5, line: 'Perfect stealth delivery. True love saved.' };
 }
@@ -253,35 +263,34 @@ async function dropLonely(run) {
   const off = addInteract({ at: () => N.li.pos, r: 3, label: 'Deliver', fn: async () => { met = true; } });
   await until(() => met);
   off();
-  G.flags.cutscene = true;
-  face('li', player);
-  await talk([
-    [SP.li, 'Ah. The noodles. Thank you, young duck.', { zh: '谢谢你，小鸭子。', face: 'normal' }],
-    [SP.li, '…Would you sit for a moment? Just a moment. It’s quiet here, with the last gulls leaving.', { face: 'sad' }],
-  ]);
-  hideDialogue();
-  const c = await choose(['Sit and eat with him (takes an hour)', 'Sorry, next order! (+¥3 speed bonus)']);
   let line;
-  if (c === 0) {
-    await fadeOut();
-    G.clock += 60;
-    await fadeIn();
+  await cutscene(async () => {
+    face('li', player);
     await talk([
-      [SP.li, 'My wife brought me lunch at the office every day. Forty years. All the way across the Green Lake bridge.', { face: 'normal' }],
-      [SP.li, 'She poured a little *chicken fat* on the soup, so it stayed hot the whole way. Clever woman.', { face: 'happy', emote: '✨' }],
-      [SP.you, '…The fat keeps the heat in. Like the legend.', { face: 'shock', emote: '💡' }],
-      [SP.li, 'She is gone now. So I order noodles, and I sit where she used to wave from the bridge.', { face: 'sad' }],
-      [SP.li, 'Food is never just food, young duck. It is who it is for.', { face: 'normal' }],
+      [SP.li, 'Ah. The noodles. Thank you, young duck.', { zh: '谢谢你，小鸭子。', face: 'normal' }],
+      [SP.li, '…Would you sit for a moment? Just a moment. It’s quiet here, with the last gulls leaving.', { face: 'sad' }],
     ]);
-    run.found.push(addFinding('oil:fat', '✨', 'Chicken fat layer', 'Mr Li: so it stayed hot all the way across the bridge'));
-    run.memory = '“Food is never just food. It is who it is for.” (Mr Li)';
-    line = 'You stayed. He waved at the bridge for a long time.';
-  } else {
-    G.money += 3;
-    await talk([[SP.li, 'Of course. Young people are busy. Go, go.', { face: 'sad', emote: '💧' }]]);
-    line = 'He waved you off. He seemed lonely.';
-  }
-  G.flags.cutscene = false;
+    const c = await choose(['Sit and eat with him (takes an hour)', 'Sorry, next order! (+¥3 speed bonus)']);
+    if (c === 0) {
+      await fadeOut();
+      G.clock += 60;
+      await fadeIn();
+      await talk([
+        [SP.li, 'My wife brought me lunch at the office every day. Forty years. All the way across the Green Lake bridge.', { face: 'normal' }],
+        [SP.li, 'She poured a little *chicken fat* on the soup, so it stayed hot the whole way. Clever woman.', { face: 'happy', emote: '✨' }],
+        [SP.you, '…The fat keeps the heat in. Like the legend.', { face: 'shock', emote: '💡' }],
+        [SP.li, 'She is gone now. So I order noodles, and I sit where she used to wave from the bridge.', { face: 'sad' }],
+        [SP.li, 'Food is never just food, young duck. It is who it is for.', { face: 'normal' }],
+      ]);
+      run.found.push(addFinding('oil:fat', '✨', 'Chicken fat layer', 'Mr Li: so it stayed hot all the way across the bridge'));
+      run.memory = '“Food is never just food. It is who it is for.” (Mr Li)';
+      line = 'You stayed. He waved at the bridge for a long time.';
+    } else {
+      G.money += 3;
+      await talk([[SP.li, 'Of course. Young people are busy. Go, go.', { face: 'sad', emote: '💧' }]]);
+      line = 'He waved you off. He seemed lonely.';
+    }
+  });
   return { cap: 5, line };
 }
 
@@ -292,13 +301,11 @@ export async function runOrder(order) {
   G.run = run;
 
   if (order.montage) {
-    G.flags.cutscene = true;
-    await talk([
+    await cutscene(() => talk([
       [SP.spud, 'Ten portions for the tech tower. Those office people never eat real food.', { face: 'normal' }],
       [SP.you, 'I… used to be one of those office people.', { face: 'sad' }],
       [SP.spud, 'A foreigner who respects the potato. Rare. Go!', { face: 'happy', emote: '🥔' }],
-    ]);
-    G.flags.cutscene = false;
+    ]));
     await montage(['Up 23 floors in a lift full of laptops…', '“Is this… food? Made by a human?”', 'They clap. One of them cries.'], order.pay);
     G.money += order.pay;
     G.clock += 60;
@@ -313,11 +320,8 @@ export async function runOrder(order) {
   await reach(order.pickup, 3.2);
   player.speed = 0;
   setMarker(null);
-  G.flags.cutscene = true;
-  if (order.from === 'ji') await pickupJi(run);
-  if (order.from === 'rose') await pickupRose(run);
   if (order.from === 'fu') await pickupFu(run);
-  G.flags.cutscene = false;
+  else await cutscene(() => (order.from === 'ji' ? pickupJi(run) : pickupRose(run)));
 
   const pack = await packBag(order);
   run.spill = pack.spill;
@@ -351,7 +355,7 @@ export async function runOrder(order) {
     : stars === 4 ? '“Very good! A tiny bit wobbly.”'
     : stars === 3 ? '“It arrived. That’s something.”'
     : '“Is this soup or a puddle?”';
-  await infoCard(`
+  showResult(`
     <h2>${order.ico} Delivered!</h2>
     <div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(5 - stars)}</div>
     <p>${esc(customerLine)}</p>

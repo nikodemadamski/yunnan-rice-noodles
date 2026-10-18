@@ -2,9 +2,10 @@
 // "food reveal" and livestream bullet comments.
 
 import { G, addTicker, wait, esc } from './core.js';
-import { takeAction, clearAction, queueAction, keyDown } from './input.js';
+import { takeAction, clearAction, queueAction } from './input.js';
 import { blip, sfx } from './audio.js';
-import { toScreen } from './world.js';
+import { toScreen, W } from './world.js';
+import { player } from './player.js';
 
 const $ = id => document.getElementById(id);
 
@@ -37,11 +38,17 @@ function renderSegs(segs, n) {
 
 /**
  * speaker: { name, color, voice, char? }
- * o: { zh, tr, face, emote, speed }
+ * o: { zh, tr, face, emote, speed, hold }
+ *
+ * Lines type themselves out and advance on their own after a reading pause
+ * scaled to their length. A tap / E / Space skips ahead, but is never needed.
  */
 export function say(sp, text, o = {}) {
   text = text.replaceAll('{name}', G.name);
+  if (sp.char && o.face) sp.char.setFace(o.face);
+  if (G.skip) return Promise.resolve();
   G.busy++;
+  if (G.flags.cine && sp.char) frame(sp.char);
   return new Promise(res => {
     dlg.classList.remove('hidden', 'done');
     const name = $('dlg-name');
@@ -49,22 +56,31 @@ export function say(sp, text, o = {}) {
     name.style.background = sp.color || '#8a7562';
     $('dlg-zh').textContent = o.zh || '';
     $('dlg-tr').textContent = o.tr ? `🦆 Goggle Translate: “${o.tr}”` : '';
-    if (sp.char && o.face) sp.char.setFace(o.face);
     if (sp.char && o.emote) emote(sp.char, o.emote);
     const segs = segments(text);
     const total = segs.reduce((a, s) => a + [...s.t].length, 0);
     const chars = segs.flatMap(s => [...s.t]);
     const el = $('dlg-text');
+    const timer = $('dlg-timer');
     el.innerHTML = '';
-    let shown = 0, acc = 0;
-    const cps = (o.speed || 1) * (keyDown('ShiftLeft') ? 90 : 32);
+    timer.style.width = '0%';
+    let shown = 0, acc = 0, held = 0;
+    const cps = (o.speed || 1) * 38;
+    const hold = o.hold ?? Math.min(4.2, 1.1 + total * 0.03);
     clearAction();
     let talkT = 0;
+    const finish = () => {
+      if (sp.char) sp.char.head.position.y = 2.25;
+      G.busy--;
+      res();
+      return true;
+    };
     addTicker(dt => {
+      if (G.skip) return finish();
       if (shown < total) {
         acc += dt * cps;
         if (takeAction()) acc = total;
-        let next = Math.min(total, Math.floor(acc));
+        const next = Math.min(total, Math.floor(acc));
         while (shown < next) {
           if (next - shown < 4) blip(chars[shown], sp.voice);
           shown++;
@@ -74,16 +90,96 @@ export function say(sp, text, o = {}) {
         if (shown >= total) dlg.classList.add('done');
         return false;
       }
-      if (takeAction()) {
-        sfx('pop');
-        if (sp.char) sp.char.head.position.y = 2.25;
-        G.busy--;
-        res();
-        return true;
-      }
+      if (sp.char) sp.char.head.position.y = 2.25;
+      held += dt;
+      timer.style.width = `${Math.min(100, (held / hold) * 100)}%`;
+      if (held >= hold || takeAction()) return finish();
     });
   });
 }
+
+// ---------- cutscenes ----------
+
+// Point the cinematic camera at a conversation: from the side of the line
+// between the two speakers (so both faces show), or in front of a lone speaker.
+let partner = null;
+function frame(char) {
+  const other = char === player.char ? partner : char;
+  if (char !== player.char) partner = char;
+  if (!other) return;
+  const p = other.root.position;
+  const dx = p.x - player.pos.x, dz = p.z - player.pos.z, d = Math.hypot(dx, dz);
+  if (d < 9) {
+    player.camFocus = { x: (p.x + player.pos.x) / 2, z: (p.z + player.pos.z) / 2 };
+    // the two perpendiculars to the speaker line; prefer the more southern
+    // one, unless a wall is in the way on that side
+    const cx = (p.x + player.pos.x) / 2, cz = (p.z + player.pos.z) / 2;
+    const score = yaw => Math.cos(yaw) - (blocked(cx, cz, yaw) ? 3 : 0);
+    const a = Math.atan2(dz, -dx), b = Math.atan2(-dz, dx);
+    player.camYaw = score(a) >= score(b) ? a : b;
+    if (player.mode === 'foot') player.heading = Math.atan2(dx, dz);
+  } else {
+    player.camFocus = { x: p.x, z: p.z };
+    player.camYaw = other.root.rotation.y;
+  }
+}
+
+function blocked(x, z, yaw) {
+  for (const r of [3, 6, 9]) {
+    const px = x + Math.sin(yaw) * r, pz = z + Math.cos(yaw) * r;
+    if (W.colliders.some(c => c.tag !== 'lake' && px > c.x0 - 0.5 && px < c.x1 + 0.5 && pz > c.z0 - 0.5 && pz < c.z1 + 0.5)) return true;
+  }
+  return false;
+}
+
+// In cutscenes people "cheat to camera": they face each other, turned partly towards us.
+export function cheatFacing(facing, x, z) {
+  if (!G.flags.cine) return facing;
+  const c = W.camera.position;
+  const toCam = Math.atan2(c.x - x, c.z - z);
+  let d = toCam - facing;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return facing + d * 0.55;
+}
+
+export function shot(pos, yaw = 0) {
+  player.camFocus = pos ? { x: pos.x, z: pos.z } : null;
+  player.camYaw = yaw;
+}
+
+/** Run a story moment as a cutscene: black bars, no HUD, auto-playing, skippable. */
+export async function cutscene(fn) {
+  G.flags.cine = true;
+  G.flags.cutscene = true;
+  G.skip = false;
+  document.body.classList.add('cine');
+  try {
+    await fn();
+  } finally {
+    hideDialogue();
+    G.flags.cine = false;
+    G.flags.cutscene = false;
+    G.skip = false;
+    player.camFocus = null;
+    player.camYaw = 0;
+    partner = null;
+    document.body.classList.remove('cine');
+  }
+}
+
+/** A pause inside a cutscene; skipping makes it instant. */
+export function beat(sec) {
+  if (G.skip) return Promise.resolve();
+  let t = 0;
+  return new Promise(res => addTicker(dt => {
+    t += dt;
+    if (G.skip || t >= sec) { res(); return true; }
+  }));
+}
+
+$('cine-skip').addEventListener('click', e => { e.stopPropagation(); G.skip = true; sfx('beep'); });
+addEventListener('keydown', e => { if (e.code === 'Escape' && G.flags.cine) G.skip = true; });
 
 export function hideDialogue() { dlg.classList.add('hidden'); }
 
@@ -96,6 +192,7 @@ export async function talk(lines) {
 // ---------- choices ----------
 
 export function choose(options) {
+  G.skip = false;
   G.busy++;
   return new Promise(res => {
     const box = $('choices');
@@ -247,6 +344,7 @@ export function closePanel() {
 // ---------- the God of Cookery moment ----------
 
 export function foodReveal(dish, head, desc, sec = 3.4) {
+  if (G.skip) return Promise.resolve();
   G.busy++;
   const r = $('reveal');
   r.innerHTML = `<div class="rays"></div><div class="inner"><div class="dish">${dish}</div>
@@ -254,7 +352,7 @@ export function foodReveal(dish, head, desc, sec = 3.4) {
   r.classList.remove('hidden');
   sfx('gong');
   setTimeout(() => sfx('reveal'), 500);
-  return wait(sec).then(() => {
+  return beat(sec).then(() => {
     r.classList.add('hidden');
     r.innerHTML = '';
     G.busy--;
@@ -281,4 +379,18 @@ export function danmaku(lines, sec = 6) {
     }, (i * sec * 1000) / lines.length * 0.7);
   });
   setTimeout(() => badge.remove(), sec * 1000 + 1500);
+}
+
+// ---------- delivery results: slide in, then slide away by themselves ----------
+
+let resultTimer = null;
+export function showResult(html, sec = 7) {
+  const el = $('result-pop');
+  clearTimeout(resultTimer);
+  el.classList.remove('hidden', 'out');
+  el.innerHTML = html;
+  resultTimer = setTimeout(() => {
+    el.classList.add('out');
+    resultTimer = setTimeout(() => el.classList.add('hidden'), 500);
+  }, sec * 1000);
 }

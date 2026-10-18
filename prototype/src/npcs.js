@@ -5,7 +5,7 @@ import { makeCharacter, mat } from './characters.js';
 import { W, P, collide } from './world.js';
 import { player } from './player.js';
 import { G, rng, dist2 } from './core.js';
-import { bark } from './ui.js';
+import { bark, cheatFacing } from './ui.js';
 
 const R = rng(7);
 export const N = {};       // id → npc
@@ -135,7 +135,10 @@ export function updateNPCs(dt, t) {
     if (!n.char.root.visible) continue;
     const b = n.behavior;
     let speed = 0;
-    if (n.walk) {
+    if (n.walk && G.skip) {
+      n.pos.x = n.walk.x; n.pos.z = n.walk.z;
+      const r = n.walk.res; n.walk = null; r();
+    } else if (n.walk) {
       const dx = n.walk.x - n.pos.x, dz = n.walk.z - n.pos.z, d = Math.hypot(dx, dz);
       if (d < 0.2) { const r = n.walk.res; n.walk = null; r(); }
       else {
@@ -201,7 +204,8 @@ export function updateNPCs(dt, t) {
     }
     n.barkT -= dt;
     n.char.root.position.set(n.pos.x, 0.1, n.pos.z);
-    let dr = n.facing - n.char.root.rotation.y;
+    const want = n.walk || b.type !== 'idle' ? n.facing : cheatFacing(n.facing, n.pos.x, n.pos.z);
+    let dr = want - n.char.root.rotation.y;
     while (dr > Math.PI) dr -= Math.PI * 2;
     while (dr < -Math.PI) dr += Math.PI * 2;
     n.char.root.rotation.y += dr * Math.min(1, dt * 8);

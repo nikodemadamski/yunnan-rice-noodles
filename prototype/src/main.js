@@ -6,7 +6,7 @@ import { player, initPlayer, updatePlayer, updateCamera, teleport } from './play
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
 import { initAudio, setMusic, toggleMute, sfx } from './audio.js';
-import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote } from './ui.js';
+import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote, cutscene } from './ui.js';
 import { updateInteract } from './interact.js';
 import { updateRun } from './deliveries.js';
 import { day1, day2, evening, openBoard } from './story.js';
@@ -135,7 +135,7 @@ function title() {
         <button class="btn-big" id="t-start">▶ Start</button>
         <button class="btn-soft" id="t-skip">Skip to Day 2 (deliveries)</button>
       </div>
-      <p class="sub" style="margin-top:14px">Prototype · Day 1–2 · Keyboard: WASD/arrows + E/Space · Phone: joystick + yellow button · Hold Shift to speed up text</p>
+      <p class="sub" style="margin-top:14px">Prototype · Day 1–2 · Keyboard: WASD/arrows + E · Phone: joystick + yellow button · Story scenes play by themselves (Skip ⏭ any time)</p>
     </div>`);
     p.querySelector('#t-start').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('full'); });
     p.querySelector('#t-skip').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('day2'); });
@@ -149,7 +149,7 @@ async function run() {
   if (mode === 'full') {
     await fadeOut(0.3);
     $('fade').classList.remove('on');
-    await prologue();
+    await cutscene(prologue);
     await day1();
   }
   if (mode === 'full' || mode === 'day2') {

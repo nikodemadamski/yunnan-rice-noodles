@@ -2,7 +2,7 @@
 // entry), the in-flight "perfect recipe", and the Little Yellow Duck app.
 
 import { G, esc, wait, addTicker } from './core.js';
-import { openPanel, closePanel } from './ui.js';
+import { openPanel, closePanel, beat } from './ui.js';
 import { sfx } from './audio.js';
 import { takeAction, clearAction } from './input.js';
 
@@ -25,37 +25,34 @@ function addMsg(chat, who, html) {
   return m;
 }
 
-// "Hacker typer": every key press or tap types a few more characters.
+// The prompt types itself and sends itself. A key press or tap just speeds it up.
 function typePrompt(composer, text) {
   return new Promise(res => {
-    composer.innerHTML = `<div class="field hint" id="field">Press any key / tap here to type…</div><button id="send">Send</button>`;
+    composer.innerHTML = `<div class="field" id="field"></div><button id="send">Send</button>`;
     const field = composer.querySelector('#field');
-    let n = 0, done = false;
-    const advance = (k = 3) => {
-      if (done) return;
-      if (n >= text.length) { finish(); return; }
-      n = Math.min(text.length, n + k);
-      field.classList.remove('hint');
-      field.textContent = text.slice(0, n);
-      sfx('type');
-    };
-    const finish = () => {
-      if (n < text.length) { n = text.length; field.textContent = text; return; }
-      done = true;
-      removeEventListener('keydown', onKey);
+    let n = 0, acc = 0, sentT = 0;
+    const boost = () => { acc += 8; };
+    addEventListener('keydown', boost);
+    field.addEventListener('pointerdown', boost);
+    composer.querySelector('#send').addEventListener('click', () => { acc = text.length; });
+    addTicker(dt => {
+      if (G.skip) acc = text.length;
+      acc += dt * 34;
+      const next = Math.min(text.length, Math.floor(acc));
+      if (next > n) {
+        n = next;
+        field.textContent = text.slice(0, n);
+        sfx('type');
+      }
+      if (n < text.length) return false;
+      sentT += dt;
+      if (sentT < (G.skip ? 0 : 0.45)) return false;
+      removeEventListener('keydown', boost);
       sfx('send');
       composer.innerHTML = '';
       res();
-    };
-    const onKey = e => {
-      if (e.repeat && e.code !== 'Space') return;
-      if (e.code === 'Enter' || e.code === 'NumpadEnter') { finish(); return; }
-      advance();
-    };
-    addEventListener('keydown', onKey);
-    field.addEventListener('pointerdown', () => advance(5));
-    composer.querySelector('#send').addEventListener('click', finish);
-    clearAction();
+      return true;
+    });
   });
 }
 
@@ -74,32 +71,33 @@ export async function prologue() {
     await typePrompt(s.composer, step.me);
     addMsg(s.chat, 'me', esc(step.me));
     const dots = addMsg(s.chat, 'ai', '…');
-    await wait(0.8);
+    await beat(0.8);
     dots.innerHTML = step.ai.replace(/\*([^*]+)\*/g, '<b>$1</b>');
     sfx('pop');
     s.chat.scrollTop = s.chat.scrollHeight;
-    await wait(0.4);
+    await beat(0.4);
   }
   sfx('fail');
   const phone = s.p.querySelector('.phone');
   phone.classList.add('shake');
   addMsg(s.chat, 'me', 'WHAT?!?!?!');
-  await wait(1.6);
+  await beat(1.6);
   closePanel();
 
   // Boss chat: emergency leave + the player's name
   const b = screen('💼 Slick · #team-growth', '', '#ffe2c6');
   addMsg(b.chat, 'boss', '<b>Boss:</b> …hey, who just shouted “WHAT” in the office');
-  await wait(0.9);
+  await beat(0.9);
   await typePrompt(b.composer, 'EMERGENCY. I need my annual leave. All of it.');
   addMsg(b.chat, 'me', 'EMERGENCY. I need my annual leave. All of it.');
-  await wait(0.8);
+  await beat(0.8);
   addMsg(b.chat, 'boss', '<b>Boss:</b> All 22 days?? 😳 …fine. You never take any. Name for the form?');
+  G.skip = false;
   G.name = await askName(b.composer);
   addMsg(b.chat, 'me', esc(G.name));
-  await wait(0.6);
+  await beat(0.6);
   addMsg(b.chat, 'boss', `<b>Boss:</b> Leave approved ✅ 22 days. First paycheck when you're back, ${esc(G.name)}. Don't do anything mad.`);
-  await wait(1.8);
+  await beat(1.8);
   closePanel();
 
   // On the plane
@@ -108,13 +106,13 @@ export async function prologue() {
   await typePrompt(a.composer, 'give me the PERFECT cross bridge noodle recipe');
   addMsg(a.chat, 'me', 'give me the PERFECT cross bridge noodle recipe');
   const d = addMsg(a.chat, 'ai', '…');
-  await wait(0.9);
+  await beat(0.9);
   d.innerHTML = 'Of course! ✨ The <b>perfect</b> recipe:<br>• 1 stock cube<br>• a generous handful of cheddar 🧀<br>• gold leaf for the “wow”<br>• a sparkler for engagement 🎆<br>Trust me 🙂';
   sfx('pop');
-  await wait(0.6);
+  await beat(0.6);
   await typePrompt(a.composer, 'perfect.');
   addMsg(a.chat, 'me', 'perfect.');
-  await wait(1.2);
+  await beat(1.2);
   closePanel();
 }
 
@@ -147,7 +145,10 @@ export function duckSignup() {
         <button class="btn-big" id="duck-go">Quack! Start riding</button>
       </div></div></div>`);
     sfx('quack');
-    p.querySelector('#duck-go').addEventListener('click', () => { closePanel(); sfx('quack'); res(); });
+    let done = false;
+    const go = () => { if (done) return; done = true; closePanel(); sfx('quack'); res(); };
+    p.querySelector('#duck-go').addEventListener('click', go);
+    beat(3).then(go);
   });
 }
 
