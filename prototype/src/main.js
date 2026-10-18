@@ -3,6 +3,7 @@
 import { G, CLOCK_SPEED, runTickers, fmtClock, esc } from './core.js';
 import { W, P, initWorld, updateWorld, updateOcclusion, updateSun, applyShadows } from './world.js';
 import { updateFx, feel } from './fx.js';
+import { dressWorld } from './props.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
@@ -23,6 +24,7 @@ initPlayer();
 initNPCs();
 initInput();
 applyShadows();
+dressWorld();
 teleport(P.start.x, P.start.z, Math.PI / 2);
 updateCamera(0, true);
 
