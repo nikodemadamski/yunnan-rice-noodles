@@ -97,12 +97,36 @@ function bg(top, bottom) {
   ctx.fillRect(0, 0, W, H);
 }
 
+// Grandma's counter, seen from above: warm wooden planks, a strip of white
+// wall tiles at the back, soft lamplight. Drawn once, then blitted.
+let counterImg = null;
 function tiles() {
-  bg('#efe3ff', '#dcc8f5');
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 2;
-  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  if (!counterImg) {
+    counterImg = document.createElement('canvas');
+    counterImg.width = W * 2; counterImg.height = H * 2;
+    const g = counterImg.getContext('2d');
+    g.scale(2, 2);
+    const wood = g.createLinearGradient(0, 0, 0, H);
+    wood.addColorStop(0, '#c98f5c'); wood.addColorStop(1, '#a8703f');
+    g.fillStyle = wood; g.fillRect(0, 0, W, H);
+    for (let y = 30; y < H; y += 46) {
+      g.fillStyle = 'rgba(70,40,15,.18)'; g.fillRect(0, y, W, 2);
+      g.strokeStyle = 'rgba(70,40,15,.08)'; g.lineWidth = 1.2;
+      for (let k = 0; k < 5; k++) {                       // grain
+        g.beginPath(); const yy = y + 8 + k * 7;
+        g.moveTo(0, yy); for (let x = 0; x <= W; x += 40) g.lineTo(x, yy + Math.sin(x * 0.03 + y + k) * 2.5); g.stroke();
+      }
+    }
+    g.fillStyle = '#f4efe6'; g.fillRect(0, 0, W, 30);     // wall tiles
+    g.strokeStyle = 'rgba(120,110,95,.25)'; g.lineWidth = 1;
+    for (let x = 0; x < W; x += 30) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 30); g.stroke(); }
+    g.beginPath(); g.moveTo(0, 15); g.lineTo(W, 15); g.stroke();
+    g.fillStyle = 'rgba(70,40,15,.35)'; g.fillRect(0, 30, W, 4);
+    const lamp = g.createRadialGradient(W / 2, H * 0.45, 40, W / 2, H * 0.45, W * 0.7);
+    lamp.addColorStop(0, 'rgba(255,220,160,.18)'); lamp.addColorStop(1, 'rgba(40,20,5,.35)');
+    g.fillStyle = lamp; g.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(counterImg, 0, 0, W, H);
 }
 
 function flames(cx, cy, r, heat, t) {
@@ -134,6 +158,8 @@ function pot(cx, cy, r, broth) {
 }
 
 function emoji(e, x, y, size) {
+  ctx.fillStyle = 'rgba(40,20,5,.22)';                    // sit it on the counter
+  ctx.beginPath(); ctx.ellipse(x + size * 0.06, y + size * 0.42, size * 0.38, size * 0.12, 0, 0, Math.PI * 2); ctx.fill();
   ctx.font = `${size}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -177,7 +203,7 @@ function roundRect(x, y, w, h, r) {
 function timerBar(frac) {
   ctx.fillStyle = 'rgba(91,70,54,0.15)';
   ctx.fillRect(0, H - 8, W, 8);
-  ctx.fillStyle = '#c86bfa';
+  ctx.fillStyle = '#e0602c';
   ctx.fillRect(0, H - 8, W * (1 - frac), 8);
 }
 
@@ -334,8 +360,8 @@ async function stepSlice(st) {
       fx.push({ text: 'Miss', x: KNIFE - 40, y: 110, t: 0, color: '#a3322a' });
     }
     // board
-    bg('#fde8f1', '#f6cfe0');
-    ctx.fillStyle = '#d9a86c'; roundRect(40, 120, 480, 170, 18); ctx.fill();
+    tiles();
+    ctx.fillStyle = '#e8c48e'; roundRect(40, 120, 480, 170, 18); ctx.fill();
     ctx.strokeStyle = '#a8754a'; ctx.lineWidth = 4; ctx.stroke();
     ctx.fillStyle = '#c99556';
     for (let i = 0; i < 6; i++) ctx.fillRect(60, 140 + i * 25, 440, 2);
