@@ -11,6 +11,7 @@ import { updateInteract } from './interact.js';
 import { updateRun } from './deliveries.js';
 import { day1, day2, evening, openBoard } from './story.js';
 import { prologue } from './phone.js';
+import { shopDay } from './shop.js';
 
 const $ = id => document.getElementById(id);
 
@@ -134,11 +135,13 @@ function title() {
       <div class="row" style="justify-content:center; margin-top:14px">
         <button class="btn-big" id="t-start">▶ Start</button>
         <button class="btn-soft" id="t-skip">Skip to Day 2 (deliveries)</button>
+        <button class="btn-soft" id="t-shop">🍜 Noodle shop (new)</button>
       </div>
       <p class="sub" style="margin-top:14px">Prototype · Day 1–2 · Keyboard: WASD/arrows + E · Phone: joystick + yellow button · Story scenes play by themselves (Skip ⏭ any time)</p>
     </div>`);
     p.querySelector('#t-start').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('full'); });
     p.querySelector('#t-skip').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('day2'); });
+    p.querySelector('#t-shop').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('shop'); });
   });
 }
 
@@ -146,6 +149,14 @@ async function run() {
   let mode = start;
   if (!mode) mode = await title();
   else initAudio();
+  if (mode === 'shop') {
+    teleport(-15, -7.2, Math.PI);
+    updateCamera(0, true);
+    await shopDay();
+    location.hash = '';
+    location.reload();
+    return;
+  }
   if (mode === 'full') {
     await fadeOut(0.3);
     $('fade').classList.remove('on');

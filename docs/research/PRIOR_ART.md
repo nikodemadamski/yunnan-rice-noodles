@@ -165,5 +165,6 @@ Plan: one `.dialogue` file per day (`day01` … `day22`), a `Cutscene` autoload 
 | Animal Crossing + animalese-tts | Syllable-merging voice, mood pitch-over-time, sentence melody, punctuation pauses | Next |
 | Paper Mario | Bubble grows out of the speaker, sound panned by screen position, talk/idle "speaking" flag | Next |
 | Animal Crossing | Duck the music while talking; talk target by facing + distance | Next |
-| Pass the Plate! + Undercooked | Recipes, assemblies and orders as data; gesture recogniser; perfect window | Next (noodle-shop mode) |
+| Pass the Plate! + Undercooked + Cozy + Papa's | Noodle-shop mode: menu/guests as data, pure-logic core (unit-tested), order tickets, timer rings that keep running, perfect window, multiset topping check, cosy patience, Star Customers | **Done** (`prototype/src/shop*.js`) |
+| Pass the Plate! | Gesture recogniser (tap / swipe / circle / hold) for prep work | Next |
 | Dialogue Manager | Story format for the Godot build | When we move to Godot |

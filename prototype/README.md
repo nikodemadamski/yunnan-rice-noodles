@@ -12,7 +12,9 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Shortcuts: `?start=day2` or `#day2` (skip to the delivery day), `?start=evening` or `#evening` (jump to grandma's Bowl Lab), `?name=Niko` (set the rider's name).
+Shortcuts: `#day2` (skip to the delivery day), `#evening` (grandma's kitchen), `#shop` (the noodle shop), `?name=Niko` (set the rider's name).
+
+Tests: `node --test prototype/tests/shopcore.test.mjs` (from the repo root).
 
 **Controls:** WASD / arrow keys to move or steer · E / Space / Enter to interact · O to open the Duck app. On a phone: on-screen joystick + yellow button.
 
@@ -30,6 +32,7 @@ Shortcuts: `?start=day2` or `#day2` (skip to the delivery day), `?start=evening`
 | Plankton scheme: sneak a look at Auntie Fu's secret jar | `src/peek.js` |
 | Evening kitchen (Cooking Mama / Papa's style), 7 stations: simmer & skim, slice on the lines, crack the quail eggs, blanch the noodles (timer ring), pour the oil layer, build in the legend's order before it cools, then a score ticket, medal and grandma's verdict. Each step opens with a hint; a failed step gets "Grandma will fix it!" and the bowl carries on | `src/kitchen.js` |
 | Day 1's AI-recipe disaster (auto-plays) and the recipe data / verdicts | `src/bowllab.js` |
+| **Noodle shop (Papa's style):** guests arrive on a schedule; take orders onto a ticket rail; two noodle baskets on timer rings keep cooking while you work elsewhere; build each bowl (broth + toppings in the bridge order); score = wait + noodles + build → points, tips and Star Customer stars; closing-time summary | `src/shop.js` (screen), `src/shopcore.js` (rules, no DOM, unit-tested), `src/shopdata.js` (menu, guests, timings) |
 | God of Cookery "food reveal" moments, livestream bullet comments, emotes, barks | `src/ui.js` |
 | Animalese-style voices with Mandarin tone contours, SFX, pentatonic music (all synthesised) | `src/audio.js` |
 | Kunming neighbourhood: Green Lake (gulls, duck tree), market, plaza aunties, courtyard, stalls, Wang's neon | `src/world.js` |

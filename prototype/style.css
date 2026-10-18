@@ -431,3 +431,61 @@ body.cine #result-pop { display: none; }
 }
 .k-grandma.fix { color: #e0602c; }
 @keyframes kpop { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } }
+
+/* ---------- noodle shop (Papa's style) ---------- */
+.shop {
+  width: min(720px, 98vw); max-height: 96vh; overflow: auto;
+  background: #fffaf2; border: 6px solid #d63c2f; border-radius: 28px; padding: 12px 14px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
+}
+.shop-top { display: flex; justify-content: space-between; align-items: center; font-weight: 900; font-size: 16px; gap: 8px; }
+.shop-rail {
+  display: flex; gap: 8px; overflow-x: auto; padding: 8px; min-height: 92px;
+  background: #5b4636; border-radius: 16px; align-items: center;
+}
+.shop-rail .sub { color: #e8dcc8; }
+.ticket {
+  flex: none; background: #fffdf6; border: 3px solid transparent; border-radius: 10px; padding: 6px 8px;
+  text-align: left; font-weight: 800; font-size: 12px; box-shadow: 0 3px 0 rgba(0,0,0,0.25); min-width: 120px;
+}
+.ticket.on { border-color: var(--duck); transform: translateY(-3px); }
+.t-head { font-size: 14px; font-weight: 900; }
+.t-row { font-size: 20px; letter-spacing: 1px; }
+.t-foot { color: var(--ink-soft); }
+.shop-tabs { display: flex; gap: 6px; }
+.shop-tabs button {
+  flex: 1; border: none; border-radius: 14px; padding: 10px; font-weight: 900; font-size: 15px;
+  background: var(--cream-2); position: relative;
+}
+.shop-tabs button.on { background: var(--duck); }
+.badge { position: absolute; top: -6px; right: 6px; background: #e2574c; color: #fff; border-radius: 99px; padding: 0 6px; font-size: 12px; }
+.badge:empty { display: none; }
+.shop-station { min-height: 230px; }
+.shop-msg { min-height: 1.4em; font-weight: 800; font-size: 14px; text-align: center; color: #7a3fa8; }
+.counter { display: flex; flex-direction: column; gap: 8px; }
+.guest { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 8px 12px; box-shadow: 0 2px 0 #eadfc8; }
+.g-body { flex: 1; min-width: 0; }
+.g-ring, .b-ring { position: relative; width: 56px; height: 56px; flex: none; }
+.b-ring { width: 120px; height: 120px; }
+.g-ico, .b-ico { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; }
+.b-ico { font-size: 54px; }
+.ring { width: 100%; height: 100%; }
+.ring circle { fill: none; stroke-width: 5; }
+.r-bg { stroke: #ece4d4; }
+.r-zone { stroke: #b9ecc4; stroke-width: 7; }
+.r-fg { stroke-linecap: round; transition: stroke 0.2s; }
+.baskets { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.basket { display: flex; flex-direction: column; align-items: center; gap: 6px; background: #fff; border-radius: 18px; padding: 12px 16px; min-width: 170px; }
+.b-label { font-weight: 900; font-size: 13px; }
+.build { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+.bowl {
+  width: 150px; height: 150px; border-radius: 50%; flex: none; margin: 0 auto;
+  background: radial-gradient(circle, var(--broth) 60%, #ffffff 62%); border: 6px solid #5b7fb5;
+  display: grid; place-items: center;
+}
+.bowl-in { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100px; font-size: 26px; }
+.b-side { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 8px; }
+.tbl { overflow-x: auto; }
+.tbl table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 4px 6px; border-bottom: 1px solid #eadfc8; text-align: left; white-space: nowrap; }
+#panel.dim { background: rgba(40, 30, 20, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
