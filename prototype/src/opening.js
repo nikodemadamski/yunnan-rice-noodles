@@ -7,6 +7,7 @@
 //   ACT 3 · the flight, with the AI's "perfect" recipe.
 // Shots are 1.5–3 s, cut on action, reactions held; almost no text on screen.
 
+import { tasteMoment } from './taste.js';
 import * as THREE from 'three';
 import { G, addTicker } from './core.js';
 import { W, makeSign, setNight } from './world.js';
@@ -403,6 +404,14 @@ export async function opening(opts = {}) {
       cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
       act(hero, 'eat');
       await beat(1.9);
+      act(hero, null);
+      await tasteMoment({
+        title: 'Grandpa Zhao’s Crossing-the-Bridge Noodles', desc: 'Kunming · the first bite', mode: 'perfect',
+        flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of chicken fat' }, { k: 'fresh', word: 'chives' },
+          { k: 'sweet', word: 'fresh rice noodles' }, { k: 'smoky', word: 'a slice of Xuanwei ham' }],
+        lesson: 'Perfect. Every flavour in its place, and something warm in the middle. I didn’t have a word for it then.',
+      });
+      cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
       act(hero, 'bounce');
       emote(hero, '✨', 1.8);
       note(784, 0.5, 'sine', 0.12); note(1047, 0.7, 'sine', 0.1, 0.12);

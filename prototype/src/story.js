@@ -87,10 +87,10 @@ export async function day1() {
   // --- PromptPal Live: you play this one
   await promptPalLive();
   await tasteMoment({
-    title: 'Supreme Mega Bowl™', desc: 'Optimised by PromptPal for 2.3 million viewers. 30% off today.', mode: 'clash',
+    title: 'Supreme Mega Bowl™', desc: 'Optimised by PromptPal for 2.3 million viewers. 30% off today.', mode: 'bomb',
     flavours: [{ k: 'rich', word: 'CHEESE' }, { k: 'savoury', word: 'MSG ×3' }, { k: 'sweet', word: 'syrup' }, { k: 'spicy', word: 'ghost pepper' },
       { k: 'sour', word: 'trending vinegar' }, { k: 'smoky', word: 'liquid smoke' }, { k: 'floral', word: 'gold leaf' }],
-    lesson: 'Everything shouting at once. Nobody singing. Maximum flavour, zero spark.',
+    lesson: 'It tasted amazing. For about three seconds. Then there was nothing left. Nobody was in it.',
   });
 
   await cutscene(async () => {
@@ -276,10 +276,15 @@ export async function evening() {
         [SP.grandma, '…This. This is almost his bowl.', { face: 'cry', emote: '💧' }],
         [SP.grandma, 'Almost. Something is still missing. Not in the pot… I wonder who it’s for?', { face: 'sad' }],
       ]);
-    } else if (r.greens >= 2) {
-      await talk([[SP.grandma, 'Close! Closer than that Wang will ever get.', { face: 'happy' }]]);
     } else {
-      await talk([[SP.grandma, 'Terrible! Wonderful! Now we know what NOT to do.', { face: 'happy', emote: '😂' }]]);
+      await tasteMoment({
+        title: 'Our first night’s bowl', desc: 'The right things, in the right order.', mode: 'pop',
+        flavours: [{ k: 'savoury', word: 'hen broth' }, { k: 'rich', word: 'oil' }, { k: 'fresh', word: 'chives' }],
+        lesson: 'Correct. Clean. …pop. Where’s the spark Grandpa’s had?',
+      });
+      await talk([r.greens >= 2
+        ? [SP.grandma, 'Close! Closer than that Wang will ever get.', { face: 'happy' }]
+        : [SP.grandma, 'Terrible! Wonderful! Now we know what NOT to do.', { face: 'happy', emote: '😂' }]]);
     }
     if (r.extras.length) await talk([[SP.grandma, 'And no more sparklers in my kitchen.', { face: 'angry', emote: '💢' }]]);
   });

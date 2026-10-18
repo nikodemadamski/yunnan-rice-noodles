@@ -191,8 +191,9 @@ async function run() {
     if (mode === 'taste') {                       // the three kinds of taste moment
       setMode('foot'); teleport(-11.5, -5.6, 0); updateCamera(0, true);
       const T = window.__taste;
-      await T({ title: 'Little Chilli’s Bowl', desc: 'Clear broth, a shine of oil, chives.', flavours: [{ k: 'savoury', word: 'clear broth' }, { k: 'rich', word: 'one drop of oil' }, { k: 'fresh', word: 'chives' }], lesson: 'Less. Every flavour needs room to be heard.' });
-      await T({ title: 'Supreme Mega Bowl™', mode: 'clash', flavours: ['rich', 'savoury', 'sweet', 'spicy', 'sour', 'smoky', 'floral'].map(k => ({ k, word: k.toUpperCase() })), lesson: 'Everything shouting at once. Nobody singing.' });
+      await T({ title: 'Grandpa Zhao’s Noodles', mode: 'perfect', flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'chicken fat' }, { k: 'fresh', word: 'chives' }, { k: 'sweet', word: 'rice noodles' }, { k: 'smoky', word: 'Xuanwei ham' }], lesson: 'Perfect.' });
+      await T({ title: 'Our first bowl', mode: 'pop', flavours: [{ k: 'savoury', word: 'hen broth' }, { k: 'rich', word: 'oil' }, { k: 'fresh', word: 'chives' }], lesson: 'Correct. Clean. …pop.' });
+      await T({ title: 'Supreme Mega Bowl™', mode: 'bomb', flavours: ['rich', 'savoury', 'sweet', 'spicy', 'sour', 'smoky', 'floral'].map(k => ({ k, word: k.toUpperCase() })), lesson: 'Everything shouting at once. Nobody singing.' });
       await T({ title: 'Almost Grandpa’s Bowl', mode: 'missing', flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of fat' }, { k: 'fresh', word: 'chives' }], lesson: 'Almost. One note is still missing…' });
     }
     if (mode === 'kitchen') {

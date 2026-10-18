@@ -5,7 +5,13 @@
 // The shapes are a language the player learns across the whole game, so a
 // flavour always looks and sounds the same, wherever it's tasted.
 //
-// tasteMoment({ title, desc, flavours: [{ k, word }], mode: 'spark'|'clash'|'missing', lesson })
+// Four kinds of taste, the spine of the story:
+//   perfect  Grandpa Zhao's bowl: every flavour in balance round a warm heart. WOAH.
+//   spark    good food with soul (Uncle Ji, Rose, Auntie Fu, Little Chilli)
+//   pop      our own early bowls: correct, small, lopsided… a tiny pop, no spark
+//   bomb     the competitor: a neon explosion, tastes great, then empty. No heart.
+//   missing  almost Grandpa's bowl: balance, and an empty place where the heart goes
+// tasteMoment({ title, desc, flavours: [{ k, word }], mode, lesson })
 
 import * as THREE from 'three';
 import { G } from './core.js';
@@ -28,7 +34,7 @@ export const FLAVOURS = {
 };
 
 let el = null, ctx = null, parts = [], emitters = [], clock = 0, face = { x: 0, y: 0, r: 120 };
-const grey = { v: 0 }, shake = { v: 0 };
+const grey = { v: 0 }, shake = { v: 0 }, flash = { v: 0 };
 
 function ensure() {
   if (el) return;
@@ -74,12 +80,12 @@ function home(i, n) {
 
 function spawn(f, slot, o = {}) {
   const F = FLAVOURS[f.k];
-  const a = slot.all ? Math.random() * Math.PI * 2 : slot.a + (Math.random() - 0.5) * 0.7 + (o.spread ? (Math.random() - 0.5) * 6 : 0);
+  const a = slot.all ? Math.random() * Math.PI * 2 : slot.a + clock * (o.spin || 0) + (Math.random() - 0.5) * (o.even ? 0.35 : 0.7) + (o.spread ? (Math.random() - 0.5) * 6 : 0);
   const R = slot.R * (0.75 + Math.random() * 0.5);
   parts.push({
     shape: F.shape, color: F.color, a, R, x: 0, y: 0, born: clock, life: (o.life || 2.6) * (0.7 + Math.random() * 0.6),
-    s: (0.6 + Math.random() * 0.8) * (o.big || 1), ph: Math.random() * 6, vr: (Math.random() - 0.5) * 0.25, vR: 8 + Math.random() * 18,
-    orbit: 0,
+    s: (o.even ? 1 : 0.6 + Math.random() * 0.8) * (o.big || 1), ph: Math.random() * 6, vr: o.spin ?? (Math.random() - 0.5) * 0.25, vR: o.even ? 6 : 8 + Math.random() * 18,
+    orbit: 0, dim: o.dim,
   });
 }
 
@@ -99,20 +105,21 @@ function draw(dt) {
   const g = ctx.createRadialGradient(face.x, face.y, R * 0.45, face.x, face.y, R * 1.5);
   g.addColorStop(0, 'rgba(8,6,12,0)'); g.addColorStop(0.55, 'rgba(8,6,12,0.88)'); g.addColorStop(1, 'rgba(8,6,12,1)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  if (flash.v > 0) { ctx.fillStyle = `rgba(255,255,255,${flash.v})`; ctx.fillRect(0, 0, w, h); flash.v = Math.max(0, flash.v - dt * 3); }
   ctx.globalCompositeOperation = 'lighter';
   const jx = () => (Math.random() - 0.5) * shake.v * 14;
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i], age = clock - p.born, k = age / p.life;
     if (k >= 1) { parts.splice(i, 1); continue; }
     p.a += p.vr * dt + p.orbit * dt * 1.6;
-    p.R += p.vR * dt * (1 - p.orbit) - p.orbit * dt * 22;
+    p.R += p.vR * dt * (1 - p.orbit) * (p.decel ? 1 - k : 1) - p.orbit * dt * 22;
     p.x = face.x + Math.cos(p.a) * p.R + jx();
     p.y = face.y + Math.sin(p.a) * p.R * 0.85 + jx();
-    const al = Math.sin(Math.min(1, k * 1.0) * Math.PI) * (1 - grey.v * 0.5);
+    const al = Math.sin(Math.min(1, k * 1.0) * Math.PI) * (1 - grey.v * 0.5) * (p.dim ?? 1);
     const col = mix(p.color, grey.v);
     ctx.globalAlpha = Math.max(0, al);
     ctx.strokeStyle = col; ctx.fillStyle = col;
-    ctx.shadowColor = col; ctx.shadowBlur = 18;
+    ctx.shadowColor = col; ctx.shadowBlur = p.hard ? 0 : 18;
     ctx.lineCap = 'round';
     SHAPES[p.shape](p, age, k);
   }
@@ -158,6 +165,27 @@ const SHAPES = {
     ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(face.x + Math.cos(p.a) * r * 0.6, face.y + Math.sin(p.a) * r * 0.6);
     ctx.lineTo(face.x + Math.cos(p.a) * r, face.y + Math.sin(p.a) * r); ctx.stroke();
   },
+  heart(p, age) {                              // what Grandpa put in that isn't an ingredient
+    const k = 1 + Math.sin(age * 5) * 0.08, z = 22 * p.s * k;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y + z * 0.9);
+    ctx.bezierCurveTo(p.x - z * 1.6, p.y - z * 0.2, p.x - z * 0.7, p.y - z * 1.3, p.x, p.y - z * 0.45);
+    ctx.bezierCurveTo(p.x + z * 0.7, p.y - z * 1.3, p.x + z * 1.6, p.y - z * 0.2, p.x, p.y + z * 0.9);
+    ctx.fill();
+  },
+  bloom(p, age) {                              // warm light filling the dark
+    const r = 40 + age * Math.max(innerWidth, innerHeight) * 0.7, gr = ctx.createRadialGradient(face.x, face.y, 0, face.x, face.y, r);
+    gr.addColorStop(0, 'rgba(255,214,140,0.55)'); gr.addColorStop(0.6, 'rgba(255,170,90,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, innerWidth, innerHeight);
+  },
+  shard(p, age) {                              // the competitor's neon: hard, fast, geometric
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(age * 9 * p.vr + p.ph);
+    const z = 9 * p.s; ctx.beginPath();
+    if (p.ph > 3) { ctx.rect(-z, -z, z * 2, z * 2); } else { ctx.moveTo(0, -z * 1.4); ctx.lineTo(z * 1.2, z); ctx.lineTo(-z * 1.2, z); ctx.closePath(); }
+    ctx.fill(); ctx.restore();
+  },
+  hollow(p, age) {                             // where the heart should be: nothing, cold
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, 24 + age * 3, 0, Math.PI * 2); ctx.stroke();
+  },
   ghost(p, age) {                              // the missing note: an empty, dashed place
     ctx.setLineDash([6, 8]); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, 26 + Math.sin(age * 2) * 3, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     ctx.font = '700 22px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', p.x, p.y);
@@ -176,8 +204,8 @@ function loop(now) {
 }
 const sleep = sec => new Promise(res => { const end = clock + sec; const t = () => (G.skip || clock >= end ? res() : setTimeout(t, 30)); t(); });
 
-function word(text, i, n, color) {
-  const s = home(i, n);
+function word(text, i, n, color, slot) {
+  const s = slot || home(i, n);
   const d = document.createElement('div');
   d.className = 'taste-word';
   d.textContent = text;
@@ -195,7 +223,7 @@ export async function tasteMoment({ title = '', desc = '', flavours = [], mode =
   ensure(); resize();
   G.busy++;
   const prev = { shot: player.camShot, fov: player.fovShot, face: null };
-  parts = []; emitters = []; clock = 0; grey.v = 0; shake.v = 0;
+  parts = []; emitters = []; clock = 0; grey.v = 0; shake.v = 0; flash.v = 0;
   el.querySelector('.taste-title b').textContent = title;
   el.querySelector('.taste-title span').textContent = desc;
   el.querySelector('.taste-words').innerHTML = '';
@@ -212,26 +240,73 @@ export async function tasteMoment({ title = '', desc = '', flavours = [], mode =
 
   const n = flavours.length;
   const slots = flavours.map((_, i) => home(i, n));
-  if (mode === 'clash') {
-    // everything at once, louder and louder, until it's only noise
-    flavours.forEach((f, i) => { emitters.push({ f, slot: slots[i], rate: 9, acc: 0, o: { spread: true } }); word(f.word, i, n, FLAVOURS[f.k].color); });
-    const cluster = [261.6, 277.2, 293.7, 311.1, 329.6, 349.2, 370];
-    for (let i = 0; i < 9; i++) {
-      note(cluster[i % cluster.length] * (i % 2 ? 1 : 2), 0.5, 'square', 0.035 + i * 0.004);
-      note(cluster[(i + 3) % cluster.length], 0.5, 'sawtooth', 0.03);
-      shake.v = i / 9; grey.v = Math.max(0, (i - 3) / 6);
-      if (i === 5) player.char.setFace('shock');
-      await sleep(0.32);
+  const add = (shape, color, o = {}) => parts.push({ shape, color, a: 0, R: 0, born: clock, life: 2, s: 1, ph: Math.random() * 6, vr: 0, vR: 0, orbit: 0, ...o });
+  const HEART = Math.PI / 2;                       // the heart's place: just under the chin
+  if (mode === 'perfect') {
+    // a wheel in balance: every flavour the same size, evenly round the duck,
+    // arriving on the beat of a rising arpeggio, turning together
+    const scale = [261.6, 329.6, 392.0, 523.3, 659.3, 784.0];
+    const ring = flavours.map((_, i) => ({ a: Math.PI + i * (Math.PI * 2 / n), R: face.r * 1.6 }));
+    for (const [i, f] of flavours.entries()) {
+      emitters.push({ f, slot: ring[i], rate: 5, acc: 0, o: { even: true, spin: 0.35, big: 1.15 } });
+      note(FLAVOURS[f.k].freq, 3.2, 'sine', 0.11); note(scale[i % scale.length], 1.2, 'triangle', 0.06);
+      word(f.word, i, n, FLAVOURS[f.k].color, ring[i]);
+      await sleep(1.0);
     }
-    emitters.push({ f: { k: 'salty' }, slot: { a: 0, R: face.r * 1.8 }, rate: 30, acc: 0, o: { spread: true, life: 1 } });
-    parts.forEach(p => { p.shape = Math.random() < 0.5 ? 'noise' : p.shape; });
+    // …and in the middle of it all, something warm that isn't an ingredient
+    add('heart', '#ff8f7a', { a: HEART, R: face.r * 1.05, life: 6, s: 1.2 });
+    chord([261.6, 329.6, 392.0], 3.5, 0.07);
+    await sleep(1.3);
+    // WOAH
+    player.char.setFace('shock');
+    flash.v = 0.5; shake.v = 0.15;
+    add('bloom', '#ffd28c', { life: 2.6 });
+    const all = flavours.map(f => FLAVOURS[f.k].color).concat(['#ffe08a', '#fff6dc']);
+    for (let i = 0; i < 140; i++) add('spark', all[i % all.length], { a: Math.random() * 6.3, life: 1.4 + Math.random() * 1.2, s: 0.7 + Math.random() * 0.9 });
+    [[261.6, 329.6, 392.0], [349.2, 440.0, 523.3], [392.0, 493.9, 587.3], [523.3, 659.3, 784.0]].forEach((c, i) => setTimeout(() => chord(c, 1.6, 0.06), i * 380));
+    sfx('reveal');
+    await sleep(1.1);
+    shake.v = 0;
+    player.char.setFace('happy');
+    await sleep(2.4);
+    emitters = [];
     await sleep(0.8);
-    // …pop. Nothing.
-    emitters = []; parts = []; shake.v = 0; grey.v = 0;
+  } else if (mode === 'pop') {
+    // our own bowl: the right things, small and lopsided, out of step… pop.
+    const side = flavours.map((_, i) => ({ a: Math.PI * 0.9 + i * 0.3, R: face.r * 1.4 }));
+    for (const [i, f] of flavours.entries()) {
+      emitters.push({ f, slot: side[i], rate: 1.6, acc: 0, o: { big: 0.45, dim: 0.55, life: 1.6 } });
+      note(FLAVOURS[f.k].freq * 0.97, 0.5, 'sine', 0.06);
+      word(f.word, i, n, FLAVOURS[f.k].color, side[i]);
+      await sleep(0.55);
+    }
+    await sleep(0.9);
+    emitters = [];
+    for (let i = 0; i < 8; i++) add('stars', '#a8a29a', { a: Math.PI * 0.95 + (Math.random() - 0.5), R: face.r * 1.3, life: 0.6, s: 0.5, dim: 0.6 });
+    sfx('pop'); note(330, 0.12, 'sine', 0.08);
+    player.char.setFace('normal');
+    await sleep(1.6);
+  } else if (mode === 'bomb' || mode === 'clash') {
+    // the competitor: everything maxed, a neon firework of flavour. It tastes GREAT…
+    const NEON = ['#00f0ff', '#ff2bd6', '#c6ff00', '#ffffff', '#7a5cff'];
+    player.char.setFace('shock');
+    flavours.forEach((f, i) => word(f.word.toUpperCase() + '!', i, n, NEON[i % NEON.length]));
+    for (let wave = 0; wave < 3; wave++) {
+      flash.v = 0.75 - wave * 0.2; shake.v = 0.5;
+      for (let i = 0; i < 70; i++) add('shard', NEON[i % NEON.length], { a: Math.random() * 6.3, R: 10, vR: 320 + Math.random() * 380, decel: true, hard: true, vr: (Math.random() - 0.5) * 2, life: 1.1 + Math.random() * 0.5, s: 0.6 + Math.random() * 0.9 });
+      note(55, 0.5, 'sine', 0.25); note(110, 0.25, 'square', 0.06);
+      [0, 4, 7, 12, 16, 19].forEach((st, j) => note(392 * 2 ** ((st + wave * 2) / 12), 0.09, 'sawtooth', 0.045, j * 0.05));
+      if (wave === 1) player.char.setFace('happy');
+      await sleep(0.65);
+    }
+    shake.v = 0;
+    await sleep(1.0);
+    // …and then nothing. No heart. Just the place where one should be.
     el.querySelector('.taste-words').innerHTML = '';
-    sfx('fail'); note(110, 0.9, 'sine', 0.12);
+    add('hollow', '#93a3bb', { a: HEART, R: face.r * 1.05, life: 3.2, hard: true });
+    note(196, 1.6, 'sine', 0.07);
     player.char.setFace('blank');
-    await sleep(1.4);
+    await sleep(2.2);
   } else {
     // one at a time: each flavour gets room to sing
     for (const [i, f] of flavours.entries()) {
@@ -242,16 +317,16 @@ export async function tasteMoment({ title = '', desc = '', flavours = [], mode =
       await sleep(n === 1 ? 2.2 : 1.4);
     }
     if (mode === 'missing') {
-      parts.push({ shape: 'ghost', color: '#d8d0ff', a: Math.PI / 2 + 0.2, R: face.r * 1.7, born: clock, life: 4, s: 1, ph: 0, vr: 0.05, vR: 0, orbit: 0 });
+      parts.push({ shape: 'ghost', color: '#d8d0ff', a: HEART, R: face.r * 1.05, born: clock, life: 4, s: 1, ph: 0, vr: 0, vR: 0, orbit: 0 });
       note(220, 0.6, 'sine', 0.05);
       await sleep(1.2);
     }
     // they braid together around the duck… and spark
-    for (const p of parts) p.orbit = 1, p.life += 1.5;
+    for (const p of parts) if (p.shape !== 'ghost') p.orbit = 1, p.life += 1.5;
     chord(flavours.map(f => FLAVOURS[f.k].freq).concat(mode === 'missing' ? [] : [261.6]));
     await sleep(1.0);
-    const sparks = mode === 'missing' ? 24 : 60;
-    for (let i = 0; i < sparks; i++) parts.push({ shape: 'spark', color: i % 3 ? '#ffe08a' : '#fff6dc', a: Math.random() * 6.3, R: 0, born: clock, life: 1.2 + Math.random(), s: 0.6 + Math.random(), ph: 0, vr: 0, vR: 0, orbit: 0 });
+    const sparks = mode === 'missing' ? 24 : 50;
+    for (let i = 0; i < sparks; i++) add('spark', i % 3 ? '#ffe08a' : '#fff6dc', { a: Math.random() * 6.3, life: 1.2 + Math.random(), s: 0.6 + Math.random() * 0.6 });
     sfx('reveal');
     player.char.setFace('happy');
     await sleep(1.6);
