@@ -53,3 +53,34 @@ _Deep-dive notes per project are added below as each investigation finishes._
 1. Optional *recorded grain* (our own recording, or the CC BY sprite) pitched with Web Audio `playbackRate` ramps, which also gives us Mandarin tone contours for free; keep the oscillator as fallback.
 2. A slow sine melody across a sentence, layered under our per-syllable tone contours.
 3. Punctuation (`。，！？.,!?`) inserts a pause and resets the melody.
+
+### Open-source cooking games (cooking-game, Undercooked, Cozy-mini-restaurant)
+
+**Licences decide reuse:** **Undercooked is MIT** (Dalton Lima, 2020; assets made by the author, except the third-party `Assets/3rdParty/Lean/*`), so its scripts can be adapted with the notice kept. **cooking-game and Cozy-mini-restaurant have no licence file**, which means all rights reserved: study the ideas, write our own code.
+
+- **cooking-game ("Pass the Plate!", Godot 4): the cleanest architecture.**
+  - The kitchen is a pure-logic core (`core/shift.gd`): the game sends *intents*, calls `tick(delta)` and reads *events*. The same core runs bots, LAN play and unit tests.
+  - Recipes are data (`data/packs/*.json`): `{station, inputs, action, work}` for hand-work, `{cook_time, perfect_window, burn_time}` for cooking, plus *assemblies* `{base: "plate", parts: [...]}`.
+  - Station state holds progress, done, `since_ready` and burnt. "Perfect" means taking food out inside the window.
+  - **Gestures** (`game/kitchen/minigame.gd`): a tap counts on press; a swipe counts every 70 px from an anchor; a circle counts when the accumulated angle reaches 90% of a full turn. Each gesture is one unit of work, and work stays on the item, so you can leave and come back.
+  - Orders have patience; `patience < 0` means a tutorial or judge who never leaves. Score = price + tip × patience fraction + perfect bonus, times a combo multiplier.
+- **Undercooked (Unity, MIT):**
+  - Ingredients go `Raw → Processed → Cooked` with one look per state.
+  - Orders are a list of ingredients with a countdown and a 10-second warning; tips are tiered by time left.
+  - Chopping is hold-to-chop and keeps its progress when you walk away.
+  - The cooking pot has a staged burn timeline (green ✓ → smoke → beeps → black smoke → fire).
+  - Its order matching ignores duplicate quantities: a bug to avoid.
+- **Cozy-mini-restaurant (Godot 4, tap-only):**
+  - Menu and guest *archetypes* are data multipliers (patience, tip, favourite dish, critic).
+  - Stations go IDLE → COOKING → READY and **never burn** (cosy).
+  - Customers go ARRIVING → THINKING → WAITING → EATING → LEAVING, with a green/yellow/red patience ring and stars from the patience fraction.
+
+**Patterns we'll adopt:**
+1. A pure-logic kitchen module (intents in, events out) that we can unit-test.
+2. Recipes and bowl *assemblies* in JSON: broth is the base, toppings are parts in order.
+3. Ingredient states as separate items (raw slices → cooked in broth), with proper multiset matching.
+4. A gesture recogniser that emits work units (tap / swipe / circle / hold), with progress that survives leaving.
+5. `cook_time` → `perfect_window` → (optional, gentle) overcook, with staged warnings.
+6. An order-ticket model `{dish, patience, maxPatience}`; oldest match served first; tutorials never time out.
+7. Pluggable scoring rules (tip by patience, perfect bonus, combo, star thresholds).
+8. Customer archetypes as data (Mr Li: patient, small tips, loves chicken-fat broth).
