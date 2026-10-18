@@ -295,6 +295,11 @@ export function updateCamera(dt, snap = false) {
     camPos.lerp(new THREE.Vector3(tx + ox, h, tz + oz), k);
     camLook.lerp(new THREE.Vector3(tx, cine ? 2.3 : 1.5, tz), k);
   }
+  // never let a staged shot sit inside the player's head: hide them instead
+  if (player.mode === 'foot') {
+    const c = W.camera.position, h = player.char.root.position;
+    player.char.root.visible = Math.hypot(c.x - h.x, c.y - (h.y + 2.4), c.z - h.z) > 1.4;
+  }
   if (player.camShot) {
     const s = player.camShot;
     const ks = snap ? 1 : 1 - Math.exp(-dt * (s.speed ?? 3));

@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 
 // One 3-step gradient shared by every material: soft cel shading, like a picture book.
-const GRADIENT = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+const GRADIENT = new THREE.DataTexture(new Uint8Array([160, 218, 255]), 3, 1, THREE.RedFormat);
 GRADIENT.minFilter = GRADIENT.magFilter = THREE.NearestFilter;
 GRADIENT.needsUpdate = true;
 
@@ -20,7 +20,7 @@ export function mat(color, extra = {}) {
 }
 
 // Inverted-hull ink outline (cheap, reads well at our camera distance).
-const INK = new THREE.MeshBasicMaterial({ color: '#3a2a20', side: THREE.BackSide });
+const INK = new THREE.MeshBasicMaterial({ color: '#5a3d2b', side: THREE.BackSide });
 export function outline(root, thickness = 1.06) {
   const meshes = [];
   root.traverse(o => { if (o.isMesh && !o.userData.noOutline && !o.userData.hasHull) meshes.push(o); });
@@ -40,8 +40,10 @@ function faceTexture(expr, o) {
   const key = `${expr}|${o.blush}|${o.glasses}|${o.brows}`;
   if (faceCache.has(key)) return faceCache.get(key);
   const c = document.createElement('canvas');
-  c.width = 128; c.height = 96;
+  c.width = 256; c.height = 192;
   const g = c.getContext('2d');
+  g.scale(2, 2);
+  g.translate(0, 9);                     // features sit low on the face: big forehead, baby-like
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const ink = '#2b1d14';
@@ -50,9 +52,10 @@ function faceTexture(expr, o) {
   const dotEyes = (ry = 10) => {
     g.fillStyle = ink;
     for (const x of [L, Rx]) {
-      g.beginPath(); g.ellipse(x, Y, 7, ry, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(x, Y, 8.5, ry * 1.15, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#fff';
-      g.beginPath(); g.arc(x + 2, Y - 4, 2.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x + 2.5, Y - 4.5, 3, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x - 2.5, Y + 4, 1.4, 0, Math.PI * 2); g.fill();
       g.fillStyle = ink;
     }
   };
@@ -140,7 +143,7 @@ const shadowGeo = new THREE.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2);
 export function makeCharacter(opts = {}) {
   const o = {
     skin: '#f6d2b0', shirt: '#7fb3e6', pants: '#5a6b8c', hair: '#3a2a20', hairStyle: 'short',
-    hat: 'none', hatColor: '#e94b3c', scale: 1, wide: 1, ...opts,
+    hat: 'none', hatColor: '#e94b3c', scale: 1, wide: 1, blush: true, ...opts,
   };
   const root = new THREE.Group();
   const body = new THREE.Group();
@@ -153,20 +156,20 @@ export function makeCharacter(opts = {}) {
 
   // legs / skirt
   if (o.skirt) {
-    const sk = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.9, 16), mat(o.pants));
-    sk.position.y = 0.55;
+    const sk = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.75, 18), mat(o.pants));
+    sk.position.y = 0.45;
     body.add(sk);
   } else {
-    const legGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.6, 8);
-    for (const x of [-0.22, 0.22]) {
+    const legGeo = new THREE.CapsuleGeometry(0.17, 0.18, 4, 10);
+    for (const x of [-0.21, 0.21]) {
       const leg = new THREE.Mesh(legGeo, mat(o.pants));
-      leg.position.set(x, 0.32, 0);
+      leg.position.set(x, 0.3, 0);
       body.add(leg);
     }
   }
   // torso
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.5, 4, 12), mat(o.shirt));
-  torso.position.y = 1.1;
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.47, 0.26, 6, 16), mat(o.shirt));
+  torso.position.y = 0.98;
   torso.scale.x = o.wide;
   body.add(torso);
 
@@ -174,12 +177,12 @@ export function makeCharacter(opts = {}) {
   const arms = [];
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(side * (0.52 * o.wide + 0.08), 1.42, 0);
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.42, 3, 8), mat(o.shirt));
-    arm.position.y = -0.3;
+    pivot.position.set(side * (0.47 * o.wide + 0.06), 1.28, 0);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.26, 4, 8), mat(o.shirt));
+    arm.position.y = -0.22;
     pivot.add(arm);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), mat(o.skin));
-    hand.position.y = -0.6;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat(o.skin));
+    hand.position.y = -0.44;
     pivot.add(hand);
     body.add(pivot);
     arms.push(pivot);
@@ -187,16 +190,17 @@ export function makeCharacter(opts = {}) {
 
   // head
   const head = new THREE.Group();
-  head.position.y = 2.25;
+  const HEAD_Y = 2.0;
+  head.position.y = HEAD_Y;
+  head.scale.setScalar(1.16);
   body.add(head);
   const skull = new THREE.Mesh(new THREE.SphereGeometry(0.78, 24, 18), mat(o.skin));
   head.add(skull);
 
   const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture('normal', o), transparent: true, depthWrite: false });
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.86), faceMat);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.785, 32, 20, Math.PI / 2 - 0.68, 1.36, Math.PI / 2 - 0.5, 1.0), faceMat);
   face.userData.noOutline = true;
-  face.position.set(0, -0.05, 0.79);
-  face.rotation.x = -0.12;
+  face.userData.noShadow = true;
   head.add(face);
 
   // hair
@@ -274,10 +278,10 @@ export function makeCharacter(opts = {}) {
       s.position.y = -0.72;
       hatParts.add(s);
     }
-    outline(hatParts, 1.07);
+    outline(hatParts, 1.05);
   };
   setHat(o.hat);
-  outline(body, 1.07);
+  outline(body, 1.05);
 
   // props
   const prop = new THREE.Group();
@@ -307,7 +311,7 @@ export function makeCharacter(opts = {}) {
   let expr = 'normal';
   let walkPhase = 0;
   const api = {
-    root, head, arms, body,
+    root, head, arms, body, headY: HEAD_Y,
     get expr() { return expr; },
     setFace(e) {
       expr = e || 'normal';

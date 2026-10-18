@@ -100,12 +100,18 @@ function roundRect(g, x, y, w, h, r) {
 
 function buildOffice() {
   if (built) return built;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), mat('#8e9aa8'));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), mat('#d9b48a'));
   floor.rotation.x = -Math.PI / 2; floor.position.set(OX, 0.02, OZ); floor.receiveShadow = true;
   W.scene.add(floor);
-  box(18, 6, 0.3, '#dfe3e6', OX, 3, OZ - 6);          // back wall
-  box(0.3, 6, 12, '#d6dade', OX - 9, 3, OZ);          // left wall
-  box(0.3, 6, 12, '#d6dade', OX + 9, 3, OZ);          // right wall
+  box(18, 6, 0.3, '#f6e9d6', OX, 3, OZ - 6);          // back wall
+  box(0.3, 6, 12, '#f0e0ca', OX - 9, 3, OZ);          // left wall
+  box(0.3, 6, 12, '#f0e0ca', OX + 9, 3, OZ);          // right wall
+  box(18.6, 0.3, 12.6, '#fbf5ec', OX, 6.1, OZ).castShadow = false;   // ceiling: no sky indoors
+  // the front wall only exists from the inside: a plane facing into the room,
+  // invisible to the wide shots looking in from outside
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(18, 6), mat('#f0e0ca'));
+  front.rotation.y = Math.PI; front.position.set(OX, 3, OZ + 6);
+  W.scene.add(front);
   // a rainy window
   const win = new THREE.Mesh(new THREE.PlaneGeometry(7, 3), new THREE.MeshBasicMaterial({ color: '#56677d' }));
   win.position.set(OX - 2, 3.4, OZ - 5.84); W.scene.add(win);
@@ -123,7 +129,7 @@ function buildOffice() {
   box(1.8, 1.1, 0.12, '#2b2b33', OX - 2, 2.2, OZ - 1.6);
   box(0.15, 0.5, 0.15, '#2b2b33', OX - 2, 1.6, OZ - 1.6);
   const c = document.createElement('canvas'); c.width = 512; c.height = 300;
-  scr = { ctx: c.getContext('2d'), tex: new THREE.CanvasTexture(c) };
+  scr = { canvas: c, ctx: c.getContext('2d'), tex: new THREE.CanvasTexture(c) };
   scr.tex.colorSpace = THREE.SRGBColorSpace;
   const face = new THREE.Mesh(new THREE.PlaneGeometry(1.66, 0.97), new THREE.MeshBasicMaterial({ map: scr.tex, toneMapped: false }));
   face.position.set(OX - 2, 2.2, OZ - 1.53); W.scene.add(face);
@@ -184,7 +190,12 @@ export async function opening() {
   await card('Dublin', 'Tuesday · 16:47 · raining, obviously', 2.2);
   await fadeIn();
   await beat(1.2);
-  shot({ x: OX - 2.3, y: 2.9, z: OZ + 1.2 }, { x: OX - 2, y: 2.2, z: OZ - 1.6 }, 2.2);
+  // we watch HIS face (from beside the monitor) and read the screen big, on the side
+  shot({ x: OX - 7.2, y: 3.5, z: OZ - 3.4 }, { x: OX - 2.2, y: 2.0, z: OZ + 1.6 }, 2.2);
+  const pc = document.createElement('div');
+  pc.className = 'pc-overlay';
+  pc.appendChild(scr.canvas);
+  document.getElementById('ui').appendChild(pc);
   await beat(1.4);
   await chat('Write a Q3 synergy strategy deck for the client', 'Absolutely! 🚀 40 slides on leveraging cross-functional synergy…', 1.4);
   await chat('make it noodle themed?', 'Love it!! Slide 1: "Oodles of Synergy" 🍜', 1.2);
@@ -195,7 +206,9 @@ export async function opening() {
   screen.stamp = 0.01;
   sfx('fail');
   addTrauma(0.7);
+  player.char.setFace('shock');
   await beat(1.4);
+  pc.remove();
 
   // the outburst
   shot({ x: OX + 0.5, y: 3.6, z: OZ + 7.5 }, { x: OX, y: 1.8, z: OZ }, 6);

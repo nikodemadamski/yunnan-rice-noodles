@@ -2,12 +2,12 @@
 // collisions, day/night and the delivery marker.
 
 import * as THREE from 'three';
-import { mat, toon } from './characters.js';
+import { mat, toon, outline } from './characters.js';
 import { rng } from './core.js';
 
 export const W = {
   scene: null, camera: null, renderer: null,
-  colliders: [], bumps: [], npcs: {}, lanterns: [], windowMats: [], neon: [], buildings: [],
+  colliders: [], bumps: [], trees: [], npcs: {}, lanterns: [], windowMats: [], neon: [], buildings: [],
   gulls: [], night: false, marker: null, markerTarget: null,
 };
 
@@ -38,12 +38,44 @@ export const P = {
   plaza: { x: 25, z: 20 },
 };
 
+// Animal Crossing's "rolling log": everything bends gently away from the camera,
+// so you see more ground and the horizon curves. Done in view space for every
+// material at once; shadow depth passes stay flat so shadows still line up.
+THREE.ShaderChunk.project_vertex = THREE.ShaderChunk.project_vertex.replace(
+  'mvPosition = modelViewMatrix * mvPosition;',
+  `mvPosition = modelViewMatrix * mvPosition;
+  #ifndef DEPTH_PACKING
+  { float d = max(0.0, -mvPosition.z - 16.0); mvPosition.y -= d * d * 0.0032; }
+  #endif`);
+
+const SKY = {
+  day: { top: '#7cc8ff', mid: '#bfe5ff', low: '#fff0dc' },
+  night: { top: '#0f1430', mid: '#262a55', low: '#4a3a6a' },
+};
+
+function makeSky() {
+  const u = { top: { value: new THREE.Color(SKY.day.top) }, mid: { value: new THREE.Color(SKY.day.mid) }, low: { value: new THREE.Color(SKY.day.low) } };
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(320, 32, 16), new THREE.ShaderMaterial({
+    uniforms: u, side: THREE.BackSide, depthWrite: false, fog: false,
+    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 top, mid, low; varying vec3 vP;
+      void main(){ float h = vP.y; vec3 c = h > 0.12 ? mix(mid, top, smoothstep(0.12, 0.7, h)) : mix(low, mid, smoothstep(-0.15, 0.12, h));
+        gl_FragColor = vec4(c, 1.0); }`,
+  }));
+  sky.userData.noShadow = true;
+  sky.renderOrder = -1;
+  sky.frustumCulled = false;
+  W.sky = sky;
+  W.skyU = u;
+  return sky;
+}
+
 export function initWorld(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.98;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
@@ -51,8 +83,8 @@ export function initWorld(canvas) {
   Object.assign(W, { renderer, scene, camera });
 
   // warm low side sun + soft sky fill; the sun's shadow box follows the player
-  W.hemi = new THREE.HemisphereLight(0xfff1d6, 0x9bbf7a, 1.3);
-  W.sun = new THREE.DirectionalLight(0xfff0d0, 2.8);
+  W.hemi = new THREE.HemisphereLight(0xfff4e2, 0xa9b4e8, 1.3);   // warm light, cool lilac shadows
+  W.sun = new THREE.DirectionalLight(0xffe6c4, 2.5);
   W.sun.castShadow = true;
   const phone = Math.min(innerWidth, innerHeight) < 700;
   W.sun.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048);
@@ -60,7 +92,8 @@ export function initWorld(canvas) {
   W.sun.shadow.bias = -0.0005;
   W.sun.shadow.normalBias = 0.03;
   scene.add(W.hemi, W.sun, W.sun.target);
-  scene.fog = new THREE.FogExp2(0xcfe9ff, 0.0062);
+  scene.fog = new THREE.FogExp2(0xf3e9ff, 0.0045);
+  scene.add(makeSky());
 
   buildGround();
   buildBlocks();
@@ -128,23 +161,34 @@ export function makeSign(lines, { bg = '#c0392b', fg = '#fff5d6', w = 6, h = 1.6
 let windowTex = null, windowGlowTex = null;
 function windowTextures() {
   if (windowTex) return;
-  windowTex = canvasTex(64, 64, (g) => {
-    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 64, 64);
-    g.fillStyle = '#9cc7e0'; g.fillRect(16, 14, 32, 30);
-    g.fillStyle = '#ffffff'; g.fillRect(31, 14, 2, 30);
-    g.fillStyle = '#d9cbb3'; g.fillRect(12, 44, 40, 5);
+  // a storybook window: arched pane, white frame, little shutters, a flower box
+  windowTex = canvasTex(128, 128, (g) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 128, 128);
+    const pane = () => { g.beginPath(); g.moveTo(40, 92); g.lineTo(40, 46); g.arc(64, 46, 24, Math.PI, 0); g.lineTo(88, 92); g.closePath(); };
+    g.fillStyle = '#8fc6e8'; pane(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(46, 84); g.lineTo(46, 50); g.lineTo(56, 40); g.lineTo(56, 84); g.fill();
+    g.strokeStyle = '#fbfbf7'; g.lineWidth = 5; pane(); g.stroke();
+    g.beginPath(); g.moveTo(64, 24); g.lineTo(64, 92); g.moveTo(40, 62); g.lineTo(88, 62); g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#7fb8a8';                                         // shutters
+    for (const x of [24, 92]) { g.beginPath(); g.roundRect(x, 34, 12, 58, 3); g.fill(); }
+    g.fillStyle = 'rgba(0,0,0,.12)';
+    for (const x of [24, 92]) for (let y = 40; y < 90; y += 8) g.fillRect(x + 2, y, 8, 2);
+    g.fillStyle = '#c9785a'; g.beginPath(); g.roundRect(34, 94, 60, 12, 3); g.fill();   // flower box
+    g.fillStyle = '#6cbf55'; for (let x = 38; x < 92; x += 8) { g.beginPath(); g.arc(x, 93, 5, 0, Math.PI * 2); g.fill(); }
+    const fl = ['#ff7fa3', '#fff3a6', '#ff9f6b', '#ffffff'];
+    for (let i = 0; i < 7; i++) { g.fillStyle = fl[i % 4]; g.beginPath(); g.arc(40 + i * 8, 89 + (i % 2) * 3, 3.5, 0, Math.PI * 2); g.fill(); }
   });
   windowTex.wrapS = windowTex.wrapT = THREE.RepeatWrapping;
   windowGlowTex = canvasTex(64, 64, (g) => {
     g.fillStyle = '#000'; g.fillRect(0, 0, 64, 64);
-    g.fillStyle = '#ffcf6b'; g.fillRect(16, 14, 32, 30);
+    g.fillStyle = '#ffcf6b'; g.beginPath(); g.moveTo(20, 46); g.lineTo(20, 23); g.arc(32, 23, 12, Math.PI, 0); g.lineTo(44, 46); g.fill();
   });
   windowGlowTex.colorSpace = THREE.NoColorSpace;
   windowGlowTex.wrapS = windowGlowTex.wrapT = THREE.RepeatWrapping;
 }
 
-const WALLS = ['#f4ead8', '#efd9c0', '#e8c9a8', '#f7f1e6', '#dfe8ee', '#f1d4c4', '#e6e0cf'];
-const ROOFS = ['#5d6a75', '#7b4b3a', '#4f5d4c', '#6b5a7a'];
+const WALLS = ['#ffe3c4', '#ffd9de', '#d6f0dd', '#d8e8ff', '#fff0b8', '#ecdcff', '#fbf1e2'];
+const ROOFS = ['#e8735a', '#5fa8d3', '#79b86e', '#c7697f', '#8f74c4'];
 
 function building(x, z, w, d, h, opts = {}) {
   windowTextures();
@@ -162,7 +206,7 @@ function building(x, z, w, d, h, opts = {}) {
   addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2);
   const rec = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h, mats: [side, top], roof: null, faded: false };
   W.buildings.push(rec);
-  if (opts.pitched ?? R() < 0.45) {
+  if (opts.pitched ?? R() < 0.7) {
     const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 * 1.02, Math.min(w, d) * 0.45, 4).rotateY(Math.PI / 4), top);
     roof.scale.set(w / Math.hypot(w, d) * 1.414, 1, d / Math.hypot(w, d) * 1.414);
     roof.position.set(x, h + Math.min(w, d) * 0.225, z);
@@ -176,11 +220,11 @@ function building(x, z, w, d, h, opts = {}) {
 // ---------- ground & roads ----------
 
 function buildGround() {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat('#a7d36f'));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat('#a6dd7e'));
   ground.rotation.x = -Math.PI / 2;
   W.scene.add(ground);
 
-  const road = mat('#b9b2a7');
+  const road = mat('#d3cabf');
   const line = mat('#fffaf0');
   for (const z of [-40, 0, 40]) {
     const r = new THREE.Mesh(new THREE.BoxGeometry(180, 0.1, 10), road);
@@ -193,7 +237,7 @@ function buildGround() {
     for (let z = -86; z < 86; z += 6) box(0.3, 0.05, 2.5, line, x, 0.095, z);
   }
   // pavement slabs on every block
-  const pave = mat('#ece1cc');
+  const pave = mat('#f8e9cd');
   XS.forEach(([x0, x1], i) => ZS.forEach(([z0, z1], j) => {
     if (i >= 1 && j === 0) z0 = -48.4;          // lake blocks keep only a promenade strip
     const s = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.16, z1 - z0), pave);
@@ -308,8 +352,11 @@ function buildLandmarks() {
   door.position.set(-15, 1.75, 9.96); door.rotation.y = Math.PI;
   W.scene.add(door);
   for (const x of [-21, -9]) {
-    const balloon = new THREE.Mesh(new THREE.SphereGeometry(0.9, 14, 10), mat('#ff2d8a'));
-    balloon.position.set(x, 6.5, 9.4);
+    // balloons painted flat on the facade, so they never block the camera
+    const balloon = new THREE.Mesh(new THREE.CircleGeometry(0.85, 20), mat('#ff2d8a'));
+    balloon.scale.y = 1.2;
+    balloon.position.set(x, 6.8, 9.94);
+    balloon.rotation.y = Math.PI;
     W.scene.add(balloon);
   }
 
@@ -393,10 +440,22 @@ function tree(x, z, duck = false) {
     tail.rotation.z = Math.PI / 2.6; tail.position.set(x - 2.1, 3.6, z);
     W.scene.add(body, headM, beak, tail);
   } else {
-    const c = new THREE.Mesh(new THREE.SphereGeometry(1.4 + R() * 0.5, 12, 10), mat(R() < 0.25 ? '#f7b6c8' : '#5aa543'));
-    c.position.set(x, 2.8, z);
-    W.scene.add(c);
+    // a puffy cloud of a canopy: three soft balls, half the town in spring blossom
+    const blossom = R() < 0.45;
+    const cols = blossom ? ['#ffc2d6', '#ffd6e3', '#ffb0c8'] : ['#7cc95a', '#8fd468', '#6bbb4e'];
+    const crown = new THREE.Group();
+    const r0 = 1.3 + R() * 0.35;
+    for (const [dx, dy, dz, k] of [[0, 0.2, 0, 1], [-0.75, -0.25, 0.3, 0.72], [0.7, -0.2, -0.25, 0.75]]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(r0 * k, 18, 14), mat(cols[Math.floor(R() * 3)]));
+      b.position.set(dx * r0, dy * r0, dz * r0);
+      crown.add(b);
+    }
+    crown.position.set(x, 3, z);
+    crown.rotation.y = R() * 6;
+    outline(crown, 1.04);
+    W.scene.add(crown);
   }
+  W.trees.push({ x, z });
   addCollider(x - 0.4, x + 0.4, z - 0.4, z + 0.4);
 }
 
@@ -439,6 +498,13 @@ function buildLanterns() {
         W.scene.add(pole);
       }
     }
+  }
+  // festival strings: a sagging cord through each row of lanterns
+  const cord = new THREE.LineBasicMaterial({ color: '#7a4a32' });
+  for (const z of [-5.6, 5.6]) {
+    const pts = [];
+    for (let x = -40; x <= 40; x += 0.5) pts.push(new THREE.Vector3(x, 4.62 - Math.abs(Math.sin(((x + 40) / 6) * Math.PI)) * 0.35, z));
+    W.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), cord));
   }
 }
 
@@ -528,12 +594,14 @@ export function setMarker(pos, radius = 2.5) {
 export function setNight(on) {
   W.night = on;
   const bg = on ? '#1d2440' : '#bfe6ff';
-  W.scene.background = new THREE.Color(bg);
-  W.scene.fog.color.set(on ? '#1d2440' : '#cfe9ff');
-  W.hemi.intensity = on ? 0.55 : 1.3;
-  W.hemi.color.set(on ? '#8fa0ff' : '#fff1d6');
-  W.sun.intensity = on ? 0.35 : 2.8;
-  W.sun.color.set(on ? '#9fb4ff' : '#fff0d0');
+  const sky = on ? SKY.night : SKY.day;
+  for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(sky[k]);
+  W.scene.background = null;
+  W.scene.fog.color.set(on ? '#3a3360' : '#f3e9ff');
+  W.hemi.intensity = on ? 0.6 : 1.3;
+  W.hemi.color.set(on ? '#8fa0ff' : '#fff4e2');
+  W.sun.intensity = on ? 0.35 : 2.5;
+  W.sun.color.set(on ? '#9fb4ff' : '#ffe6c4');
   for (const m of W.lanterns) m.emissiveIntensity = on ? 1.4 : 0;
   for (const m of W.windowMats) m.emissiveIntensity = on ? 0.9 : 0;
   document.body.style.background = bg;
@@ -557,6 +625,7 @@ export function collide(pos, r) {
 // ---------- per-frame ----------
 
 export function updateWorld(dt, t) {
+  if (W.sky) W.sky.position.copy(W.camera.position);
   for (const g of W.gulls) {
     g.a += g.sp * dt;
     g.g.position.set(g.cx + Math.cos(g.a) * g.r, g.h + Math.sin(t * 2 + g.a) * 0.4, g.cz + Math.sin(g.a) * g.r * 0.5);

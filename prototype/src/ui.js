@@ -70,7 +70,7 @@ export function say(sp, text, o = {}) {
     clearAction();
     let talkT = 0;
     const finish = () => {
-      if (sp.char) sp.char.head.position.y = 2.25;
+      if (sp.char) sp.char.head.position.y = sp.char.headY;
       G.busy--;
       res();
       return true;
@@ -86,11 +86,11 @@ export function say(sp, text, o = {}) {
           shown++;
         }
         el.innerHTML = renderSegs(segs, shown);
-        if (sp.char) { talkT += dt; sp.char.head.position.y = 2.25 + Math.abs(Math.sin(talkT * 14)) * 0.06; }
+        if (sp.char) { talkT += dt; sp.char.head.position.y = sp.char.headY + Math.abs(Math.sin(talkT * 14)) * 0.06; }
         if (shown >= total) dlg.classList.add('done');
         return false;
       }
-      if (sp.char) sp.char.head.position.y = 2.25;
+      if (sp.char) sp.char.head.position.y = sp.char.headY;
       held += dt;
       timer.style.width = `${Math.min(100, (held / hold) * 100)}%`;
       if (held >= hold || takeAction()) return finish();

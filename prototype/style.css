@@ -593,3 +593,13 @@ body.cine #result-pop { display: none; }
   animation: speedspin 0.6s linear infinite;
 }
 @keyframes speedspin { to { transform: rotate(2deg); } }
+
+/* the Dublin PC screen, shown big beside his face in the opening */
+.pc-overlay {
+  position: absolute; right: 4vw; top: 50%; transform: translateY(-55%);
+  width: min(48vw, 560px); padding: 14px 14px 30px; background: #24222b; border-radius: 22px;
+  box-shadow: var(--shadow); animation: popin .35s both; pointer-events: none !important;
+}
+.pc-overlay::after { content: ""; position: absolute; left: 50%; bottom: 10px; width: 10px; height: 10px; border-radius: 50%; background: #49b26a; transform: translateX(-50%); }
+.pc-overlay canvas { display: block; width: 100%; height: auto; border-radius: 8px; }
+@media (max-aspect-ratio: 1/1) { .pc-overlay { width: 92vw; right: 4vw; top: 14%; transform: none; } }
