@@ -41,3 +41,15 @@ No decompilation of Cooking Mama or open-source clone of Papa's games was found 
 ## Findings
 
 _Deep-dive notes per project are added below as each investigation finishes._
+
+### Animalese voice libraries (Acedio/animalese.js, izure1/animalese-tts)
+
+**Verdict: keep our own Web Audio synth; borrow three techniques. Don't adopt either library.**
+
+- **animalese.js** (2014, ~60 lines): a 26-slot letter sprite (`animalese.wav`, 0.15 s per letter A–Z), naive resampling for pitch, a fixed 0.075 s per letter, and an optional "shorten words to first + last letter" mode; it renders a whole WAV and plays it through an `<audio>` tag. **Licence:** code MIT, audio **CC BY 4.0** (Josh Simmons), so it's shippable with credit.
+- **animalese-tts** (TypeScript, MIT): per-language phoneme analysers (English, Japanese, Korean; **no Chinese**), linear-interpolated resampling with an anti-alias filter, a sentence-level **sine melody + random jitter** on pitch, punctuation pauses that **reset the melody**, and pacing that drops syllables when speech runs ahead. **Its sample WAVs have no stated licence**, so we must not ship them.
+
+**Borrow:**
+1. Optional *recorded grain* (our own recording, or the CC BY sprite) pitched with Web Audio `playbackRate` ramps, which also gives us Mandarin tone contours for free; keep the oscillator as fallback.
+2. A slow sine melody across a sentence, layered under our per-syllable tone contours.
+3. Punctuation (`。，！？.,!?`) inserts a pause and resets the melody.
