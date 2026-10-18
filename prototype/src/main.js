@@ -17,8 +17,7 @@ import { updateRun } from './deliveries.js';
 import { day1, day2, evening, openBoard } from './story.js';
 import { opening } from './opening.js';
 import { simScene } from './sim.js';
-import { promptPalLive, chilliBowl } from './day1cook3d.js';
-import { cookBowl } from './kitchen3d.js';
+import { promptPalLive, chilliBowl } from './cook2d.js';
 import { shopService } from './shop2d.js';
 import './taste.js';
 
@@ -119,7 +118,7 @@ $('ui').prepend(speedLines);
 
 let last = performance.now();
 function frame(now) {
-  const raw = Math.min(0.05, (now - last) / 1000);
+  const raw = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   // hit-stop: freeze the world for a few frames on impacts (UI keeps running)
   let dt = raw;
@@ -186,7 +185,7 @@ async function run() {
     return;
   }
   // dev shortcuts for single scenes: #opening, #sim, #live, #chilli
-  if (['opening', 'opening2', 'sim', 'live', 'chilli', 'kitchen', 'taste'].includes(mode)) {
+  if (['opening', 'opening2', 'sim', 'live', 'chilli', 'taste'].includes(mode)) {
     $('fade').classList.remove('on');
     if (mode === 'opening') await opening();
     if (mode === 'opening2') await opening({ dublinOnly: true });
@@ -200,10 +199,6 @@ async function run() {
       await T({ title: 'Our first bowl', mode: 'pop', flavours: [{ k: 'savoury', word: 'fine' }, { k: 'rich', word: 'correct' }, { k: 'fresh', word: 'okay' }], lesson: 'Correct. Clean. …pop.' });
       await T({ title: 'Supreme Mega Bowl™', mode: 'bomb', flavours: ['rich', 'savoury', 'sweet', 'spicy', 'sour', 'smoky', 'floral'].map(k => ({ k, word: k.toUpperCase() })), lesson: 'Everything shouting at once. Nobody singing.' });
       await T({ title: 'Almost Grandpa’s Bowl', mode: 'missing', flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of fat' }, { k: 'fresh', word: 'chives' }], lesson: 'Almost. One note is still missing…' });
-    }
-    if (mode === 'kitchen') {
-      for (const f of ['broth:hen', 'oil:fat', 'top:chives', 'oil:chilli', 'top:rose']) G.findings.add(f);
-      G.flags.chilliBowl = await cookBowl();
     }
     toast(`Scene finished · ${esc(JSON.stringify(G.flags.chilliBowl || G.flags.sim || G.name))}`, 8);
     return;

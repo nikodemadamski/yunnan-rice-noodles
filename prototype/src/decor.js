@@ -111,7 +111,7 @@ export function initDecor() {
   W.scene.add(petals);
 }
 
-const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1);
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _zero = new THREE.Vector3(0, 0, 0);
 
 export function updateDecor(dt, t, focus) {
   if (!petals) return;
@@ -124,7 +124,9 @@ export function updateDecor(dt, t, focus) {
     let wx = focus.x + d.x, wz = focus.z + d.z;
     if (d.y < 0.1 || Math.abs(d.x) > 20 || Math.abs(d.z) > 20) { d.y = 8 + R() * 5; d.x = (R() - 0.5) * 40; d.z = (R() - 0.5) * 40; wx = focus.x + d.x; wz = focus.z + d.z; }
     _e.set(t * 2 + d.s, t * 1.3 + d.s, d.s);
-    _m.compose(_p.set(wx, d.y, wz), _q.setFromEuler(_e), _s);
+    // a petal right in front of the lens reads as a giant pink card: hide those
+    const c = W.camera.position, near = Math.hypot(wx - c.x, d.y - c.y, wz - c.z) < 7;
+    _m.compose(_p.set(wx, d.y, wz), _q.setFromEuler(_e), near ? _zero : _s);
     petals.setMatrixAt(i, _m);
   });
   petals.instanceMatrix.needsUpdate = true;

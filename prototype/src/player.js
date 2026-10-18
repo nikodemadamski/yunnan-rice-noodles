@@ -286,7 +286,9 @@ export function updateCamera(dt, snap = false) {
   const tx = f.x + Math.sin(player.heading) * ahead;
   const tz = f.z + Math.cos(player.heading) * ahead;
   // cutscenes: lower, closer, slightly from the side, like a film camera
-  const h = cine ? 5.5 : bike ? 16 : 11.5, back = cine ? 10.5 : bike ? 19.5 : 15, side = cine ? 3 : 0;
+  // on a phone held upright, look down more steeply (more street, fewer walls in the way)
+  const tall = W.camera.aspect < 0.8 && !cine;
+  const h = cine ? 5.5 : bike ? (tall ? 21 : 16) : tall ? 16 : 11.5, back = cine ? 10.5 : bike ? (tall ? 15 : 19.5) : tall ? 11 : 15, side = cine ? 3 : 0;
   const k = snap ? 1 : 1 - Math.exp(-dt * (cine ? 2.2 : bike ? 4 : 6));
   camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
   const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;

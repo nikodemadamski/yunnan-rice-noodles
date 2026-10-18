@@ -7,7 +7,7 @@ import { P, setMarker, setNight } from './world.js';
 import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
 import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, danmaku, cutscene, beat, shot } from './ui.js';
-import { promptPalLive, chilliBowl } from './day1cook3d.js';
+import { promptPalLive, chilliBowl } from './cook2d.js';
 import { shopService } from './shop2d.js';
 import { tasteMoment } from './taste.js';
 import { legend, learn, notesHtml } from './lore.js';

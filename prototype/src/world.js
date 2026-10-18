@@ -78,6 +78,7 @@ export function initWorld(canvas) {
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 0.98;
   renderer.shadowMap.enabled = true;
+  renderer.localClippingEnabled = true;          // building cutaways
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
@@ -93,7 +94,7 @@ export function initWorld(canvas) {
   W.sun.shadow.bias = -0.0005;
   W.sun.shadow.normalBias = 0.03;
   scene.add(W.hemi, W.sun, W.sun.target);
-  scene.fog = new THREE.FogExp2(0xf3e9ff, 0.0045);
+  scene.fog = new THREE.FogExp2(0xe9e4f6, 0.0042);
   scene.add(makeSky());
 
   buildGround();
@@ -103,6 +104,7 @@ export function initWorld(canvas) {
   buildLanterns();
   buildBumps();
   buildLake();
+  buildHorizon();
   buildMarker();
   bounds();
   setNight(false);
@@ -577,6 +579,34 @@ function buildBumps() {
   }
 }
 
+// The Western Hills (西山) and the mountains round Kunming, soft in the haze,
+// and a few fat clouds: the world never ends in a beige void.
+function buildHorizon() {
+  const R2 = rng(77);
+  const hillMat = toon({ color: '#9fb3d6' }), farMat = toon({ color: '#b9c3e3' });
+  for (let i = 0; i < 46; i++) {
+    const a = i / 46 * Math.PI * 2 + R2() * 0.08;
+    for (const [rad, m, hMul] of [[215, farMat, 1.25], [175, hillMat, 1]]) {
+      const h = (22 + R2() * 30) * hMul, w = 38 + R2() * 30;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), m);
+      hill.scale.set(w, h, w * 0.7);
+      hill.position.set(Math.cos(a) * rad, -2, Math.sin(a) * rad);
+      hill.userData.noShadow = true;
+      W.scene.add(hill);
+    }
+  }
+  const cloudMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, fog: false });
+  W.clouds = [];
+  for (let i = 0; i < 14; i++) {
+    const g = new THREE.Group();
+    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(6 + R2() * 5, 12, 8), cloudMat); b.position.set(k * 7 - 10, R2() * 3, R2() * 4); b.scale.y = 0.6; g.add(b); }
+    const a = R2() * Math.PI * 2, rad = 140 + R2() * 60;
+    g.position.set(Math.cos(a) * rad, 55 + R2() * 25, Math.sin(a) * rad);
+    g.userData.noShadow = true;
+    W.scene.add(g); W.clouds.push(g);
+  }
+}
+
 function buildLake() {
   const wt = waterTex(); wt.repeat.set(130 / 14, 37 / 14);
   const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), new THREE.MeshBasicMaterial({ map: wt }));
@@ -648,7 +678,7 @@ export function setNight(on) {
   const sky = on ? SKY.night : SKY.day;
   for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(sky[k]);
   W.scene.background = null;
-  W.scene.fog.color.set(on ? '#3a3360' : '#f3e9ff');
+  W.scene.fog.color.set(on ? '#3a3360' : '#e9e4f6');
   W.hemi.intensity = on ? 0.6 : 1.05;
   W.hemi.color.set(on ? '#8fa0ff' : '#fff1dc');
   W.sun.intensity = on ? 0.35 : 3.0;
@@ -707,6 +737,7 @@ function segHitsBox(p, q, b) {
   return true;
 }
 
+const CUT = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.5)];
 export function updateOcclusion(cam, target) {
   const p = { x: target.x, y: 1.2, z: target.z };
   const q = { x: cam.x, y: cam.y, z: cam.z };
@@ -714,8 +745,9 @@ export function updateOcclusion(cam, target) {
     const hide = segHitsBox(p, q, b);
     if (hide === b.faded) continue;
     b.faded = hide;
-    for (const m of b.mats) { m.transparent = hide; m.opacity = hide ? 0.22 : 1; m.depthWrite = !hide; m.needsUpdate = true; }
-    if (b.roof) b.roof.visible = !hide;
+    // a cutaway, like a dollhouse: the building in front is cut down to a low
+    // stump so you always see the duck, and the street never goes empty
+    for (const m of b.mats) { m.clippingPlanes = hide ? CUT : null; m.side = hide ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; }
   }
 }
 

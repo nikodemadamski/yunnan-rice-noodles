@@ -195,7 +195,7 @@ const SHAPES = {
 // ---------- timing (wall clock, so it plays the same on any device) ----------
 let raf = 0, last = 0;
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0)); last = now;
   clock += dt;
   for (const e of emitters) { e.acc += dt * e.rate; while (e.acc >= 1) { e.acc--; spawn(e.f, e.slot, e.o); } }
   trackFace();
