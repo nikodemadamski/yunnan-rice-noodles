@@ -4,7 +4,7 @@ import { G, CLOCK_SPEED, runTickers, fmtClock, esc } from './core.js';
 import { W, P, initWorld, updateWorld, updateOcclusion, updateSun, applyShadows } from './world.js';
 import { updateFx, feel } from './fx.js';
 import { dressWorld } from './props.js';
-import { player, initPlayer, updatePlayer, updateCamera, teleport } from './player.js';
+import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
 import { initAudio, setMusic, toggleMute, sfx } from './audio.js';
@@ -199,5 +199,5 @@ async function run() {
   await evening();
 }
 
-window.__game = { G, player, W, N };
+window.__game = { G, player, W, N, setMode, teleport };
 run();

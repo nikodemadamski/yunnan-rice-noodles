@@ -31,32 +31,87 @@ export const player = {
   stepT: 0,
 };
 
+// The Little Yellow Duck logo, drawn (a round yellow duckling, not an emoji)
+function duckLogo() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const x = c.getContext('2d');
+  const ink = '#3a2a20';
+  x.fillStyle = '#ffd23f'; x.fillRect(0, 0, 256, 256);
+  x.fillStyle = '#e8a800'; x.fillRect(0, 226, 256, 30);
+  x.beginPath(); x.arc(128, 108, 92, 0, Math.PI * 2); x.fillStyle = '#fffaf0'; x.fill();
+  x.lineWidth = 7; x.strokeStyle = ink; x.stroke();
+  x.lineWidth = 6;
+  x.beginPath(); x.ellipse(120, 140, 58, 40, 0, 0, Math.PI * 2); x.fillStyle = '#ffcf1f'; x.fill(); x.stroke();   // body
+  x.beginPath(); x.moveTo(66, 128); x.quadraticCurveTo(50, 112, 62, 102); x.quadraticCurveTo(72, 118, 80, 122); x.fill(); x.stroke(); // tail
+  x.beginPath(); x.arc(150, 82, 38, 0, Math.PI * 2); x.fill(); x.stroke();                                       // head
+  x.beginPath(); x.ellipse(110, 140, 26, 16, -0.3, 0, Math.PI * 2); x.fillStyle = '#f5b800'; x.fill(); x.stroke(); // wing
+  x.beginPath(); x.moveTo(182, 86); x.quadraticCurveTo(214, 82, 208, 98); x.quadraticCurveTo(196, 106, 180, 100); x.closePath();
+  x.fillStyle = '#ff8a1f'; x.fill(); x.stroke();                                                                  // beak
+  x.beginPath(); x.arc(158, 74, 6, 0, Math.PI * 2); x.fillStyle = ink; x.fill();
+  x.beginPath(); x.arc(160, 72, 2, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill();
+  x.beginPath(); x.ellipse(146, 96, 9, 5, 0, 0, Math.PI * 2); x.fillStyle = 'rgba(255,120,140,.6)'; x.fill();
+  x.fillStyle = ink; x.font = '900 34px Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('小黄鸭', 128, 222);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+function wheel(z) {
+  const w = new THREE.Group();
+  const tyre = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.14, 10, 20).rotateY(Math.PI / 2), mat('#2a2522'));
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 14).rotateZ(Math.PI / 2), mat('#c9ced6'));
+  const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.08), mat('#8a9099'));   // shows the spin
+  w.add(tyre, hub, spoke);
+  w.position.set(0, 0.42, z);
+  return w;
+}
+
+// A step-through e-scooter in Duck yellow: front shield, floorboard, seat,
+// rear delivery box. Front is +z.
 function makeBike() {
   const g = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 2.2), mat('#ffd23f'));
-  frame.position.y = 0.75;
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 1.4), mat('#333333'));
-  deck.position.set(0, 0.55, -0.1);
-  const wheelGeo = new THREE.TorusGeometry(0.38, 0.13, 8, 16).rotateY(Math.PI / 2);
-  const w1 = new THREE.Mesh(wheelGeo, mat('#222222')); w1.position.set(0, 0.4, 0.95);
-  const w2 = new THREE.Mesh(wheelGeo, mat('#222222')); w2.position.set(0, 0.4, -0.95);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.1, 6), mat('#555555'));
-  stem.position.set(0, 1.3, 0.95); stem.rotation.x = -0.25;
-  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), mat('#555555'));
-  bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.82, 0.82);
-  // the delivery box with a duck on it
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 128;
-  const x = c.getContext('2d');
-  x.fillStyle = '#ffd23f'; x.fillRect(0, 0, 128, 128);
-  x.font = '80px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillText('🦆', 64, 60);
-  x.fillStyle = '#5b4636'; x.font = '900 18px Nunito, sans-serif'; x.fillText('小黄鸭', 64, 112);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  const boxMat = toon({ map: t });
-  const crate = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.0), boxMat);
-  crate.position.set(0, 1.85, -0.95);
-  g.add(frame, deck, w1, w2, stem, bar, crate);
+  const yellow = mat('#ffd23f'), dark = mat('#3a3430'), chrome = mat('#9aa0a8');
+  const cap = (r, len, m, x, y, z, rx = 0, sx = 1, sy = 1, sz = 1) => {
+    const o = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 14), m);
+    o.position.set(x, y, z); o.rotation.x = rx; o.scale.set(sx, sy, sz);
+    g.add(o); return o;
+  };
+  const w1 = wheel(1.0), w2 = wheel(-0.95);
+  g.add(w1, w2);
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.14, 1.1), dark);
+  floor.position.set(0, 0.58, 0.15);
+  g.add(floor);
+  cap(0.3, 0.75, yellow, 0, 1.08, 0.78, -0.32, 1.35, 1, 0.55);           // front shield
+  cap(0.36, 0.7, yellow, 0, 0.82, -0.55, Math.PI / 2, 1.15, 1, 1);        // body under the seat
+  cap(0.16, 0.62, mat('#5b3a2a'), 0, 1.2, -0.5, Math.PI / 2, 1.7, 1, 0.7); // seat
+  cap(0.14, 0.4, yellow, 0, 0.82, 1.05, Math.PI / 2.4, 1.4, 1, 1);        // front fender
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.75, 8), chrome);
+  stem.position.set(0, 1.62, 0.9); stem.rotation.x = -0.3;
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.05, 8), chrome);
+  bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.95, 0.98);
+  g.add(stem, bar);
+  for (const sx of [-1, 1]) {
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.22, 8), dark);
+    grip.rotation.z = Math.PI / 2; grip.position.set(sx * 0.48, 1.95, 0.98);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 6), chrome);
+    arm.position.set(sx * 0.36, 2.12, 0.96); arm.rotation.z = -sx * 0.3;
+    const mirror = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), chrome);
+    mirror.scale.z = 0.4; mirror.position.set(sx * 0.42, 2.28, 0.96);
+    g.add(grip, arm, mirror);
+  }
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10), new THREE.MeshBasicMaterial({ color: '#fff6d8' }));
+  lamp.scale.z = 0.5; lamp.position.set(0, 1.42, 1.0); lamp.userData.noOutline = true;
+  g.add(lamp);
+  // the delivery box on the rear rack
+  const logo = toon({ map: duckLogo() });
+  const crate = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.9), [mat('#ffd23f'), mat('#ffd23f'), mat('#ffd23f'), mat('#ffd23f'), logo, logo]);
+  crate.position.set(0, 1.72, -1.1);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.1, 0.96), mat('#e8a800'));
+  lid.position.set(0, 2.2, -1.1);
+  g.add(crate, lid);
   g.userData.wheels = [w1, w2];
   outline(g, 1.05);
   return g;
@@ -79,7 +134,7 @@ export function setMode(mode) {
   W.scene.attach(player.char.root);
   if (mode === 'bike') {
     player.bike.add(player.char.root);
-    player.char.root.position.set(0, 0.55, -0.15);
+    player.char.root.position.set(0, 0.5, -0.38);
     player.char.root.rotation.set(0, 0, 0);
     player.char.arms[0].rotation.x = -1.1;
     player.char.arms[1].rotation.x = -1.1;
@@ -212,7 +267,7 @@ function syncMeshes(dt, t) {
     player.bike.rotation.y = player.heading;
     player.bike.rotation.z = player.lean;
     player.bike.scale.set(1 - s * 0.3, 1 + s * 0.6, 1 - s * 0.3);
-    for (const w of player.bike.userData.wheels) w.rotation.x += player.speed * dt * 2.5;
+    for (const w of player.bike.userData.wheels) w.rotation.x += player.speed * dt * 2.6;
     const bounce = G.flags.lastBump && t - G.flags.lastBump < 0.3 ? Math.sin((t - G.flags.lastBump) * 30) * 0.15 : 0;
     player.bike.position.y = 0.1 + Math.abs(bounce);
     c.animate(dt, 0, t);
