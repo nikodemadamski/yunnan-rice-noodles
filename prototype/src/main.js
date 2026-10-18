@@ -7,7 +7,7 @@ import { dressWorld } from './props.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
-import { initAudio, setMusic, toggleMute, sfx } from './audio.js';
+import { initAudio, setMusic, toggleMute, sfx, setEngine } from './audio.js';
 import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote, cutscene } from './ui.js';
 import { updateInteract } from './interact.js';
 import { updateRun } from './deliveries.js';
@@ -105,6 +105,10 @@ function updateGags(dt) {
 
 // ---------- loop ----------
 
+const speedLines = document.createElement('div');
+speedLines.id = 'speedlines';
+$('ui').prepend(speedLines);
+
 let last = performance.now();
 function frame(now) {
   const raw = Math.min(0.05, (now - last) / 1000);
@@ -127,6 +131,9 @@ function frame(now) {
   updateOcclusion(W.camera.position, player.camFocus || player.pos);
   updateFloating(raw);
   updateHUD(raw);
+  const v = player.mode === 'bike' && !G.flags.frozen3d && !G.flags.cine ? player.speed / 17 : 0;
+  setEngine(v);
+  speedLines.style.opacity = (Math.max(0, (v - 0.78) / 0.22) * 0.6).toFixed(2);
   if (!G.flags.frozen3d) W.renderer.render(W.scene, W.camera);   // a full-screen minigame covers the world
   requestAnimationFrame(frame);
 }

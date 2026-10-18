@@ -583,3 +583,13 @@ body.cine #result-pop { display: none; }
   .ck-cap { font-size: 16px; bottom: 30px; white-space: normal; width: 92%; }
 }
 @keyframes popin { from { transform: scale(0.6); opacity: 0; } }
+
+/* speed lines at top speed on the e-bike */
+#speedlines {
+  position: absolute; inset: -10%; pointer-events: none !important; opacity: 0; transition: opacity .25s;
+  background: repeating-conic-gradient(from 0deg at 50% 55%, rgba(255,255,255,.55) 0deg 1.2deg, transparent 1.2deg 9deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 55%, transparent 38%, #000 75%);
+  mask-image: radial-gradient(circle at 50% 55%, transparent 38%, #000 75%);
+  animation: speedspin 0.6s linear infinite;
+}
+@keyframes speedspin { to { transform: rotate(2deg); } }

@@ -190,3 +190,22 @@ export function note(freq, dur = 0.15, wave = 'triangle', vol = 0.25, delay = 0)
   if (!ctx) return;
   tone(wave, freq, freq, dur, vol, delay);
 }
+
+// --- the e-bike's electric whine: pitch and level follow speed (0..1) ---
+let engine = null;
+export function setEngine(v) {
+  if (!ctx) return;
+  if (!engine) {
+    const a = ctx.createOscillator(), b = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    a.type = 'sawtooth'; b.type = 'sine';
+    f.type = 'lowpass'; f.frequency.value = 900;
+    g.gain.value = 0;
+    a.connect(f); b.connect(f); f.connect(g); g.connect(master);
+    a.start(); b.start();
+    engine = { a, b, g };
+  }
+  const t = ctx.currentTime;
+  engine.a.frequency.setTargetAtTime(90 + v * 260, t, 0.08);
+  engine.b.frequency.setTargetAtTime(180 + v * 520, t, 0.08);
+  engine.g.gain.setTargetAtTime(v > 0.02 ? 0.02 + v * 0.05 : 0, t, 0.1);
+}
