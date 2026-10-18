@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "skills": {
+    "audio-design": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/audio-design/SKILL.md",
+      "computedHash": "1679bac2774f5734ef565475be975fd322aaaba87887145118a0b1abc4b84c0c"
+    },
+    "camera-systems": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/camera-systems/SKILL.md",
+      "computedHash": "62e167163fe430dd407a89bf9bb78876be78d251ab3408095af7d2c92c5c2b65"
+    },
+    "create-game-assets": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/create-game-assets/SKILL.md",
+      "computedHash": "e0991db4ed544179782a60a7020aa49c7469b66744de5a5eda28eb3a35f856be"
+    },
+    "dialogue-systems": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/dialogue-systems/SKILL.md",
+      "computedHash": "1ed7088ae38683e806a28ce1e58bc3ed9829d5213524d9e7a59b0e95268e4482"
+    },
+    "frontend-design": {
+      "source": "anthropics/claude-plugins-official",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-design/skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    },
+    "game-feel": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/game-feel/SKILL.md",
+      "computedHash": "fd8a092926b904a974494ef9e9d123c6a5f872dfaf2ab8f1affd9d015ec95dc3"
+    },
+    "game-ui-ux": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/game-ui-ux/SKILL.md",
+      "computedHash": "4234b295c380c907a2b196b2a6b32a158ee942ac3708ea63e13f0514332e4fd1"
+    },
+    "router": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "router/SKILL.md",
+      "computedHash": "84349768dcc455c20e271611836035ec9d3dd7f2474c58ce0cb4c7fdde948e9e"
+    },
+    "threejs-gltf-loading": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-engines/threejs-gltf-loading/SKILL.md",
+      "computedHash": "b82215b61ebcbb0d107f7e2b340349b2412ff81ea45861ec241096a89664ddcd"
+    },
+    "threejs-materials-lighting": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-engines/threejs-materials-lighting/SKILL.md",
+      "computedHash": "2f28099f11c4fd44279514c429b8f268308453767242184fcdcf69e1c023267d"
+    },
+    "threejs-scene-setup": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-engines/threejs-scene-setup/SKILL.md",
+      "computedHash": "f18346975dc9ca54940dfa6d9f30689a9f19b0777737e4c23cd9996ed9bc64a4"
+    }
+  }
+}
