@@ -84,3 +84,42 @@ _Deep-dive notes per project are added below as each investigation finishes._
 6. An order-ticket model `{dish, patience, maxPatience}`; oldest match served first; tutorials never time out.
 7. Pluggable scoring rules (tip by patience, perfect bonus, combo, star thresholds).
 8. Customer archetypes as data (Mr Li: patient, small tips, loves chicken-fat broth).
+
+### Paper Mario decomp (pmret/papermario): speech bubbles and cutscene scripts
+
+**No licence file**: reconstructed Nintendo code, ideas only.
+
+- **Message markup:** writers use tags such as `[pause]`, `[wait]`, `[next]`, `[speed]`, `[shake]`, `[wave]`, `[option]`, `[voice]`, compiled to control codes (`include/enums.h`, `tools/build/msg/parse_compile.py`). Bubble styles: speech left/right/centre, sign, postcard, popup…
+- **Typewriter** (`src/msg.c` `_update_message`): one state machine per printer, OPENING → PRINTING → WAITING / SCROLLING / CHOICE → CLOSING → DONE. Three speeds: normal, *hold* to go faster, *press* to flush instantly; a per-message "no skip" flag.
+- **Voice blips:** two alternating samples (odd/even character code), pitch from the character code plus a per-voice shift, slight random volume, **stereo pan from the bubble's screen x**, silent at pauses. A *speaking* flag switches the NPC between talk and idle animations.
+- **Bubble animation** (`src/msg_draw.c`): opens over 6 frames (grows out of the speaker with sin-out easing), closes over 4 frames (shrink + fade); a tail tracks the speaker. Per-glyph effects: shake = 0–1 px random jitter, wave = cosine offset by character index.
+- **EVT script engine** (`src/evt/*`, `include/script_api/macros.h`): every command can *block* until done (`Wait`, `SpeakToPlayer`, `NpcMoveTo`, `WaitForCam`). `Thread` runs things side by side; `ChildThread` dies with its parent; camera "shots" are tiny reusable preset scripts.
+- A real cutscene (`src/world/area_kmr/kmr_11/scenes.c`): disable input → camera preset → slow pan + wait → NPCs walk side by side on threads → lines → a door opens with a lerp loop → footsteps with growing camera shake → music + jumps on threads → dialogue with camera cuts per speaker → release.
+
+**Takeaways for us:** our `cutscene()`/`beat()`/`walkTo()` async design already mirrors EVT. Next: inline text markup (`[pause]`, `<wave>`, `<shake>`), a bubble that grows out of the speaker, pan by screen position, and a *speaking* flag for talk animations.
+
+### Dialogue tooling for the Godot build
+
+**All four are MIT. Recommendation: [Dialogue Manager](https://github.com/nathanhoad/godot_dialogue_manager).**
+
+| Tool | Fit |
+|---|---|
+| **Dialogue Manager** (GDScript, Godot 4.6+) | Screenplay format almost identical to our `story.js` lines; `$> await Cutscene.walk(...)` makes the dialogue wait for camera moves and walks; `[#face=sad]` tags per line; Godot-native translation (Chinese + English locales); the tool holds no state (our own `Flags` autoload saves the 22 days). Needs our own Animal Crossing-style bubble scene. |
+| Dialogic 2 | Visual editor and a ready speech bubble that points at 3D speakers, but still **alpha**, and it keeps its own state. Runner-up. |
+| ink + godot-ink | Best for heavy branching and save state, but needs **C#** (no web export), can't await game events, and has no localisation support. |
+| Yarn Spinner for Godot | Strongest localisation, but C# (no web export) and pre-1.0. |
+
+Example of our Day 1 scene in Dialogue Manager format:
+
+```
+~ shop_reunion
+$> Cutscene.shot("grandma")
+Grandma: [#face=happy] Aiyo! It's YOU! The tall foreigner who ate [b]three bowls[/b]!
+You: [#face=shock] Grandma Zhao! What happened? Where's Grandpa Zhao?
+Grandma: [#face=sad] Gone.[wait=0.6] One morning his apron was on the hook, and he… was gone.
+$> await Cutscene.walk("wang", Vector2(-15, 1.5), 3.0)
+- I'll fix this. I have the PERFECT recipe. => perfect
+- Uh… I have a recipe from an AI? => ai
+```
+
+Plan: one `.dialogue` file per day (`day01` … `day22`), a `Cutscene` autoload with the camera / NPC / emote API that `npcs.js` and `ui.js` provide today, and a `Flags` autoload for story state.
