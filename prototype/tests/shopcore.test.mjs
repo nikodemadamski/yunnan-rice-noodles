@@ -2,8 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createShop, tick, takeOrder, startNoodles, liftNoodles, setBroth, addPart, serve, dayOver,
-  noodleScore, buildScore, drainEvents } from '../src/shopcore.js';
-import { NOODLE, MENU } from '../src/shopdata.js';
+  noodleScore, buildScore, drainEvents, pour, addFat, judge } from '../src/shopcore.js';
+import { NOODLE, MENU, HEAT } from '../src/shopdata.js';
 
 test('noodles: firm, perfect window, then soft but never ruined', () => {
   assert.ok(noodleScore(2) < 0.9);
@@ -28,22 +28,74 @@ test('build: duplicates count properly (not set-based)', () => {
   assert.equal(dup.items, 0.5);   // 2 right out of 4 given
 });
 
-test('a full perfect order earns high points, tip and a star', () => {
+test('a bowl that answers what the guest asked for earns high points, tip and a star', () => {
   const s = createShop([{ at: 0, who: 'li' }]);
   tick(s, 0.1);
-  const g = s.guests[0];
-  const t = takeOrder(s, g.uid);
-  assert.equal(t.dish, 'classic');
+  const t = takeOrder(s, s.guests[0].uid);
+  assert.match(t.ask.say, /classic/i);
   assert.ok(startNoodles(s, 0, t.uid));
   tick(s, NOODLE.cook + 1);
   assert.equal(liftNoodles(s, 0), 1);
-  setBroth(s, t.uid, 'hen');
-  for (const p of MENU.classic.parts) assert.ok(addPart(s, t.uid, p));
+  pour(s, t.uid, 'hen', 0.8);
+  addFat(s, t.uid);
+  for (const p of ['meat', 'egg', 'chives', 'noodles']) assert.ok(addPart(s, t.uid, p));
   const r = serve(s, t.uid);
-  assert.ok(r.points >= 80, `points ${r.points}`);
+  assert.equal(r.judge.ask, 1);
+  assert.equal(r.judge.craft, 1);
+  assert.ok(r.points >= 90, `points ${r.points}`);
   assert.ok(r.tip > 0);
   assert.equal(s.stars.li, 1);
   assert.ok(dayOver(s));
+});
+
+test('guests ask in their own words; the next visit asks something new', () => {
+  const s = createShop([{ at: 0, who: 'li' }, { at: 1, who: 'li' }]);
+  tick(s, 2);
+  const a = takeOrder(s, s.guests[0].uid), b = takeOrder(s, s.guests[1].uid);
+  assert.notEqual(a.ask.say, b.ask.say);
+  assert.ok(b.ask.need.ham);
+});
+
+test('the kid notices green stuff, and counts the eggs', () => {
+  const s = createShop([{ at: 0, who: 'kid' }]);
+  tick(s, 0.1);
+  const t = takeOrder(s, s.guests[0].uid);
+  pour(s, t.uid, 'hen', 0.8);
+  t.noodles = 1;
+  for (const p of ['egg', 'chives', 'noodles']) addPart(s, t.uid, p);
+  const j = judge(t);
+  assert.ok(j.ask < 0.5, `ask ${j.ask}`);
+  assert.ok(j.notes.some(n => !n.ok && /GREEN/.test(n.text)));
+  assert.ok(j.notes.some(n => !n.ok && /TWO eggs/.test(n.text)));
+});
+
+test('raw meat must cross the bridge before the noodles', () => {
+  const s = createShop([{ at: 0, who: 'li' }]);
+  tick(s, 0.1);
+  const t = takeOrder(s, s.guests[0].uid);
+  pour(s, t.uid, 'hen', 0.8); t.noodles = 1;
+  for (const p of ['noodles', 'meat', 'egg', 'chives']) addPart(s, t.uid, p);
+  const j = judge(t);
+  assert.ok(j.craft < 1);
+  assert.ok(j.notes.some(n => /raw/.test(n.text)));
+});
+
+test('broth cools from the pour; the chicken-fat layer keeps it hot', () => {
+  const s = createShop([{ at: 0, who: 'lan' }, { at: 0, who: 'li' }]);
+  tick(s, 0.1);
+  const a = takeOrder(s, s.guests[0].uid), b = takeOrder(s, s.guests[1].uid);
+  pour(s, a.uid, 'hen', 0.8); pour(s, b.uid, 'hen', 0.8); addFat(s, b.uid);
+  tick(s, HEAT.plain * 0.8);
+  assert.ok(a.heat < 0.3, `plain ${a.heat}`);
+  assert.ok(b.heat > 0.7, `fat ${b.heat}`);
+});
+
+test('the fill line: too little or spilling over costs craft', () => {
+  const s = createShop([{ at: 0, who: 'li' }]);
+  tick(s, 0.1);
+  const t = takeOrder(s, s.guests[0].uid);
+  pour(s, t.uid, 'hen', 1.2); t.noodles = 1; addPart(s, t.uid, 'noodles');
+  assert.ok(judge(t).notes.some(n => /spilling/.test(n.text)));
 });
 
 test('noodles cannot be added before they come out of the basket', () => {

@@ -96,7 +96,7 @@ async function pickupJi(run) {
   ]);
   await tasteMoment({
     title: 'Steam-Pot Chicken', desc: 'A whole old hen in a clay pot with a chimney. No water. The broth is only steam, for hours.',
-    flavours: [{ k: 'savoury', word: 'old hen · six hours of steam' }],
+    flavours: [{ k: 'savoury', word: 'patience' }],
     lesson: 'One thing, given time, can fill the whole dark.',
   });
   await talk([
@@ -116,7 +116,7 @@ async function pickupRose(run) {
   ]);
   await tasteMoment({
     title: 'Flower Cake', desc: 'Flaky pastry, rose-petal jam inside. Kunming in one bite.',
-    flavours: [{ k: 'floral', word: 'Anning roses' }, { k: 'rich', word: 'flaky pastry' }],
+    flavours: [{ k: 'floral', word: 'a first date' }, { k: 'rich', word: 'a lazy Sunday' }],
     lesson: 'Two things that love each other make a third thing neither could be alone.',
   });
   run.found.push(addFinding('top:rose', '🌸', 'Rose petals', "Rose: everything's better with roses"));
@@ -137,7 +137,7 @@ async function pickupFu(run) {
       ]);
       await tasteMoment({
         title: 'Small-Pot Rice Noodles', desc: 'Cooked one pot at a time, for one person at a time.',
-        flavours: [{ k: 'savoury', word: 'pork bone broth' }, { k: 'spicy', word: 'a little chilli' }, { k: 'fresh', word: 'garlic chives' }],
+        flavours: [{ k: 'savoury', word: 'someone noticed me' }, { k: 'spicy', word: 'cheeky' }, { k: 'fresh', word: 'awake' }],
         lesson: 'She only let me taste because I waited. Kindness is an ingredient too.',
       });
       addDex('Small-pot rice noodles 小锅米线');
@@ -150,7 +150,7 @@ async function pickupFu(run) {
     if (r === 'success') {
       await tasteMoment({
         title: 'Auntie Fu’s Chilli Oil', desc: 'Dried chillies, Sichuan pepper and a spoon of sugar, fried slowly in rapeseed oil.',
-        flavours: [{ k: 'spicy', word: 'dried chillies' }, { k: 'sweet', word: 'one spoon of sugar' }, { k: 'rich', word: 'slow-fried oil' }],
+        flavours: [{ k: 'spicy', word: 'brave' }, { k: 'sweet', word: 'gentle' }, { k: 'rich', word: 'held' }],
         lesson: 'Heat needs something gentle underneath to hold it up.',
       });
       run.found.push(addFinding('oil:chilli', '🌶️', 'Fried chilli oil', "Auntie Fu's secret jar (you sneaky duck)"));

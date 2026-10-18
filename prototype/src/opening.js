@@ -407,9 +407,10 @@ export async function opening(opts = {}) {
       act(hero, null);
       await tasteMoment({
         title: 'Grandpa Zhao’s Crossing-the-Bridge Noodles', desc: 'Kunming · the first bite', mode: 'perfect',
-        flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of chicken fat' }, { k: 'fresh', word: 'chives' },
-          { k: 'sweet', word: 'fresh rice noodles' }, { k: 'smoky', word: 'a slice of Xuanwei ham' }],
-        lesson: 'Perfect. Every flavour in its place, and something warm in the middle. I didn’t have a word for it then.',
+        flavours: [{ k: 'savoury', word: 'warm' }, { k: 'rich', word: 'safe' }, { k: 'fresh', word: 'a spring morning' },
+          { k: 'sweet', word: 'Grandpa’s laugh' }, { k: 'smoky', word: 'home' }],
+        heart: 'loved',
+        lesson: 'I didn’t know a bowl of noodles could feel like being loved.',
       });
       cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
       act(hero, 'bounce');
@@ -468,8 +469,10 @@ export async function opening(opts = {}) {
       cut({ x: OX + 1.0, y: 3.2, z: OZ - 5.6 }, { x: OX - 2, y: 1.6, z: OZ + 0.15 }, 34);
       move({ x: OX - 0.1, y: 2.7, z: OZ - 3.9 }, { x: OX - 2, y: 1.7, z: OZ + 0.15 }, 0.35);
       await beat(1.6);
+      // the photo brings it back: a ghost of that first bite flickers round him
+      await tasteMoment({ mode: 'echo', flavours: [{ k: 'savoury' }, { k: 'rich' }, { k: 'fresh' }, { k: 'sweet' }, { k: 'smoky' }] });
       emote(hero, '💗', 2);
-      await beat(2.8);
+      await beat(1.6);
       // S11 insert (2.6 s): the stamp lands
       grade(null);
       cut(INSERT, SCREEN, 46);

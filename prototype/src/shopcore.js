@@ -2,7 +2,7 @@
 // (Pattern from open-source cooking games: a pure-logic kitchen core you can
 // unit-test and later drive from any UI or engine.)
 
-import { MENU, GUESTS, NOODLE, BASE_PATIENCE } from './shopdata.js';
+import { MENU, GUESTS, PARTS, BROTHS, NOODLE, BASE_PATIENCE, FILL, HEAT } from './shopdata.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -19,6 +19,7 @@ export function createShop(schedule, { baskets = 2 } = {}) {
     stars: {},         // guest type → star count (Papa's "Star Customer")
     events: [],
     nextTicket: 1,
+    visits: {},        // guest type → how many times they've come (picks their next ask)
   };
 }
 
@@ -69,7 +70,12 @@ export function buildScore(dish, broth, parts) {
 export function takeOrder(s, guestUid) {
   const g = s.guests.find(x => x.uid === guestUid);
   if (!g || g.state !== 'line') return null;
-  const t = { uid: `#${s.nextTicket++}`, guest: g.uid, dish: GUESTS[g.who].fav, broth: null, parts: [], noodles: null, served: false };
+  const guest = GUESTS[g.who];
+  const v = s.visits[g.who] || 0;
+  s.visits[g.who] = v + 1;
+  const ask = guest.asks[v % guest.asks.length];
+  const t = { uid: `#${s.nextTicket++}`, guest: g.uid, dish: guest.fav, ask, broth: null, fill: 0, heat: 0, fat: false, mixed: false,
+    parts: [], noodles: null, served: false };
   g.state = 'waiting';
   g.ticket = t.uid;
   s.tickets.push(t);
@@ -100,10 +106,30 @@ export function liftNoodles(s, basketIdx) {
   return score;
 }
 
+/** Pour some broth into a ticket's bowl (hold-to-pour sends small amounts). */
+export function pour(s, ticketUid, broth, amount) {
+  const t = s.tickets.find(x => x.uid === ticketUid);
+  if (!t || t.served) return false;
+  if (t.broth && t.broth !== broth && t.fill > 0.08) t.mixed = true;
+  if (!t.broth || t.fill < 0.08) t.broth = broth;
+  if (t.fill === 0) t.heat = 1;
+  t.fill = Math.min(1.2, t.fill + amount);
+  return true;
+}
+
+/** A spoon of chicken fat seals the heat in (the bridge legend). */
+export function addFat(s, ticketUid) {
+  const t = s.tickets.find(x => x.uid === ticketUid);
+  if (!t || t.served || !t.broth || t.fat) return false;
+  t.fat = true;
+  return true;
+}
+
 export function setBroth(s, ticketUid, broth) {
   const t = s.tickets.find(x => x.uid === ticketUid);
   if (!t || t.served) return false;
   t.broth = broth;
+  if (!t.fill) { t.fill = (FILL.lo + FILL.hi) / 2; t.heat = 1; }
   return true;
 }
 
@@ -122,6 +148,38 @@ export function undoPart(s, ticketUid) {
   return true;
 }
 
+const count = (parts, p) => parts.filter(x => x === p).length;
+
+/**
+ * What the guest notices about a bowl: their ask, then Grandma's rules.
+ * Returns { ask: 0..1, craft: 0..1, notes: [{ ok, text }] }.
+ */
+export function judge(t) {
+  const a = t.ask || { need: {} }, no = a.no || {}, parts = t.parts, notes = [];
+  const say = (ok, good, bad) => notes.push({ ok, text: ok ? good : bad });
+  const askChecks = [];
+  const check = (ok, good, bad) => { askChecks.push(ok); say(ok, good, bad); };
+  if (a.broth) check(t.broth === a.broth && !t.mixed, `${BROTHS[a.broth].ico} just right`, no.broth || (a.broth === 'chilli' ? 'Not spicy at all…' : 'Too spicy!'));
+  for (const [p, n] of Object.entries(a.need || {})) {
+    check(count(parts, p) >= n, `${PARTS[p].ico}${n > 1 ? ` ×${n}` : ''} yes!`, no[p] || `No ${PARTS[p].name.toLowerCase()}?`);
+  }
+  for (const p of a.ban || []) check(!parts.includes(p), `no ${PARTS[p].ico}, good`, no[p] || `I said no ${PARTS[p].name.toLowerCase()}!`);
+  if (a.max) check(parts.length <= a.max, 'nice and light', no.max || 'Too much!');
+  if (a.hot) check(t.heat >= 0.6, '🔥 piping hot', no.hot || 'It’s gone cold…');
+  // Grandma's rules, for every bowl
+  const craft = [];
+  const hasNoodles = parts.includes('noodles');
+  craft.push(hasNoodles); if (!hasNoodles) say(false, '', 'Where are the noodles?!');
+  const raw = parts.indexOf('meat'), nd = parts.indexOf('noodles');
+  if (raw >= 0 && nd >= 0) { const ok = raw < nd; craft.push(ok); if (!ok) say(false, '', 'The meat’s still raw! (raw first, noodles last)'); }
+  const fillOk = t.fill >= FILL.lo && t.fill <= FILL.hi;
+  craft.push(fillOk ? 1 : Math.max(0, 1 - Math.min(Math.abs(t.fill - FILL.lo), Math.abs(t.fill - FILL.hi)) * 4));
+  if (!fillOk) say(false, '', t.fill > FILL.hi ? 'It’s spilling over!' : 'Bit stingy with the broth…');
+  if (t.mixed) say(false, '', 'Two broths? Strange…');
+  const avg = xs => xs.length ? xs.reduce((u, v) => u + Number(v), 0) / xs.length : 1;
+  return { ask: avg(askChecks), craft: avg(craft), notes };
+}
+
 export function serve(s, ticketUid) {
   const t = s.tickets.find(x => x.uid === ticketUid);
   if (!t || t.served || !t.broth || !t.parts.length) return null;
@@ -130,8 +188,9 @@ export function serve(s, ticketUid) {
   const dish = MENU[t.dish];
   const wait = 0.3 + 0.7 * clamp(g.patience / g.maxPatience, 0, 1);   // cosy: waiting only costs points
   const noodles = t.noodles ?? 0;
-  const build = buildScore(t.dish, t.broth, t.parts);
-  const total = (wait + noodles + build.total) / 3;
+  const heat = 0.3 + 0.7 * t.heat;
+  const j = judge(t);
+  const total = 0.15 * wait + 0.15 * noodles + 0.15 * heat + 0.4 * j.ask + 0.15 * j.craft;
   const points = Math.round(total * 100);
   const tip = Math.round(dish.price * total * guest.tip * (total >= 0.8 ? 1.5 : 1));
   // Star Customer: 80+ earns a star, 59 or less resets the meter
@@ -141,7 +200,7 @@ export function serve(s, ticketUid) {
   g.state = 'served';
   s.tips += tip;
   s.points += points;
-  const result = { ticket: t.uid, guest: g.uid, who: g.who, dish: t.dish, wait, noodles, build, total, points, tip, stars: s.stars[g.who] };
+  const result = { ticket: t.uid, guest: g.uid, who: g.who, dish: t.dish, ask: t.ask, wait, noodles, heat, judge: j, total, points, tip, stars: s.stars[g.who] };
   s.results.push(result);
   s.events.push({ type: 'served', ...result });
   return result;
@@ -161,6 +220,7 @@ export function tick(s, dt) {
   }
   for (const g of s.guests) if (g.state !== 'served') g.patience = Math.max(0, g.patience - dt);
   for (const b of s.baskets) if (b.ticket) b.t += dt;
+  for (const t of s.tickets) if (!t.served && t.fill > 0) t.heat = Math.max(0, t.heat - dt / (t.fat ? HEAT.fat : HEAT.plain));
 }
 
 export function dayOver(s) {

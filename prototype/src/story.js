@@ -88,8 +88,8 @@ export async function day1() {
   await promptPalLive();
   await tasteMoment({
     title: 'Supreme Mega Bowl™', desc: 'Optimised by PromptPal for 2.3 million viewers. 30% off today.', mode: 'bomb',
-    flavours: [{ k: 'rich', word: 'CHEESE' }, { k: 'savoury', word: 'MSG ×3' }, { k: 'sweet', word: 'syrup' }, { k: 'spicy', word: 'ghost pepper' },
-      { k: 'sour', word: 'trending vinegar' }, { k: 'smoky', word: 'liquid smoke' }, { k: 'floral', word: 'gold leaf' }],
+    flavours: [{ k: 'rich', word: 'wow' }, { k: 'savoury', word: 'more' }, { k: 'sweet', word: 'viral' }, { k: 'spicy', word: 'maximum' },
+      { k: 'sour', word: 'trending' }, { k: 'smoky', word: '30% off' }, { k: 'floral', word: 'like & subscribe' }],
     lesson: 'It tasted amazing. For about three seconds. Then there was nothing left. Nobody was in it.',
   });
 
@@ -144,7 +144,7 @@ export async function day1() {
   setMusic('night');
   await tasteMoment({
     title: 'Little Chilli’s Bowl', desc: 'Grandpa Zhao’s way. Clear broth, a shine of oil, chives.',
-    flavours: [{ k: 'savoury', word: 'clear broth' }, { k: 'rich', word: 'one drop of oil' }, { k: 'fresh', word: 'chives' }],
+    flavours: [{ k: 'savoury', word: 'quiet' }, { k: 'rich', word: 'cared for' }, { k: 'fresh', word: 'hope' }],
     lesson: 'Less. Every flavour needs room to be heard.',
   });
 
@@ -268,8 +268,8 @@ export async function evening() {
   await cutscene(async () => {
     if (r.perfect) {
       await tasteMoment({
-        title: 'Almost Grandpa’s Bowl', desc: 'Old hen broth. A shining layer of fat. Chives. Nothing else.', mode: 'missing',
-        flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of fat' }, { k: 'fresh', word: 'chives' }],
+        title: 'Almost Grandpa’s Bowl', desc: 'So close I could cry.', mode: 'missing',
+        flavours: [{ k: 'savoury', word: 'warm' }, { k: 'rich', word: 'safe' }, { k: 'fresh', word: 'almost home' }],
         lesson: 'Almost. One note is still missing… and it isn’t in the pot.',
       });
       await talk([
@@ -279,7 +279,7 @@ export async function evening() {
     } else {
       await tasteMoment({
         title: 'Our first night’s bowl', desc: 'The right things, in the right order.', mode: 'pop',
-        flavours: [{ k: 'savoury', word: 'hen broth' }, { k: 'rich', word: 'oil' }, { k: 'fresh', word: 'chives' }],
+        flavours: [{ k: 'savoury', word: 'fine' }, { k: 'rich', word: 'correct' }, { k: 'fresh', word: 'okay' }],
         lesson: 'Correct. Clean. …pop. Where’s the spark Grandpa’s had?',
       });
       await talk([r.greens >= 2

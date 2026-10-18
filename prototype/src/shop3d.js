@@ -18,12 +18,12 @@ import { emote, bark, beat } from './ui.js';
 import { sfx, note, setMusic } from './audio.js';
 import { hitstop } from './fx.js';
 import { act } from './acting.js';
-import { MENU, GUESTS, PARTS, BROTHS, NIGHT1 } from './shopdata.js';
+import { GUESTS, PARTS, BROTHS, NIGHT1, FILL } from './shopdata.js';
 import {
-  createShop, takeOrder, startNoodles, liftNoodles, setBroth, addPart, undoPart, serve, tick, dayOver, drainEvents, noodleRing,
+  createShop, takeOrder, startNoodles, liftNoodles, pour, addFat, addPart, undoPart, serve, tick, dayOver, drainEvents, noodleRing,
 } from './shopcore.js';
 import {
-  begin, end, hudEl, STATIONS, POT, BOWL, TOP, KX, KZ, run, pickAt, toScreen, burst, mesh, focus, TOPPING_ART, dish, pop,
+  begin, end, hudEl, STATIONS, POT, BOWL, TOP, KX, KZ, P, run, pickAt, planeAt, toScreen, burst, mesh, focus, TOPPING_ART, dish, pop, gauge,
 } from './kitchen3d.js';
 
 const BACK = KZ - 3.45;                     // where guests stand, behind the counter
@@ -34,6 +34,8 @@ const BINS = ['meat', 'egg', 'ham', 'mushroom', 'tofu', 'chives', 'noodles'];
 const BIN_X = i => KX - 1.9 + i * 0.86;
 const BIN_Z = KZ + 1.75;
 const JUGS = { hen: { x: KX - 1.2, z: KZ - 0.6, color: '#f2c14e' }, chilli: { x: KX + 1.4, z: KZ - 0.6, color: '#e0603a' } };
+const FAT = { x: KX + 2.3, z: KZ + 0.5 };
+const POUR_RATE = 0.42;                    // bowl fill per second while you hold a jug
 
 const LOOKS = {
   li: { skin: '#e8c4a0', shirt: '#7d8fa6', pants: '#4a4f5a', hair: '#e8e8e8', hairStyle: 'short', glasses: true, scale: 0.9 },
@@ -72,7 +74,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     <div class="svc-build hidden"><button class="btn-soft" data-a="undo">↩ Undo</button><button class="btn-big" data-a="serve">Serve 🍜</button></div>
     <div class="svc-money">💰 <b>0</b></div>
     <div class="svc-title">${esc(title)}</div>
-    <div class="svc-help"></div>`);
+    <div class="svc-help"></div>
+    <div class="svc-labels"></div>`);
   const rail = hud.querySelector('.svc-rail'), rings = hud.querySelector('.svc-rings'), buildBar = hud.querySelector('.svc-build');
   let station = 'order', selected = null, shown = { money: 0 };
   const go = st => {
@@ -115,6 +118,23 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     g.position.set(j.x, TOP, j.z);
     W.scene.add(g); add(g);
   }
+  // the chicken-fat jar: a spoon seals the heat in (Mr Li's wife's trick)
+  const fatJar = (() => {
+    const g = new THREE.Group();
+    mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.5, 18), '#fff3c4', 0, 0.25, 0, { parent: g });
+    mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.1, 18), '#c98a0e', 0, 0.55, 0, { parent: g });
+    mesh(new THREE.BoxGeometry(0.05, 0.5, 0.05), '#9aa0a8', 0.12, 0.7, 0, { parent: g }).rotation.z = -0.3;
+    g.userData.pick = 'fat';
+    g.position.set(FAT.x, TOP, FAT.z);
+    W.scene.add(g); add(g);
+    return g;
+  })();
+  // the line on the bowl: fill to here
+  const fillLine = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.018, 6, 48).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0.85 }));
+  fillLine.position.y = 0.12 + ((FILL.lo + FILL.hi) / 2) * 0.42;
+  fillLine.visible = false;
+  K.bowl.add(fillLine); props.push(fillLine);
+  const level = f => 0.12 + Math.min(f, 1.05) * 0.42;
   // topping bins along the front of the counter
   const bins = BINS.map((p, i) => {
     const g = dish(ART[p] || ART.chives);
@@ -128,15 +148,20 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   const bowlStuff = K.bowlStuff;
   function renderBowl() {
     bowlStuff.clear();
-    const t = S.tickets.find(x => x.uid === selected);
-    K.bowlBroth.visible = !!t?.broth;
-    if (t?.broth) K.bowlBroth.material.color.set(BROTHS[t.broth].color);
-    K.oilLayer.material.opacity = t?.broth ? 0.25 : 0;
-    if (!t) return;
+    const t = S.tickets.find(x => x.uid === selected && !x.served);
+    fillLine.visible = station === 'build' && !!t;
+    K.bowlBroth.visible = !!t && t.fill > 0;
+    if (!t) { K.oilLayer.material.opacity = 0; return; }
+    if (t.broth) K.bowlBroth.material.color.set(t.mixed ? '#b08a5a' : BROTHS[t.broth].color);
+    const y = level(t.fill), sc = 0.62 + Math.min(t.fill, 1) * 0.36;
+    K.bowlBroth.position.y = y; K.bowlBroth.scale.setScalar(sc);
+    K.oilLayer.position.y = y + 0.01; K.oilLayer.scale.setScalar(sc);
+    K.oilLayer.material.opacity = t.fat ? 0.6 : t.fill > 0 ? 0.12 : 0;
+    bowlStuff.position.y = y + 0.02;
     t.parts.forEach((p, i) => {
       const a = (ART[p] || ART.chives)();
       const ang = i * 2.1;
-      a.position.set(Math.cos(ang) * 0.35 * (i ? 1 : 0.2), 0.02 + i * 0.015, Math.sin(ang) * 0.3 * (i ? 1 : 0.2));
+      a.position.set(Math.cos(ang) * 0.35 * (i ? 1 : 0.2), 0.01 + i * 0.012, Math.sin(ang) * 0.3 * (i ? 1 : 0.2));
       a.scale.setScalar(0.85);
       bowlStuff.add(a);
     });
@@ -168,14 +193,12 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     for (const [uid, el] of tix) if (!open.some(t => t.uid === uid)) { el.remove(); tix.delete(uid); }
     for (const t of open) {
       const g = S.guests.find(x => x.uid === t.guest);
-      const want = MENU[t.dish];
       const pat = g.patience / g.maxPatience;
-      const done = p => t.parts.includes(p) ? 'done' : '';
+      const heat = t.fill > 0 ? `<span class="tk-heat" title="heat"><i style="width:${Math.round(t.heat * 10) * 10}%"></i></span>${t.fat ? '✨' : ''}` : '';
       const html = `<div class="tk-head"><b>${t.uid}</b> ${GUESTS[g.who].ico}<span class="tk-pat"><i style="width:${Math.round(pat * 50) * 2}%; background:${pat > 0.5 ? '#49b26a' : pat > 0.25 ? '#f0b429' : '#e2574c'}"></i></span></div>
-        <div class="tk-dish">${esc(want.name)}</div>
-        <div class="tk-row"><span class="${t.broth === want.broth ? 'done' : t.broth ? 'bad' : ''}">${BROTHS[want.broth].ico}</span>
-          ${want.parts.map((p, i) => `<span class="${done(p)}">${i + 1}${PARTS[p].ico}</span>`).join('')}</div>
-        <div class="tk-noodle">${t.noodles === null ? (S.baskets.some(b => b.ticket === t.uid) ? '♨️ cooking…' : '🍜 noodles not started') : '🍜 ready ✓'}</div>`;
+        <div class="tk-say">“${esc(t.ask.say)}”</div>
+        <div class="tk-row">${t.parts.map(p => PARTS[p].ico).join('') || '<i>empty bowl</i>'}</div>
+        <div class="tk-noodle">${t.noodles === null ? (S.baskets.some(b => b.ticket === t.uid) ? '♨️ cooking…' : '🍜 noodles not started') : '🍜 ready ✓'} ${heat}</div>`;
       let el = tix.get(t.uid);
       if (!el) { el = document.createElement('button'); el.className = 'svc-ticket'; el.dataset.t = t.uid; rail.appendChild(el); tix.set(t.uid, el); }
       if (el._html !== html) { el.innerHTML = html; el._html = html; }
@@ -231,7 +254,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     let h = '';
     if (station === 'order') h = line ? '👆 Tap a customer to take their order' : S.tickets.some(q => !q.served) ? 'No one in line. Go cook! ♨️' : 'Waiting for customers…';
     if (station === 'stove') h = ready ? '✅ Green ring! Tap the basket to lift' : needNoodles && freeBasket ? '👆 Tap an empty basket to cook noodles for the chosen ticket' : S.baskets.some(b => b.ticket) ? 'Lift when the ring is in the green. Go do something else meanwhile!' : 'Nothing to cook. Take an order 🛎️';
-    if (station === 'build') h = !t ? '👆 Pick a ticket at the top' : t.noodles === null ? 'This bowl’s noodles aren’t ready. Stove ♨️' : !t.broth ? '👆 Broth first: tap the right jug' : '👆 Toppings in the ticket’s order (1, 2, 3…), then Serve';
+    if (station === 'build') h = !t ? '👆 Pick a ticket at the top' : !t.broth ? '✋ Hold a jug to pour. Stop at the gold line' : !t.fat && t.parts.length === 0 ? 'Drag toppings in. A spoon of fat ✨ keeps it hot!' : t.noodles === null ? 'Noodles aren’t ready yet. Stove ♨️' : '✋ Drag toppings in: raw first, noodles last. Then Serve';
     if (line && station !== 'order') h = '🛎️ Someone’s at the window! · ' + h;
     if (helpEl.textContent !== h) helpEl.textContent = h;
   }
@@ -248,7 +271,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       const t = takeOrder(S, uid);
       selected = t.uid;
       const c = people[uid].char;
-      bark(c, GUESTS[g.who].line, 2.6);
+      bark(c, t.ask.say, 4.2);
       c.setFace('happy');
       sfx('ding');
       layout(); renderRail();
@@ -282,28 +305,87 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       return;
     }
     if (station === 'build') {
-      const t = selectedTicket();
-      const o = pickAt(x, y, [...props.filter(p => p.userData.pick?.startsWith('broth:')), ...bins]);
+      const o = pickAt(x, y, [fatJar]);
       if (!o) return;
+      const t = selectedTicket();
       if (!t) { pop('Pick a ticket first ↑', x, y); sfx('bump'); return; }
-      const [kind, id] = o.userData.pick.split(':');
-      if (kind === 'broth') {
-        setBroth(S, t.uid, id);
-        sfx('splash');
-        burst(BOWL.x, TOP + 0.9, BOWL.z, 8, BROTHS[id].color, { up: 2 });
-        pop(id === MENU[t.dish].broth ? `${BROTHS[id].ico} broth` : `${BROTHS[id].ico} …wrong broth?`, x, y - 30);
-      } else {
-        if (!addPart(S, t.uid, id)) { pop('Noodles aren’t cooked yet!', x, y - 30, 'bad'); sfx('bump'); return; }
-        const want = MENU[t.dish].parts;
-        const right = want[t.parts.length - 1] === id;
-        sfx(right ? 'pop' : 'bump'); note(right ? 660 + t.parts.length * 90 : 220, 0.1, 'sine', 0.1);
-        o.scale.setScalar(1.15); setTimeout(() => o.scale.setScalar(0.95), 120);
-        burst(BOWL.x, TOP + 0.8, BOWL.z, 4, '#f2c46d', { up: 1.5 });
-        pop(`+ ${PARTS[id].ico}`, x, y - 30, right ? '' : 'bad');
-      }
+      if (!t.broth) { pop('Broth first!', x, y - 30, 'bad'); sfx('bump'); return; }
+      if (!addFat(S, t.uid)) return;
+      sfx('sizzle'); note(880, 0.2, 'sine', 0.08);
+      burst(BOWL.x, TOP + 0.7, BOWL.z, 12, '#ffd76a', { up: 1.5, speed: 1.5 });
+      pop('✨ Sealed in the heat', x, y - 40, 'gold');
       renderBowl(); renderRail();
     }
   }
+
+  // ---------- the hands: hold to pour, drag to drop ----------
+  let hold = null;           // { kind: 'pour', broth, jug } | { kind: 'drag', part, ghost, bin, sx, sy }
+  function onDown(x, y) {
+    if (station !== 'build') return;
+    const o = pickAt(x, y, [...props.filter(p => p.userData.pick?.startsWith('broth:')), ...bins]);
+    if (!o) return;
+    const t = selectedTicket();
+    if (!t) { pop('Pick a ticket first ↑', x, y); sfx('bump'); return; }
+    const [kind, id] = o.userData.pick.split(':');
+    if (kind === 'broth') { hold = { kind: 'pour', broth: id, jug: o, t: 0 }; sfx('splash'); return; }
+    const ghost = (ART[id] || ART.chives)();
+    ghost.scale.setScalar(1.3);
+    ghost.position.copy(o.position).add(new THREE.Vector3(0, 0.5, 0));
+    W.scene.add(ghost);
+    hold = { kind: 'drag', part: id, ghost, bin: o, sx: x, sy: y };
+    o.scale.setScalar(1.12);
+    sfx('pop');
+  }
+  function onUp(x, y) {
+    if (!hold) return;
+    const h = hold; hold = null;
+    if (h.kind === 'pour') {
+      h.jug.rotation.z = 0;
+      gauge(null);
+      const t = selectedTicket();
+      if (!t) return;
+      const s2 = toScreen(BOWL.x, TOP + 1.3, BOWL.z);
+      if (t.fill >= FILL.lo && t.fill <= FILL.hi) { pop('Right on the line!', s2.x, s2.y, 'gold'); sfx('ding'); }
+      else if (t.fill > FILL.hi) { pop('Spilling over!', s2.x, s2.y, 'bad'); sfx('bump'); }
+      else pop('A bit more…', s2.x, s2.y);
+      renderRail();
+      return;
+    }
+    // a drop: anywhere near the bowl counts; a quick tap on a bin drops one too
+    W.scene.remove(h.ghost);
+    h.bin.scale.setScalar(0.95);
+    const tap = Math.hypot(x - h.sx, y - h.sy) < 14;
+    const p = h.ghost.position;
+    const inBowl = tap || Math.hypot(p.x - BOWL.x, p.z - BOWL.z) < BOWL.r + 0.45;
+    if (!inBowl) { sfx('bump'); return; }
+    const t = selectedTicket();
+    if (!t) return;
+    if (!addPart(S, t.uid, h.part)) { const s2 = toScreen(BOWL.x, TOP + 1.3, BOWL.z); pop('Noodles aren’t cooked yet!', s2.x, s2.y, 'bad'); sfx('bump'); return; }
+    sfx('splash'); note(520 + t.parts.length * 70, 0.12, 'sine', 0.1);
+    burst(BOWL.x, TOP + 0.7, BOWL.z, 6, t.broth ? BROTHS[t.broth].color : '#ffffff', { up: 2, speed: 1.4 });
+    const s2 = toScreen(BOWL.x, TOP + 1.4, BOWL.z);
+    pop(`+ ${PARTS[h.part].ico}`, s2.x, s2.y);
+    renderBowl(); renderRail();
+  }
+  function onHold(dt) {
+    if (!hold) return;
+    if (hold.kind === 'pour') {
+      const t = selectedTicket();
+      if (!t) return;
+      pour(S, t.uid, hold.broth, dt * POUR_RATE);
+      hold.jug.rotation.z = Math.min(0.9, hold.jug.rotation.z + dt * 4);
+      // a stream from the jug's spout into the bowl
+      const j = hold.jug.position;
+      if (Math.random() < 0.8) burst(j.x + (BOWL.x - j.x) * 0.55, TOP + 1.2, j.z + (BOWL.z - j.z) * 0.55, 2, BROTHS[hold.broth].color, { up: -1, speed: 0.6, r: 0.06, life: 0.4 });
+      gauge(t.fill / 1.2, FILL.lo / 1.2, FILL.hi / 1.2, t.fill > FILL.hi ? 'Too much!' : t.fill >= FILL.lo ? 'Stop!' : 'Pour…');
+      renderBowl();
+    } else {
+      const q = planeAt(P.x, P.y, TOP + 0.9);
+      if (q) hold.ghost.position.lerp(q, 0.5);
+      hold.ghost.rotation.y += dt * 2;
+    }
+  }
+
   buildBar.addEventListener('click', e => {
     const a = e.target.closest('[data-a]')?.dataset.a;
     const t = selectedTicket();
@@ -319,8 +401,13 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     emote(c, res.points >= 90 ? '😍' : res.points >= 80 ? '😋' : res.points >= 60 ? '🙂' : '😕', 1.8);
     if (res.points >= 80) act(c, 'bounce');
     const s = toScreen(BOWL.x, TOP + 1.5, BOWL.z);
+    // they tell you what they noticed: the worst thing first, or the best
+    const notes = res.judge.notes;
+    const bad = notes.find(n => !n.ok), good = notes.filter(n => n.ok);
+    bark(c, bad ? bad.text : good.length ? `Mm! ${good.map(n => n.text).slice(0, 2).join(' · ')}` : 'Mm!', 3.2);
+    notes.slice(0, 4).forEach((n, i) => setTimeout(() => pop(`${n.ok ? '✓' : '✗'} ${n.text}`, s.x + (i % 2 ? 90 : -90), s.y - 40 - i * 34, n.ok ? '' : 'bad'), 250 + i * 260));
     pop(`${res.points} pts · ¥${res.tip}`, s.x, s.y, res.points >= 80 ? 'gold' : '');
-    if (res.stars && res.points >= 80) pop(`⭐ Star ${res.stars}`, s.x, s.y - 50, 'gold');
+    if (res.stars && res.points >= 80) setTimeout(() => pop(`⭐ Star ${res.stars}`, s.x, s.y - 200, 'gold'), 1300);
     burst(BOWL.x, TOP + 1, BOWL.z, 16, '#ffd23f', { up: 4 });
     p.leaving = true;
     p.tx = KX - 10;
@@ -329,8 +416,22 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     renderBowl(); renderRail();
   });
 
+  // labels under every bin and jug, so you can read the counter at a glance
+  const labelsEl = hud.querySelector('.svc-labels');
+  const LABELS = [
+    ...BINS.map((p, i) => ({ text: `${PARTS[p].ico} ${PARTS[p].name.split(' ').pop()}`, x: BIN_X(i), y: TOP, z: BIN_Z + 0.55 })),
+    ...Object.entries(JUGS).map(([id, j]) => ({ text: `${BROTHS[id].ico} ${id === 'hen' ? 'hen broth' : 'chilli broth'}`, x: j.x, y: TOP + 1.05, z: j.z })),
+    { text: '✨ chicken fat', x: FAT.x, y: TOP + 1.05, z: FAT.z },
+  ];
+  labelsEl.innerHTML = LABELS.map(l => `<span>${esc(l.text)}</span>`).join('');
+  function renderLabels() {
+    labelsEl.style.display = station === 'build' ? '' : 'none';
+    if (station !== 'build') return;
+    LABELS.forEach((l, i) => { const q = toScreen(l.x, l.y, l.z); const e = labelsEl.children[i]; e.style.left = `${q.x}px`; e.style.top = `${q.y}px`; });
+  }
+
   // dev/test hook
-  window.__shop = { S, go, people, baskets, bins, get station() { return station; }, get selected() { return selected; } };
+  window.__shop = { S, go, people, baskets, bins, fatJar, get station() { return station; }, get selected() { return selected; } };
 
   // ---------- the service loop ----------
   K.pickables = [];
@@ -340,7 +441,16 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     for (const e of drainEvents(S)) {
       if (e.type === 'arrive') { spawnGuest(S.guests.find(g => g.uid === e.guest)); layout(); sfx('beep'); }
     }
-    for (const e of evs) if (e.type === 'tap') onTap(e.x, e.y);
+    for (const e of evs) {
+      if (e.type === 'down') onDown(e.x, e.y);
+      if (e.type === 'up') onUp(e.x, e.y);
+      if (e.type === 'tap' && !(station === 'build' && pickAt(e.x, e.y, bins))) onTap(e.x, e.y);
+    }
+    onHold(dt);
+    // steam off the bowl shows how hot it still is
+    const sel = selectedTicket();
+    if (sel && sel.fill > 0 && Math.random() < sel.heat * 0.5) burst(BOWL.x + (Math.random() - 0.5) * 0.8, TOP + 0.7, BOWL.z + (Math.random() - 0.5) * 0.6, 1, '#ffffff', { up: 1.2, speed: 0.2, r: 0.08, g: -0.5, life: 1.1 });
+    if (sel && sel.fill > 0 && Math.random() < 0.05) renderBowl();
     // people walk to their spots
     for (const [uid, p] of Object.entries(people)) {
       const pos = p.char.root.position, dx = p.tx - pos.x;
@@ -362,7 +472,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (r && r.zone === 'ready' && !b.dinged) { b.dinged = true; sfx('ding'); }
       if (!b.ticket) b.dinged = false;
     }
-    renderRings(); renderBadges(); renderHelp();
+    renderRings(); renderBadges(); renderHelp(); renderLabels();
     railT -= dt; if (railT <= 0) { railT = 0.25; renderRail(); }
     const money = hud.querySelector('.svc-money b');
     if (shown.money !== S.tips) { shown.money += Math.sign(S.tips - shown.money) * Math.max(1, Math.round(Math.abs(S.tips - shown.money) * 0.2)); money.textContent = shown.money; }
@@ -376,8 +486,9 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   card.className = 'k3-result';
   card.innerHTML = `<div class="k-ticket">
     <div class="row" style="justify-content:space-between"><b>🏮 Service over</b><span class="k-total">${avg} pts</span></div>
-    ${S.results.map(r => `<div class="meter"><span style="width:170px; font-size:13px">${GUESTS[r.who].ico} ${esc(MENU[r.dish].name)}</span>
-      <div class="bar"><div class="fill" style="width:${r.points}%; background:${r.points >= 80 ? '#49b26a' : r.points >= 60 ? '#f0b429' : '#e2574c'}"></div></div><span class="val">¥${r.tip}</span></div>`).join('')}
+    ${S.results.map(r => `<div class="meter"><span style="width:170px; font-size:13px">${GUESTS[r.who].ico} ${esc(GUESTS[r.who].name)}</span>
+      <div class="bar"><div class="fill" style="width:${r.points}%; background:${r.points >= 80 ? '#49b26a' : r.points >= 60 ? '#f0b429' : '#e2574c'}"></div></div><span class="val">¥${r.tip}</span></div>
+      <p class="sub" style="margin:0 0 6px 0">${r.judge.notes.map(n => `${n.ok ? '✓' : '✗'} ${esc(n.text)}`).join(' · ')}</p>`).join('')}
     <p class="sub">Tips: ¥${S.tips} · ⭐ ${Object.values(S.stars).filter(n => n > 0).length} happy regulars</p>
     <div class="row" style="justify-content:flex-end; margin-top:10px"><button class="btn-big" id="k-done">Close up</button></div>
   </div>`;

@@ -34,7 +34,7 @@ export const FLAVOURS = {
 };
 
 let el = null, ctx = null, parts = [], emitters = [], clock = 0, face = { x: 0, y: 0, r: 120 };
-const grey = { v: 0 }, shake = { v: 0 }, flash = { v: 0 };
+const grey = { v: 0 }, shake = { v: 0 }, flash = { v: 0 }, veil = { v: 1 };
 
 function ensure() {
   if (el) return;
@@ -103,7 +103,7 @@ function draw(dt) {
   // the dark, with a soft window on the duck's face
   const R = face.r;
   const g = ctx.createRadialGradient(face.x, face.y, R * 0.45, face.x, face.y, R * 1.5);
-  g.addColorStop(0, 'rgba(8,6,12,0)'); g.addColorStop(0.55, 'rgba(8,6,12,0.88)'); g.addColorStop(1, 'rgba(8,6,12,1)');
+  g.addColorStop(0, 'rgba(8,6,12,0)'); g.addColorStop(0.55, `rgba(8,6,12,${0.88 * veil.v})`); g.addColorStop(1, `rgba(8,6,12,${veil.v})`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
   if (flash.v > 0) { ctx.fillStyle = `rgba(255,255,255,${flash.v})`; ctx.fillRect(0, 0, w, h); flash.v = Math.max(0, flash.v - dt * 3); }
   ctx.globalCompositeOperation = 'lighter';
@@ -218,12 +218,13 @@ function word(text, i, n, color, slot) {
 function chord(freqs, dur = 2.6, vol = 0.09) { freqs.forEach((f, i) => { note(f, dur, 'sine', vol, i * 0.06); note(f * 2, dur * 0.8, 'triangle', vol * 0.35, i * 0.06 + 0.02); }); }
 
 /** Play a taste moment. Resolves when the player taps on through the soul note. */
-export async function tasteMoment({ title = '', desc = '', flavours = [], mode = 'spark', lesson = '' } = {}) {
+export async function tasteMoment({ title = '', desc = '', flavours = [], mode = 'spark', lesson = '', heart = '' } = {}) {
   if (G.skip) { save(title, lesson); return; }
   ensure(); resize();
+  if (mode === 'echo') return echo(flavours);
   G.busy++;
   const prev = { shot: player.camShot, fov: player.fovShot, face: null };
-  parts = []; emitters = []; clock = 0; grey.v = 0; shake.v = 0; flash.v = 0;
+  parts = []; emitters = []; clock = 0; grey.v = 0; shake.v = 0; flash.v = 0; veil.v = 1;
   el.querySelector('.taste-title b').textContent = title;
   el.querySelector('.taste-title span').textContent = desc;
   el.querySelector('.taste-words').innerHTML = '';
@@ -255,6 +256,7 @@ export async function tasteMoment({ title = '', desc = '', flavours = [], mode =
     }
     // …and in the middle of it all, something warm that isn't an ingredient
     add('heart', '#ff8f7a', { a: HEART, R: face.r * 1.05, life: 6, s: 1.2 });
+    if (heart) word(heart, 0, 1, '#ffb3a3', { a: HEART, R: face.r * 1.25 });
     chord([261.6, 329.6, 392.0], 3.5, 0.07);
     await sleep(1.3);
     // WOAH
@@ -350,6 +352,31 @@ export async function tasteMoment({ title = '', desc = '', flavours = [], mode =
   player.camShot = prev.shot; player.fovShot = prev.fov;
   player.char.setFace('normal');
   G.busy--;
+}
+
+// A memory of a taste, seen from where you are now (no close-up, no words):
+// the wheel and the heart flicker round you for a moment, faint, then gone.
+async function echo(flavours) {
+  if (G.skip) return;
+  parts = []; emitters = []; clock = 0; flash.v = 0; grey.v = 0; shake.v = 0; veil.v = 0.22;
+  el.querySelector('.taste-title b').textContent = '';
+  el.querySelector('.taste-title span').textContent = '';
+  el.querySelector('.taste-words').innerHTML = '';
+  el.querySelector('.taste-note').classList.remove('on');
+  trackFace();
+  el.classList.remove('hidden');
+  requestAnimationFrame(() => el.classList.add('on'));
+  last = performance.now(); raf = requestAnimationFrame(loop);
+  const n = flavours.length;
+  flavours.forEach((f, i) => emitters.push({ f, slot: { a: Math.PI + i * (Math.PI * 2 / n), R: face.r * 1.4 }, rate: 2.5, acc: 0, o: { even: true, spin: 0.35, dim: 0.55 } }));
+  parts.push({ shape: 'heart', color: '#ff8f7a', a: Math.PI / 2, R: face.r * 0.95, born: clock, life: 2.8, s: 0.8, ph: 0, vr: 0, vR: 0, orbit: 0, dim: 0.7 });
+  [261.6, 329.6, 392.0].forEach((f, i) => note(f, 2.2, 'sine', 0.05, i * 0.25));
+  await sleep(2.0);
+  emitters = [];
+  el.classList.remove('on');
+  await sleep(0.8);
+  cancelAnimationFrame(raf);
+  el.classList.add('hidden');
 }
 
 function save(title, lesson) {
