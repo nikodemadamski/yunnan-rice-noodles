@@ -67,7 +67,7 @@ function buildSet() {
   tiles.colorSpace = THREE.SRGBColorSpace;
   tiles.wrapS = tiles.wrapT = THREE.RepeatWrapping; tiles.repeat.set(14, 5);
   mesh(new THREE.BoxGeometry(30, 10, 0.3), toon({ map: tiles }), KX, 5, KZ - 5.4, { ink: false });
-  mesh(new THREE.BoxGeometry(5.5, 3.2, 0.1), '#bfe6ff', KX + 3.8, 5.6, KZ - 5.2, { ink: false });
+  K.window = mesh(new THREE.BoxGeometry(5.5, 3.2, 0.1), toon({ color: '#bfe6ff' }), KX + 3.8, 5.6, KZ - 5.2, { ink: false });
   for (const [w, h, x, y] of [[5.9, 0.25, 0, 1.7], [5.9, 0.25, 0, -1.7], [0.25, 3.6, -2.85, 0], [0.25, 3.6, 2.85, 0], [0.15, 3.2, 0, 0]]) {
     mesh(new THREE.BoxGeometry(w, h, 0.2), '#fbf5ec', KX + 3.8 + x, 5.6 + y, KZ - 5.1, { ink: false });
   }
@@ -136,19 +136,25 @@ function buildSet() {
   const lamp = new THREE.PointLight('#ffd9a0', 18, 18, 1.6);
   lamp.position.set(KX - 0.5, 7.5, KZ + 1.5);
   W.scene.add(lamp);
+  K.lampLight = lamp;
   // Grandma, beside the counter
   K.gran = makeCharacter({ skin: '#f3d0b5', shirt: '#9b5a8a', pants: '#4a3a5a', hair: '#d8d4d0', hairStyle: 'bun', skirt: true, scale: 0.9, blush: true, glasses: true });
   K.gran.root.position.set(KX - 1.5, 0.45, KZ - 3.6);
   K.gran.root.rotation.y = 0;
   W.scene.add(K.gran.root);
+  K.chilli = makeCharacter({ skin: '#f2c9a5', shirt: '#d63c2f', pants: '#2d2d2d', hair: '#1a1a1a', hairTip: '#d63c2f', hairStyle: 'pony', brows: true });
+  K.chilli.root.position.set(KX - 1.5, 0.35, KZ - 3.6);
+  K.chilli.root.visible = false;
+  W.scene.add(K.chilli.root);
+  K.host = K.host;
   // particles
   K.parts = [];
   addTicker(dt => {
     if (!K.live) return;
     if (K.granTarget && !K.granBusy) {
-      const p = K.gran.root.position, dx = K.granTarget.x - p.x, dz = K.granTarget.z - p.z, d = Math.hypot(dx, dz);
-      if (d > 0.15) { p.x += dx / d * 3 * dt; p.z += dz / d * 3 * dt; K.gran.root.rotation.y = Math.atan2(dx, dz); K.gran.animate(dt, 3, K.t || 0); }
-      else K.gran.root.rotation.y += (0 - K.gran.root.rotation.y) * Math.min(1, dt * 6);
+      const p = K.host.root.position, dx = K.granTarget.x - p.x, dz = K.granTarget.z - p.z, d = Math.hypot(dx, dz);
+      if (d > 0.15) { p.x += dx / d * 3 * dt; p.z += dz / d * 3 * dt; K.host.root.rotation.y = Math.atan2(dx, dz); K.host.animate(dt, 3, K.t || 0); }
+      else K.host.root.rotation.y += (0 - K.host.root.rotation.y) * Math.min(1, dt * 6);
     }
     K.t = (K.t || 0) + dt;
     for (const [i, f] of K.flames.entries()) {
@@ -168,16 +174,18 @@ function buildSet() {
       p.v.y -= p.g * dt;
       p.m.position.addScaledVector(p.v, dt);
       p.m.material.opacity = Math.max(0, 1 - p.life / p.max);
-      if (p.life >= p.max) { W.scene.remove(p.m); return false; }
+      if (p.life >= p.max) { W.scene.remove(p.m); p.m.material.dispose(); return false; }
       return true;
     });
   });
   return K;
 }
 
+const PART_GEO = new THREE.SphereGeometry(1, 8, 6);       // one shared geometry, scaled per particle
 function burst(x, y, z, n, color, o = {}) {
-  for (let i = 0; i < n; i++) {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(o.r || 0.07, 6, 5), new THREE.MeshBasicMaterial({ color, transparent: true }));
+  for (let i = 0; i < n && K.parts.length < 260; i++) {
+    const m = new THREE.Mesh(PART_GEO, new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false }));
+    m.scale.setScalar(o.r || 0.07);
     m.position.set(x, y, z);
     m.userData.noShadow = true;
     W.scene.add(m);
@@ -243,12 +251,12 @@ function toScreen(x, y, z) {
 
 // ============================================================ HUD
 
-function makeHud() {
+function makeHud(steps = STEPS) {
   hud = document.createElement('div');
   hud.className = 'k3';
   hud.innerHTML = `
     <div class="k3-top">
-      <div class="k3-steps">${STEPS.map((s, i) => `<span class="k3-step">${i + 1} ${s}</span>`).join('')}</div>
+      <div class="k3-steps">${steps.map((s, i) => `<span class="k3-step">${i + 1} ${s}</span>`).join('')}</div>
     </div>
     <div class="k3-bottom">
       <div class="k3-title"></div>
@@ -267,6 +275,7 @@ function setStep(i, title, help) {
   hud.querySelector('.k3-help').textContent = help || '';
 }
 const help = t => { hud.querySelector('.k3-help').textContent = t; };
+const title = t => { hud.querySelector('.k3-title').textContent = t; };
 
 /** A vertical gauge on the right: value 0..1, green band lo..hi. */
 function gauge(value, lo, hi, label) {
@@ -288,14 +297,15 @@ function pop(text, x, y, cls = '') {
 }
 
 const GRADES = [[0.9, 'PERFECT!', 'perfect'], [0.7, 'GREAT!', 'great'], [0.45, 'OK!', 'ok'], [-1, 'OOPS…', 'oops']];
-async function stamp(score) {
+async function stamp(score, o = {}) {
   const [, text, cls] = GRADES.find(([min]) => score >= min);
   const el = document.createElement('div');
   el.className = `k3-stamp ${cls}`;
   el.textContent = text;
   hud.appendChild(el);
   sfx(score >= 0.7 ? 'ding' : score >= 0.45 ? 'pop' : 'fail');
-  const gran = K.gran;
+  const gran = K.host;
+  if (o.react === false) { await beat(1.3); el.remove(); return; }
   if (score >= 0.9) { gran.setFace('happy'); emote(gran, '✨', 1.4); act(gran, 'bounce'); }
   else if (score < 0.45) { gran.setFace('smug'); emote(gran, '👵', 1.4); pop('Grandma will fix it!', innerWidth / 2, innerHeight * 0.62, 'fix'); }
   else { gran.setFace('happy'); act(gran, 'chuckle'); }
@@ -710,7 +720,7 @@ async function stepBuild(st) {
           const art = (TOPPING_ART[c.b.art] || TOPPING_ART.chives)();
           art.position.set((Math.random() - 0.5) * 0.7, 0.02 + st.added.length * 0.02, (Math.random() - 0.5) * 0.5);
           K.bowlStuff.add(art);
-          if (c.b.extra) { st.extras.push(c.b.id.split(':')[1]); K.gran.setFace('shock'); emote(K.gran, '💢', 1.2); sfx('fail'); }
+          if (c.b.extra) { st.extras.push(c.b.id.split(':')[1]); K.host.setFace('shock'); emote(K.host, '💢', 1.2); sfx('fail'); }
           else { st.added.push(c.b.id); sfx('splash'); }
           burst(BOWL.x, TOP + 0.8, BOWL.z, 8, '#f2c46d', { up: 2 });
           const s = toScreen(BOWL.x, TOP + 1.4, BOWL.z);
@@ -769,7 +779,7 @@ async function stepTaste(st) {
   const total = Math.round((skillAvg * 0.5 + recipe * 0.5) * 100);
   const medal = total >= 95 ? ['🥇', 'Gold · Better than Grandma!'] : total >= 80 ? ['🥈', 'Silver'] : total >= 55 ? ['🥉', 'Bronze'] : ['👵', 'Grandma fixed it'];
   // Grandma comes round, tastes, and reacts
-  const g = K.gran;
+  const g = K.host;
   K.granBusy = true;
   player.camShot = { pos: { x: BOWL.x - 1.4, y: 4.4, z: BOWL.z + 7.2 }, look: { x: BOWL.x - 0.6, y: 2.0, z: BOWL.z - 0.6 }, speed: 2.5 };
   await new Promise(res => {
@@ -823,13 +833,15 @@ const STATIONS = {
   noodles: { x: POT.x, z: POT.z, w: 2.6, h: 2.4 },
   oil: { x: KX + 2.4, z: KZ + 0.6, w: 3.3, h: 2.4 },
   build: { x: KX - 1.5, z: KZ - 0.3, w: 4.4, h: 2.6 },
+  live: { x: POT.x + 1.6, z: KZ - 1.0, w: 3.9, h: 3.1, hostX: KX - 0.7 },        // the pot, with Grandma and Wang's faces over the counter
+  chilli: { x: BOWL.x - 1.0, z: BOWL.z - 1.3, w: 3.7, h: 3.1 },
 };
 let station = 'all';
 function focus(name, snap = false) {
   station = name;
   frameCounter(snap);
   const st = STATIONS[name];
-  K.granTarget = { x: clamp(st.x - 1.6, KX - 6, KX + 5), z: KZ - 3.6 };
+  K.granTarget = { x: st.hostX ?? clamp(st.x - 1.6, KX - 6, KX + 5), z: KZ - 3.6 };
 }
 
 function frameCounter(snap = true) {
@@ -847,32 +859,59 @@ function frameCounter(snap = true) {
   if (snap === true) { W.camera.fov = fov; W.camera.updateProjectionMatrix(); updateCamera(1); }
 }
 
-export async function cookBowl() {
+/** Set up a cooking session on the counter. opts: { steps, host: 'gran'|'chilli', night, station } */
+export function begin(opts = {}) {
   buildSet();
   K.live = true;
   K.heat = 0.2;
   K.bowlBroth.visible = false;
   K.oilLayer.material.opacity = 0;
   K.bowlStuff.clear();
-  K.gran.root.position.set(KX - 1.5, 0.45, KZ - 3.6);
-  K.gran.root.rotation.y = 0;
-  K.gran.setFace('happy');
+  K.gran.root.visible = opts.host !== 'chilli';
+  K.chilli.root.visible = opts.host === 'chilli';
+  K.host = opts.host === 'chilli' ? K.chilli : K.gran;
+  K.host.root.position.set(KX - 1.5, opts.host === 'chilli' ? 0.35 : 0.45, KZ - 3.6);
+  K.host.root.rotation.y = 0;
+  K.host.setFace('happy');
   K.granBusy = false;
-  act(K.gran, 'idle');
+  act(K.host, 'idle');
   G.busy++;
-  const light = { hemi: W.hemi.intensity, sun: W.sun.intensity };   // indoors: always lamp-lit, even at night
-  W.hemi.intensity = 1.25; W.sun.intensity = 1.6;
-  const prevFocus = player.camFocus;
+  K.saved = { hemi: W.hemi.intensity, sun: W.sun.intensity, focus: player.camFocus };
+  W.hemi.intensity = opts.night ? 0.55 : 1.25; W.sun.intensity = opts.night ? 0.25 : 1.6;   // indoors / under the stall lamp
+  K.lampLight.intensity = opts.night ? 30 : 18;
+  K.window.material.color.set(opts.night ? '#24305a' : '#bfe6ff');
   player.camFocus = { x: KX, z: KZ };
   player.char.root.visible = false;
-  focus('broth', true);
+  focus(opts.station || 'broth', true);
   addEventListener('resize', frameCounter);
-  const cv = W.renderer.domElement;
-  cv.addEventListener('pointerdown', onDown);
+  W.renderer.domElement.addEventListener('pointerdown', onDown);
   addEventListener('pointermove', onMove);
   addEventListener('pointerup', onUp);
-  makeHud();
+  makeHud(opts.steps);
   G.skip = false;
+  return K;
+}
+
+export function end() {
+  K.live = false;
+  clearItems();
+  stopActing();
+  W.renderer.domElement.removeEventListener('pointerdown', onDown);
+  removeEventListener('pointermove', onMove);
+  removeEventListener('pointerup', onUp);
+  removeEventListener('resize', frameCounter);
+  hud.remove();
+  document.body.classList.remove('cooking');
+  player.camShot = null;
+  player.fovShot = null;
+  player.camFocus = K.saved.focus;
+  player.char.root.visible = true;
+  W.hemi.intensity = K.saved.hemi; W.sun.intensity = K.saved.sun;
+  G.busy--;
+}
+
+export async function cookBowl() {
+  begin({ steps: STEPS, host: 'gran', station: 'broth' });
   const st = {};
   try {
     await stepBroth(st);
@@ -883,23 +922,15 @@ export async function cookBowl() {
     await stepBuild(st);
     return await stepTaste(st);
   } finally {
-    K.live = false;
-    clearItems();
-    stopActing();
-    cv.removeEventListener('pointerdown', onDown);
-    removeEventListener('pointermove', onMove);
-    removeEventListener('pointerup', onUp);
-    removeEventListener('resize', frameCounter);
-    hud.remove();
-    document.body.classList.remove('cooking');
-    player.camShot = null;
-    player.fovShot = null;
-    player.camFocus = prevFocus;
-    player.char.root.visible = true;
-    W.hemi.intensity = light.hemi; W.sun.intensity = light.sun;
-    G.busy--;
+    end();
   }
 }
+
+// the toolkit for other cooking scenes (Day 1's livestream and Little Chilli's bowl)
+export { K as kitchenState, STATIONS, POT, BOWL, BOARD, KNOB, TOP, KX, KZ, P, run, poll, speedPx, pickAt, planeAt, toScreen, burst, mesh, place, clearItems,
+  stamp, hint, pop, gauge, setStep, help, title, focus, TOPPING_ART, jar, dish, hen, cube, dragInto };
+export const kit = () => K;
+export const hudEl = () => hud;
 
 // dev/test hook: where things are on screen
 window.__kitchen = { toScreen, POT, BOWL, BOARD, KNOB, TOP, P, get K() { return K; } };

@@ -15,7 +15,7 @@ import { updateRun } from './deliveries.js';
 import { day1, day2, evening, openBoard } from './story.js';
 import { opening } from './opening.js';
 import { simScene } from './sim.js';
-import { promptPalLive, chilliBowl } from './day1cook.js';
+import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { cookBowl } from './kitchen3d.js';
 import { shopDay } from './shop.js';
 

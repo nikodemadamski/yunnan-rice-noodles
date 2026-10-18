@@ -30,7 +30,12 @@ export function addTicker(fn) {
 
 export function runTickers(dt) {
   for (const fn of [...tickers]) {
-    if (fn(dt) === true) tickers.delete(fn);
+    try {
+      if (fn(dt) === true) tickers.delete(fn);
+    } catch (err) {                       // one broken ticker must never freeze the game
+      console.error(err);
+      tickers.delete(fn);
+    }
   }
 }
 

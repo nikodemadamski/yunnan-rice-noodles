@@ -47,3 +47,16 @@ Night, warm stall glow, **no timer, no score, no music**. Chilli's hands demonst
 Juice: hit-stop 50–100 ms on impacts only; screen shake only in the comedy scene, never in Chilli's; small particle counts; camera locked in (b).
 
 Sources: [Venba: Xbox Wire](https://news.xbox.com/en-us/2023/07/19/venba-interview/) · [Shacknews](https://shacknews.com/article/134708/venba-preview-gdc-2023) · [Cooking Mama: StrategyWiki](https://strategywiki.org/wiki/Cooking_Mama) · [Unpacking sound (NME)](https://www.nme.com/news/unpacking-features-over-14000-sound-effect-files-3087521) · [$1 Recognizer](https://depts.washington.edu/acelab/proj/dollar/index.html) · [Juice (AAAI)](https://ojs.aaai.org/index.php/AIIDE/article/download/18889/18654/22655)
+
+## Implementation (3D, current)
+Both scenes now run on the 3D kitchen counter shared with Grandma's evening bowl
+(`prototype/src/kitchen3d.js` engine, `prototype/src/day1cook3d.js` scenes):
+- PromptPal Live: Grandma and Old Wang watch from behind the counter; the
+  PromptPal chat, LIVE badge, viewer count and flying comments are DOM overlays;
+  every step is a direct 3D gesture (drag the cube, stir round the pot, scrub
+  to grate, drag the noodles down, tap gold leaves, swipe the sparkler). The
+  finale cuts to Grandma's face, then VIRAL.
+- Little Chilli's bowl: night, Chilli behind the counter; frost on the bowl,
+  a ladle that spills if you rush, one drop of oil with real temptations (a
+  glowing jar, a chilli jar sliding in, the phone buzzing), chives, hands off,
+  slurp, then her sepia memory of Grandpa Zhao on the opening's memory set.

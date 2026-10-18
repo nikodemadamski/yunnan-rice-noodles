@@ -545,6 +545,47 @@ export async function opening(opts = {}) {
   await flight();
 }
 
+// ---------- Little Chilli's memory (played at the end of her bowl on Day 1) ----------
+
+export async function chilliFlashback() {
+  const { zhao, neighbours } = buildMemory();
+  const wasNight = W.night;
+  const kid = makeCharacter({ skin: '#f2c9a5', shirt: '#d63c2f', pants: '#2d2d2d', hair: '#1a1a1a', hairTip: '#d63c2f', hairStyle: 'pony', scale: 0.7, brows: true });
+  kid.root.position.set(MX, 0.05, MZ + 1.45);
+  kid.root.rotation.y = Math.PI;
+  W.scene.add(kid.root);
+  const keep = { camShot: player.camShot, fov: player.fovShot };
+  document.body.classList.add('grade-sepia');
+  setNight(false);
+  for (const [k, c] of [['top', '#e8c89a'], ['mid', '#f0d8b0'], ['low', '#fff0d0']]) W.skyU[k].value.set(c);
+  kid.setFace('sad'); zhao.setFace('happy');
+  act(zhao, 'ladle');
+  neighbours.forEach(n => act(n, 'eat'));
+  try {
+    cut({ x: MX - 7.5, y: 4, z: MZ + 6 }, { x: MX, y: 1.6, z: MZ }, 38);
+    move({ x: MX - 5.2, y: 3.2, z: MZ + 4.2 }, { x: MX, y: 1.5, z: MZ }, 0.35);
+    await fadeIn(0.8);
+    await beat(1.6);
+    act(zhao, 'idle');
+    cut({ x: MX - 2.6, y: 2.9, z: MZ + 5.4 }, { x: MX, y: 1.4, z: MZ - 1.55 }, 32);
+    await talk([[SP.zhao, '少一点，小辣椒。永远少一点。Less, Little Chilli. Always less.', { face: 'happy', hold: 2.2 }]]);
+    kid.setFace('happy');
+    act(kid, 'eat');
+    cut({ x: MX + 3.6, y: 2.8, z: MZ - 3.4 }, { x: MX, y: 1.3, z: MZ + 1.45 }, 32);
+    await beat(2.2);
+    document.getElementById('fade').style.background = '#fff6e6';
+    await fadeOut(0.9);
+    document.getElementById('fade').style.background = '';
+  } finally {
+    act(zhao, null); act(kid, null); neighbours.forEach(n => act(n, null));
+    W.scene.remove(kid.root);
+    document.body.classList.remove('grade-sepia');
+    setNight(wasNight);
+    player.camShot = keep.camShot;
+    player.fovShot = keep.fov;
+  }
+}
+
 // ---------- the flight: a map card with the AI's "perfect recipe" ----------
 
 function flight() {

@@ -647,3 +647,27 @@ body.cooking #hud, body.cooking #touch { display: none !important; }
   .k3-ticket { top: auto; bottom: 90px; transform: rotate(-2deg); width: 170px; font-size: 13px; }
   .k3-title { font-size: 20px; }
 }
+body.grade-sepia #scene { filter: sepia(0.75) saturate(0.85) brightness(1.06) contrast(0.95); transition: filter .5s; }
+
+/* ---------- PromptPal Live (3D) ---------- */
+.live3 { position: absolute; inset: 0; pointer-events: none !important; }
+.live3 > * { pointer-events: none !important; }
+.live3 .live3-chat { pointer-events: auto !important; position: absolute; left: 12px; top: 54px; bottom: 90px; width: 230px; }
+.live3-badge { position: absolute; left: 14px; top: 12px; display: flex; gap: 8px; align-items: center; }
+.live3-badge b { background: #e0332f; color: #fff; border-radius: 8px; padding: 3px 10px; font-size: 13px; }
+.live3-views { background: rgba(0, 0, 0, .45); color: #fff; border-radius: 8px; padding: 3px 10px; font-weight: 800; font-size: 13px; }
+.live3-badge small { color: #fff; font-weight: 800; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.live3-comments { position: absolute; inset: 0; overflow: hidden; }
+.live3-c { position: absolute; left: 100%; white-space: nowrap; font-weight: 900; font-size: 16px; text-shadow: 0 2px 4px rgba(0, 0, 0, .6); animation: cfly linear forwards; }
+.live3-c.big { font-size: 22px; }
+@keyframes cfly { to { transform: translateX(calc(-100vw - 100%)); } }
+.live3-lens { position: absolute; inset: 0; }
+.live3-lens i { position: absolute; border-radius: 50%; animation: wipe 1s 3.5s forwards; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, .7), rgba(250, 238, 210, .45) 45%, rgba(250, 238, 210, .2)); }
+.live3-lens i.leaf { left: auto; right: 4%; bottom: 8%; top: auto; width: 140px; height: 140px; border-radius: 6px; transform: rotate(-18deg); background: linear-gradient(135deg, #ffe58a, #f2c14e 50%, #c99a24); box-shadow: var(--shadow); animation: popin .3s both; opacity: 1; }
+.live3-alarm { position: absolute; left: 50%; top: 8px; width: 46px; height: 30px; margin-left: -23px; border-radius: 50% 50% 8px 8px; background: #ff3b3b; animation: alarm .3s steps(2) infinite; box-shadow: 0 0 40px #ff3b3b; }
+@keyframes alarm { 50% { opacity: .2; } }
+@keyframes wipe { to { opacity: 0; } }
+.live3-viral { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%) rotate(-12deg); font-size: 96px; font-weight: 900; color: #e0332f; border: 10px solid #e0332f; border-radius: 22px; padding: 0 30px; background: rgba(255, 255, 255, .85); animation: k3stamp .4s cubic-bezier(.2, 1.6, .4, 1) both; }
+.phone3 { position: absolute; transform: translate(-50%, -100%); background: #7a52c7; color: #fff; font-weight: 900; font-size: 14px; padding: 6px 12px; border-radius: 12px; box-shadow: var(--shadow); animation: buzz .25s 3; pointer-events: none !important; }
+@keyframes buzz { 50% { transform: translate(calc(-50% + 3px), -100%); } }
+@media (max-aspect-ratio: 1/1) { .live3 .live3-chat { top: auto; bottom: 120px; height: 26vh; width: 60vw; } }
