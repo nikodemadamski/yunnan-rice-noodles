@@ -69,7 +69,7 @@ function dressStall(st, facing, items) {
 export function dressWorld() {
   const chilli = { x: P.chilliStall.x, z: 9.2 }, spud = { x: P.spudStall.x, z: -9.2 };
 
-  // Little Chilli's erkuai stall: steamers, tea, a stool out front
+  // Little Chilli's erkuai stall: steamers, tea, a crate of greens
   dressStall(chilli, Math.PI, [
     ['food/steamer.json', -1.1, 0.1, 0.32],
     ['food/dim-sum.json', -0.2, 0.3, 0.22, 0.4], ['food/cup-tea.json', 0.3, 0.45, 0.3],
@@ -78,37 +78,30 @@ export function dressWorld() {
     const p = onCounter(chilli, Math.PI, -1.1, 0.1);
     place('food/steamer.json', p.x, p.z, { h: 0.32, y: TOP + 0.3, rot: 0.3 });
   });
-  place('kitchen/chair_stool.json', chilli.x + 2.4, chilli.z - 1.8, { h: 0.7 });
-  place('kitchen/crate_lettuce.json', chilli.x + 2.6, chilli.z + 0.2, { h: 0.9, rot: 0.2, solid: true });
+  place('kitchen/crate_lettuce.json', chilli.x + 2.6, chilli.z + 0.2, { h: 0.6, rot: 0.2, solid: true });
 
   // Uncle Spud's potatoes: skewers on the counter, crates of potatoes beside
   dressStall(spud, 0, [
     ['food/skewer-vegetables.json', -1.2, 0.35, 0.18, 0.3], ['food/skewer-vegetables.json', -0.9, 0.45, 0.18, -0.2],
     ['food/skewer-vegetables.json', -0.6, 0.3, 0.18, 0.1], ['food/cabbage.json', 1.3, -0.3, 0.45],
   ]);
-  place('kitchen/crate_potatoes.json', spud.x - 2.6, spud.z - 0.2, { h: 0.9, rot: -0.15, solid: true });
-  place('kitchen/crate_onions.json', spud.x - 2.7, spud.z + 1.3, { h: 0.85, rot: 0.3, solid: true });
+  place('kitchen/crate_potatoes.json', spud.x - 2.6, spud.z - 0.2, { h: 0.6, rot: -0.15, solid: true });
+  place('kitchen/crate_onions.json', spud.x - 2.7, spud.z + 1.3, { h: 0.6, rot: 0.3, solid: true });
 
   // Auntie Duan's SIM stall: her tea, always her tea
   dressStall(P.simStall, Math.PI, [['food/cup-tea.json', -0.9, 0.2, 0.3], ['food/cup-tea.json', -0.6, 0.35, 0.3, 1]]);
-  place('kitchen/chair_stool.json', P.simStall.x - 1, P.simStall.z + 0.4, { h: 0.7 });
 
-  // Auntie Fu's restaurant door: produce and a stool for the smokers' corner
-  place('kitchen/crate_carrots.json', P.fuDoor.x + 3.2, P.fuDoor.z + 0.2, { h: 0.9, solid: true });
-  place('kitchen/crate_lettuce.json', P.fuDoor.x + 4.5, P.fuDoor.z - 0.1, { h: 0.9, rot: 0.4, solid: true });
-  place('kitchen/chair_stool.json', P.fuDoor.x - 2.6, P.fuDoor.z + 0.8, { h: 0.7 });
+  // Auntie Fu's restaurant door: crates of produce
+  place('kitchen/crate_carrots.json', P.fuDoor.x + 3.2, P.fuDoor.z + 0.2, { h: 0.6, solid: true });
+  place('kitchen/crate_lettuce.json', P.fuDoor.x + 4.5, P.fuDoor.z - 0.1, { h: 0.6, rot: 0.4, solid: true });
 
   // The plaza: an open-air noodle corner, steaming bowls and tea on every table
-  const TABLE_H = 1.25;
+  const TABLE_H = 1.05;
   [[-7, -3], [0, 1], [7, -3], [-3.5, 7], [3.5, 7]].forEach(([dx, dz], i) => {
     const x = P.plaza.x + dx, z = P.plaza.z + dz;
     place('kitchen/table_round_A_small.json', x, z, { h: TABLE_H, solid: true });
-    place('food/bowl-broth.json', x - 0.2, z + 0.1, { h: 0.4, y: TABLE_H, rot: i });
+    place('food/bowl-broth.json', x - 0.2, z + 0.1, { h: 0.34, y: TABLE_H, rot: i });
     if (i % 2 === 0) place('food/cup-tea.json', x + 0.4, z - 0.3, { h: 0.26, y: TABLE_H, rot: i * 2 });
-    for (let k = 0; k < 3; k++) {
-      const a = i + k * Math.PI * 2 / 3;
-      place('kitchen/chair_stool.json', x + Math.cos(a) * 1.4, z + Math.sin(a) * 1.4, { h: 0.5 });
-    }
   });
   for (const [dx, dz] of [[-12, -8], [12, -8], [-12, 12], [12, 12]]) place('city/bush.json', P.plaza.x + dx, P.plaza.z + dz, { h: 1.7, solid: true });
 
@@ -120,7 +113,7 @@ export function dressWorld() {
   for (let x = -40; x <= 40; x += 20) place('city/streetlight.json', x, 45.8, { h: 7, rot: Math.PI, solid: true });
 
   // Benches and bushes round the plaza and the lake promenade
-  for (const [x, z, r] of [[P.plaza.x - 6, P.plaza.z + 9, Math.PI], [P.plaza.x + 6, P.plaza.z + 9, Math.PI], [12, -46.6, 0], [46, -46.6, 0]]) {
+  for (const [x, z, r] of [[12, 28, Math.PI], [38, 28, Math.PI], [12, 12, 0], [38, 12, 0], [12, -46.6, 0], [46, -46.6, 0]]) {
     place('city/bench.json', x, z, { h: 1.1, rot: r, solid: true });
   }
   for (const [x, z] of [[-6.4, 14], [-6.4, 26], [6.4, -14], [6.4, -26], [44, 12], [56, -12], [-44, -26], [-56, 24]]) {

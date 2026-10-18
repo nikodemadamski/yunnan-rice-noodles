@@ -36,6 +36,10 @@ export function outline(root, thickness = 1.06) {
 
 const faceCache = new Map();
 
+// The face, drawn to the baby-schema proportions that measurably read as cute
+// (Lorenz; Glocker et al. 2009): wide round face, high forehead (features in
+// the lower half), big wide-set eyes, tiny mouth, no nose, soft blush.
+// Canvas units 128x96 map onto the front of the skull.
 function faceTexture(expr, o) {
   const key = `${expr}|${o.blush}|${o.glasses}|${o.brows}`;
   if (faceCache.has(key)) return faceCache.get(key);
@@ -43,92 +47,90 @@ function faceTexture(expr, o) {
   c.width = 256; c.height = 192;
   const g = c.getContext('2d');
   g.scale(2, 2);
-  g.translate(0, 9);                     // features sit low on the face: big forehead, baby-like
   g.lineCap = 'round';
   g.lineJoin = 'round';
-  const ink = '#2b1d14';
-  const L = 42, Rx = 86, Y = 44;
+  const ink = '#3a2418';
+  const L = 37, Rx = 91, Y = 56, MY = 74;       // wide-set eyes, low on the face; mouth close under them
 
-  const dotEyes = (ry = 10) => {
+  const eye = (x, h = 1) => {                    // big glossy oval with two catch-lights
     g.fillStyle = ink;
-    for (const x of [L, Rx]) {
-      g.beginPath(); g.ellipse(x, Y, 8.5, ry * 1.15, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#fff';
-      g.beginPath(); g.arc(x + 2.5, Y - 4.5, 3, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.arc(x - 2.5, Y + 4, 1.4, 0, Math.PI * 2); g.fill();
-      g.fillStyle = ink;
-    }
+    g.beginPath(); g.ellipse(x, Y, 9.5, 12.5 * h, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#5a3a28';
+    g.beginPath(); g.ellipse(x, Y + 5 * h, 6.5, 5 * h, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.ellipse(x + 3, Y - 5 * h, 3.6, 4.2 * h, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x - 3.5, Y + 5 * h, 1.7, 0, Math.PI * 2); g.fill();
+  };
+  const closed = (x, up = true) => {             // ^ ^ happy arcs, or u u
+    g.strokeStyle = ink; g.lineWidth = 4.5;
+    g.beginPath();
+    if (up) g.arc(x, Y + 5, 8, 1.15 * Math.PI, 1.85 * Math.PI); else g.arc(x, Y - 3, 8, 0.15 * Math.PI, 0.85 * Math.PI);
+    g.stroke();
   };
   const mouth = (kind) => {
-    g.strokeStyle = ink; g.lineWidth = 4; g.fillStyle = '#7a2b22';
+    g.strokeStyle = ink; g.lineWidth = 3; g.fillStyle = '#c4544a';
     g.beginPath();
-    if (kind === 'smile') g.arc(64, 64, 9, 0.15 * Math.PI, 0.85 * Math.PI);
-    else if (kind === 'big') { g.arc(64, 64, 12, 0, Math.PI); g.closePath(); g.fill(); }
-    else if (kind === 'o') { g.ellipse(64, 72, 7, 9, 0, 0, Math.PI * 2); g.fill(); }
-    else if (kind === 'frown') g.arc(64, 80, 10, 1.15 * Math.PI, 1.85 * Math.PI);
-    else if (kind === 'flat') { g.moveTo(54, 72); g.lineTo(74, 72); }
-    else if (kind === 'smirk') { g.moveTo(54, 72); g.quadraticCurveTo(68, 76, 78, 66); }
-    else if (kind === 'wobble') { g.moveTo(52, 74); g.quadraticCurveTo(58, 68, 64, 74); g.quadraticCurveTo(70, 80, 76, 72); }
+    if (kind === 'smile') { g.moveTo(59, MY); g.quadraticCurveTo(64, MY + 5, 69, MY); }
+    else if (kind === 'big') { g.moveTo(57, MY - 1); g.quadraticCurveTo(64, MY + 10, 71, MY - 1); g.closePath(); g.fill(); }
+    else if (kind === 'o') { g.ellipse(64, MY + 2, 4, 5, 0, 0, Math.PI * 2); g.fill(); }
+    else if (kind === 'frown') { g.moveTo(59, MY + 3); g.quadraticCurveTo(64, MY - 2, 69, MY + 3); }
+    else if (kind === 'flat') { g.moveTo(60, MY + 1); g.lineTo(68, MY + 1); }
+    else if (kind === 'smirk') { g.moveTo(59, MY + 1); g.quadraticCurveTo(66, MY + 4, 71, MY - 2); }
+    else if (kind === 'wobble') { g.moveTo(57, MY + 2); g.quadraticCurveTo(60, MY - 1, 63, MY + 2); g.quadraticCurveTo(66, MY + 5, 70, MY + 1); }
     g.stroke();
   };
   const brows = (tilt) => {
-    g.strokeStyle = ink; g.lineWidth = 5;
+    g.strokeStyle = ink; g.lineWidth = 3.5;
     g.beginPath();
-    g.moveTo(L - 10, 26 - tilt); g.lineTo(L + 9, 26 + tilt);
-    g.moveTo(Rx - 9, 26 + tilt); g.lineTo(Rx + 10, 26 - tilt);
+    g.moveTo(L - 8, Y - 19 - tilt); g.lineTo(L + 7, Y - 19 + tilt);
+    g.moveTo(Rx - 7, Y - 19 + tilt); g.lineTo(Rx + 8, Y - 19 - tilt);
     g.stroke();
   };
 
   switch (expr) {
     case 'happy':
-      g.strokeStyle = ink; g.lineWidth = 6;
-      for (const x of [L, Rx]) { g.beginPath(); g.arc(x, Y + 4, 8, 1.1 * Math.PI, 1.9 * Math.PI); g.stroke(); }
-      mouth('big'); break;
+      closed(L); closed(Rx); mouth('big'); break;
     case 'shock':
       for (const x of [L, Rx]) {
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(x, Y, 13, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, Y, 11, 13, 0, 0, Math.PI * 2); g.fill();
         g.strokeStyle = ink; g.lineWidth = 3; g.stroke();
-        g.fillStyle = ink; g.beginPath(); g.arc(x, Y, 4.5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = ink; g.beginPath(); g.arc(x, Y + 1, 4.5, 0, Math.PI * 2); g.fill();
       }
       mouth('o'); break;
     case 'sad':
-      dotEyes(8); brows(-6); mouth('frown');
-      g.fillStyle = '#6ec6ff'; g.beginPath(); g.ellipse(Rx + 6, Y + 18, 4, 7, 0, 0, Math.PI * 2); g.fill();
+      eye(L, 0.85); eye(Rx, 0.85); brows(-5); mouth('frown');
+      g.fillStyle = '#7fd0ff'; g.beginPath(); g.ellipse(Rx + 9, Y + 12, 3.5, 6, 0, 0, Math.PI * 2); g.fill();
       break;
     case 'angry':
-      dotEyes(8); brows(7); mouth('flat'); break;
+      eye(L, 0.8); eye(Rx, 0.8); brows(6); mouth('flat'); break;
     case 'smug':
-      dotEyes(9);
-      g.fillStyle = '#00000000';
-      g.strokeStyle = ink; g.lineWidth = 5;
-      for (const x of [L, Rx]) { g.beginPath(); g.moveTo(x - 10, Y - 3); g.lineTo(x + 10, Y - 3); g.stroke(); }
-      mouth('smirk'); break;
+      closed(L, false); closed(Rx, false); mouth('smirk'); break;
     case 'blank':
       g.fillStyle = ink;
       for (const x of [L, Rx]) { g.beginPath(); g.arc(x, Y, 3.5, 0, Math.PI * 2); g.fill(); }
       mouth('flat'); break;
     case 'cry':
-      g.strokeStyle = ink; g.lineWidth = 6;
-      for (const x of [L, Rx]) { g.beginPath(); g.arc(x, Y + 6, 8, 1.1 * Math.PI, 1.9 * Math.PI); g.stroke(); }
-      g.fillStyle = '#6ec6ff';
-      g.fillRect(L - 4, Y + 6, 8, 28); g.fillRect(Rx - 4, Y + 6, 8, 28);
+      closed(L); closed(Rx);
+      g.fillStyle = '#7fd0ff';
+      g.beginPath(); g.roundRect(L - 4, Y + 4, 8, 24, 4); g.roundRect(Rx - 4, Y + 4, 8, 24, 4); g.fill();
       mouth('wobble'); break;
     default:
-      dotEyes(); mouth('smile');
+      eye(L); eye(Rx); mouth('smile');
   }
-  if (o.brows && expr === 'normal') brows(2);
+  if (o.brows && expr === 'normal') brows(1);
   if (o.blush) {
-    g.fillStyle = 'rgba(255,120,140,0.45)';
-    g.beginPath(); g.ellipse(24, 62, 10, 6, 0, 0, Math.PI * 2); g.fill();
-    g.beginPath(); g.ellipse(104, 62, 10, 6, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,130,150,0.5)';
+    g.beginPath(); g.ellipse(L - 6, MY + 1, 9, 5, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(Rx + 6, MY + 1, 9, 5, 0, 0, Math.PI * 2); g.fill();
   }
-  if (o.glasses) {
-    g.strokeStyle = '#3a3a3a'; g.lineWidth = 3;
+  if (o.glasses) {                                // big round specs sit over the eyes
+    g.strokeStyle = '#6a4a3a'; g.lineWidth = 2.5;
     g.beginPath(); g.arc(L, Y, 15, 0, Math.PI * 2); g.moveTo(Rx + 15, Y); g.arc(Rx, Y, 15, 0, Math.PI * 2);
-    g.moveTo(L + 15, Y); g.lineTo(Rx - 15, Y); g.stroke();
+    g.moveTo(L + 15, Y); g.quadraticCurveTo(64, Y - 5, Rx - 15, Y); g.stroke();
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
   faceCache.set(key, tex);
   return tex;
 }
@@ -164,6 +166,9 @@ export function makeCharacter(opts = {}) {
     for (const x of [-0.21, 0.21]) {
       const leg = new THREE.Mesh(legGeo, mat(o.pants));
       leg.position.set(x, 0.3, 0);
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.19, 12, 8), mat(o.shoes || '#6b4a3a'));
+      shoe.scale.set(1, 0.6, 1.3); shoe.position.set(x, 0.1, 0.05);
+      body.add(shoe);
       body.add(leg);
     }
   }
@@ -190,11 +195,11 @@ export function makeCharacter(opts = {}) {
 
   // head
   const head = new THREE.Group();
-  const HEAD_Y = 2.0;
+  const HEAD_Y = 1.95;
   head.position.y = HEAD_Y;
-  head.scale.setScalar(1.16);
+  head.scale.set(1.1, 1.02, 1.02);              // a wide, round face
   body.add(head);
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.78, 24, 18), mat(o.skin));
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.78, 32, 24), mat(o.skin));
   head.add(skull);
 
   const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture('normal', o), transparent: true, depthWrite: false });
@@ -203,41 +208,43 @@ export function makeCharacter(opts = {}) {
   face.userData.noShadow = true;
   head.add(face);
 
-  // hair
-  const hairMat = mat(o.hair);
+  // hair: soft volumes only (no spikes: sharp shapes read as danger)
+  const SOFT = { '#1a1a1a': '#3d2c25', '#2a2a2a': '#45332a', '#111111': '#3d2c25' };
+  const hairMat = mat(SOFT[o.hair] || o.hair);
+  const tufts = [];                                 // top-of-head hair that hides under hats
+  const blob = (r, x, y, z, sx = 1, sy = 1, sz = 1, m = hairMat) => {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), m);
+    b.position.set(x, y, z); b.scale.set(sx, sy, sz);
+    head.add(b); return b;
+  };
   if (o.hairStyle !== 'bald') {
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.82, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat);
-    cap.rotation.x = -0.35;
-    cap.position.set(0, 0.04, -0.06);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.82, 32, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat);
+    cap.rotation.x = -0.3;                          // rim rises at the front: a high forehead
     head.add(cap);
+    const back = new THREE.Mesh(new THREE.SphereGeometry(0.815, 32, 16, Math.PI, Math.PI, 0, Math.PI * 0.78), hairMat);
+    head.add(back);                                 // no bald patch behind
+    for (let i = -2; i <= 2; i++) {                 // a soft scalloped fringe
+      const a = i * 0.33, th = 1.24 + Math.abs(i) * 0.05;
+      blob(0.22, 0.8 * Math.sin(th) * Math.sin(a), 0.8 * Math.cos(th), 0.8 * Math.sin(th) * Math.cos(a), 1.25, 0.75, 0.6);
+    }
   }
   if (o.hairStyle === 'bun') {
-    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), hairMat);
-    bun.position.set(0, 0.72, -0.35);
-    head.add(bun);
+    blob(0.34, 0, 0.74, -0.32);
   } else if (o.hairStyle === 'long') {
-    const back = new THREE.Mesh(new THREE.CapsuleGeometry(0.62, 0.5, 4, 12), hairMat);
-    back.position.set(0, -0.35, -0.38);
-    back.scale.z = 0.6;
-    head.add(back);
+    const longBack = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 0.45, 6, 16), hairMat);
+    longBack.position.set(0, -0.38, -0.36);
+    longBack.scale.set(1.15, 1, 0.65);
+    head.add(longBack);
   } else if (o.hairStyle === 'pony') {
-    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.6, 4, 8), mat(o.hairTip || o.hair));
-    tail.position.set(0, 0.1, -0.92);
-    tail.rotation.x = 0.7;
-    head.add(tail);
-  } else if (o.hairStyle === 'spiky') {
-    for (let i = 0; i < 5; i++) {
-      const s = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), hairMat);
-      s.position.set(-0.4 + i * 0.2, 0.72, 0.05 - Math.abs(i - 2) * 0.08);
-      s.rotation.z = (i - 2) * -0.3;
-      head.add(s);
-    }
+    const tail = blob(0.26, 0, 0.05, -0.95, 1, 1.5, 1, mat(o.hairTip || o.hair));
+    tail.rotation.x = 0.5;
+  } else if (o.hairStyle === 'spiky') {             // tousled round tufts, not spikes
+    for (const [x, y, z, r] of [[-0.3, 0.72, 0.15, 0.24], [0.05, 0.8, 0.2, 0.26], [0.35, 0.7, 0.1, 0.22], [-0.1, 0.78, -0.2, 0.25], [0.25, 0.72, -0.3, 0.22]]) tufts.push(blob(r, x, y, z));
+    const curl = blob(0.13, 0.02, 0.98, 0.15);
+    curl.scale.set(1, 1.3, 1);
+    tufts.push(curl);
   } else if (o.hairStyle === 'bald') {
-    for (const x of [-0.72, 0.72]) {
-      const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), hairMat);
-      tuft.position.set(x, -0.05, -0.1);
-      head.add(tuft);
-    }
+    for (const x of [-0.72, 0.72]) blob(0.22, x, -0.05, -0.1);
   }
 
   // hats
@@ -245,6 +252,7 @@ export function makeCharacter(opts = {}) {
   head.add(hatParts);
   const setHat = (hat, color = o.hatColor) => {
     hatParts.clear();
+    for (const t of tufts) t.visible = !hat || hat === 'none' || hat === 'scarf';
     if (hat === 'duck') {
       const helm = new THREE.Mesh(new THREE.SphereGeometry(0.88, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#ffd23f'));
       helm.position.y = 0.05;

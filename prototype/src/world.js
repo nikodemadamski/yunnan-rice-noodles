@@ -383,9 +383,26 @@ function buildLandmarks() {
   rose.position.set(-58.95, 4.6, -20); rose.rotation.y = Math.PI / 2; W.scene.add(rose);
   box(0.1, 3, 4, '#a14462', -58.97, 1.5, -20);
 
-  // Plaza: benches and a speaker for the dancing aunties
-  for (const [x, z] of [[12, 28], [38, 28], [12, 12], [38, 12]]) box(3, 0.5, 1, '#8a6a4a', x, 0.5, z, true);
-  box(1.2, 1.6, 1.2, '#333333', 32, 0.8, 6.5, true);
+  // Plaza: a pink boombox for the dancing aunties (benches come from props.js)
+  const boom = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.CapsuleGeometry(0.55, 1.0, 6, 16).rotateZ(Math.PI / 2), mat('#ff8fb1'));
+  shell.scale.z = 0.7;
+  boom.add(shell);
+  for (const x of [-0.55, 0.55]) {
+    const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1, 20).rotateX(Math.PI / 2), mat('#fff3f6'));
+    cone.position.set(x, 0, 0.36);
+    const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 14).rotateX(Math.PI / 2), mat('#e05a87'));
+    dot.position.set(x, 0, 0.4);
+    boom.add(cone, dot);
+  }
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.07, 8, 20, Math.PI), mat('#e05a87'));
+  handle.position.y = 0.5;
+  boom.add(handle);
+  boom.position.set(32, 0.75, 6.5);
+  boom.rotation.y = Math.PI;
+  outline(boom, 1.04);
+  W.scene.add(boom);
+  addCollider(31, 33, 6, 7);
 
   // Courtyard with fountain (west entrance gap z 15..25)
   const wall = '#d9cdb5';
@@ -482,14 +499,21 @@ function buildTrees() {
 }
 
 function buildLanterns() {
-  const geo = new THREE.SphereGeometry(0.42, 12, 10);
+  const geo = new THREE.SphereGeometry(0.3, 16, 12);
+  const capGeo = new THREE.CylinderGeometry(0.13, 0.15, 0.08, 12);
+  const gold = mat('#f2c14e');
   for (let x = -40; x <= 40; x += 6) {
     for (const z of [-5.6, 5.6]) {
       if (Math.abs(x - P.chilliStall.x) < 3 || Math.abs(x - P.spudStall.x) < 3) continue;
       const m = toon({ color: '#d8322a', emissive: '#ff5a2a', emissiveIntensity: 0 });
       const l = new THREE.Mesh(geo, m);
       l.scale.y = 1.2;
-      l.position.set(x, 4.2, z);
+      l.position.set(x, 4.3, z);
+      for (const dy of [0.36, -0.36]) {                 // gold caps top and bottom
+        const cap = new THREE.Mesh(capGeo, gold);
+        cap.position.y = dy / 1.2;
+        l.add(cap);
+      }
       W.scene.add(l);
       W.lanterns.push(m);
       if ((x + 40) % 12 === 0) {
