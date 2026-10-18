@@ -745,3 +745,8 @@ body.grade-sepia #scene { filter: sepia(0.75) saturate(0.85) brightness(1.06) co
 .sb-text { font-size: 17px; line-height: 1.45; color: #5b4636; margin: 10px 4px 6px; font-weight: 600; }
 .sb-foot { display: flex; justify-content: space-between; font-size: 12px; color: #a08060; font-weight: 700; }
 .sb-tap { animation: svcPulse 1.2s ease-in-out infinite; }
+
+/* ---------- the hand-made look (textures.js) ---------- */
+#scene { filter: saturate(1.12) contrast(1.05); }
+#paper { position: fixed; inset: 0; pointer-events: none; mix-blend-mode: multiply; opacity: .16; background-size: 256px; }
+#paper::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(90,55,30,.32) 100%); }

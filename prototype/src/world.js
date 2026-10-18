@@ -1,6 +1,7 @@
 // The Kunming neighbourhood: roads, blocks, landmarks, NPC registry,
 // collisions, day/night and the delivery marker.
 
+import { cobbles, asphalt, grass, flagstones, water as waterTex, contact } from './textures.js';
 import * as THREE from 'three';
 import { mat, toon, outline } from './characters.js';
 import { rng } from './core.js';
@@ -83,8 +84,8 @@ export function initWorld(canvas) {
   Object.assign(W, { renderer, scene, camera });
 
   // warm low side sun + soft sky fill; the sun's shadow box follows the player
-  W.hemi = new THREE.HemisphereLight(0xfff4e2, 0xa9b4e8, 1.3);   // warm light, cool lilac shadows
-  W.sun = new THREE.DirectionalLight(0xffe6c4, 2.5);
+  W.hemi = new THREE.HemisphereLight(0xfff1dc, 0x9c8fd0, 1.05);   // warm light, lilac shadows
+  W.sun = new THREE.DirectionalLight(0xffdcae, 3.0);
   W.sun.castShadow = true;
   const phone = Math.min(innerWidth, innerHeight) < 700;
   W.sun.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048);
@@ -190,6 +191,17 @@ function windowTextures() {
 const WALLS = ['#ffe3c4', '#ffd9de', '#d6f0dd', '#d8e8ff', '#fff0b8', '#ecdcff', '#fbf1e2'];
 const ROOFS = ['#e8735a', '#5fa8d3', '#79b86e', '#c7697f', '#8f74c4'];
 
+// a soft dark pool where things meet the ground, so nothing floats
+let contactMat = null;
+export function groundShadow(x, z, w, d, y = 0.17) {
+  contactMat ||= new THREE.MeshBasicMaterial({ map: contact(), transparent: true, depthWrite: false });
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(w, d), contactMat);
+  s.rotation.x = -Math.PI / 2; s.position.set(x, y, z);
+  s.userData.noShadow = true; s.renderOrder = 1;
+  W.scene.add(s);
+  return s;
+}
+
 function building(x, z, w, d, h, opts = {}) {
   windowTextures();
   const wall = opts.wall || WALLS[Math.floor(R() * WALLS.length)];
@@ -203,6 +215,7 @@ function building(x, z, w, d, h, opts = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, top, top, side, side]);
   m.position.set(x, h / 2, z);
   W.scene.add(m);
+  groundShadow(x, z, w + 2.2, d + 2.2);
   addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2);
   const rec = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h, mats: [side, top], roof: null, faded: false };
   W.buildings.push(rec);
@@ -220,26 +233,37 @@ function building(x, z, w, d, h, opts = {}) {
 // ---------- ground & roads ----------
 
 function buildGround() {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat('#a6dd7e'));
+  const grassT = grass(); grassT.repeat.set(500 / 9, 500 / 9);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), toon({ color: '#ffffff', map: grassT }));
   ground.rotation.x = -Math.PI / 2;
   W.scene.add(ground);
 
-  const road = mat('#d3cabf');
+  // painted asphalt, cobbled pavements: never one flat colour
+  const asph = asphalt();
+  const roadMat = (w, d) => { const t = asph.clone(); t.repeat.set(w / 8, d / 8); return toon({ color: '#ffffff', map: t }); };
+  const road = { x: roadMat(180, 10), z: roadMat(10, 180) };
   const line = mat('#fffaf0');
   for (const z of [-40, 0, 40]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(180, 0.1, 10), road);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(180, 0.1, 10), road.x);
     r.position.set(0, 0.03, z); W.scene.add(r);
     for (let x = -86; x < 86; x += 6) box(2.5, 0.05, 0.3, line, x, 0.09, z);
   }
   for (const x of [-50, 0, 50]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 180), road);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 180), road.z);
     r.position.set(x, 0.035, 0); W.scene.add(r);
     for (let z = -86; z < 86; z += 6) box(0.3, 0.05, 2.5, line, x, 0.095, z);
   }
+  // Grandpa's street is an old pedestrian lane of bluestone flags (青石板),
+  // like Kunming's old quarters, not asphalt
+  const flags = flagstones(); flags.repeat.set(40 / 6, 10 / 6);
+  const lane = new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 10), toon({ color: '#ffffff', map: flags }));
+  lane.position.set(-25, 0.095, 0); W.scene.add(lane);
   // pavement slabs on every block
-  const pave = mat('#f8e9cd');
+  const cob = cobbles();
   XS.forEach(([x0, x1], i) => ZS.forEach(([z0, z1], j) => {
     if (i >= 1 && j === 0) z0 = -48.4;          // lake blocks keep only a promenade strip
+    const t = cob.clone(); t.repeat.set((x1 - x0) / 5, (z1 - z0) / 5);
+    const pave = toon({ color: '#ffffff', map: t });
     const s = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.16, z1 - z0), pave);
     s.position.set((x0 + x1) / 2, 0.08, (z0 + z1) / 2);
     W.scene.add(s);
@@ -554,7 +578,8 @@ function buildBumps() {
 }
 
 function buildLake() {
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), toon({ color: '#76c2dc' }));
+  const wt = waterTex(); wt.repeat.set(130 / 14, 37 / 14);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), new THREE.MeshBasicMaterial({ map: wt }));
   water.rotation.x = -Math.PI / 2;
   water.position.set(20, 0.12, -66.5);
   W.scene.add(water);
@@ -624,10 +649,10 @@ export function setNight(on) {
   for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(sky[k]);
   W.scene.background = null;
   W.scene.fog.color.set(on ? '#3a3360' : '#f3e9ff');
-  W.hemi.intensity = on ? 0.6 : 1.3;
-  W.hemi.color.set(on ? '#8fa0ff' : '#fff4e2');
-  W.sun.intensity = on ? 0.35 : 2.5;
-  W.sun.color.set(on ? '#9fb4ff' : '#ffe6c4');
+  W.hemi.intensity = on ? 0.6 : 1.05;
+  W.hemi.color.set(on ? '#8fa0ff' : '#fff1dc');
+  W.sun.intensity = on ? 0.35 : 3.0;
+  W.sun.color.set(on ? '#9fb4ff' : '#ffdcae');
   for (const m of W.lanterns) m.emissiveIntensity = on ? 1.4 : 0;
   for (const m of W.windowMats) m.emissiveIntensity = on ? 0.9 : 0;
   document.body.style.background = bg;

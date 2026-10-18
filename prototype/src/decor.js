@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { W, P, addCollider } from './world.js';
 import { toon } from './characters.js';
 import { rng } from './core.js';
+import { grass } from './textures.js';
+import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 const R = rng(31);
 const PETALS = ['#ffffff', '#ffd1e0', '#fff1a8', '#d9c7ff', '#ffb3c7', '#ffc98f'];
@@ -27,6 +29,23 @@ function flowerField(spots) {
     leaf.setMatrixAt(i, m);
   });
   for (const o of [bloom, leaf]) { o.receiveShadow = true; o.userData.noShadow = true; W.scene.add(o); }
+}
+
+// little three-blade tufts (Stardew's grass), instanced
+function grassTufts(spots) {
+  const blade = (rz, ry, h) => new THREE.ConeGeometry(0.05, h, 4).translate(0, h / 2, 0).rotateZ(rz).rotateY(ry);
+  const geo = mergeGeometries([blade(0.25, 0, 0.42), blade(-0.3, 0.6, 0.36), blade(0.05, 2.1, 0.5), blade(-0.15, 3.6, 0.3)]);
+  const m = new THREE.InstancedMesh(geo, toon({ color: '#ffffff' }), spots.length);
+  const mx = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+  const GREENS = ['#5fa848', '#6fb954', '#4f9a3e', '#82c766'];
+  spots.forEach(([x, y, z], i) => {
+    const s = 0.8 + R() * 0.7;
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 6.3);
+    mx.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(s, s, s));
+    m.setMatrixAt(i, mx); m.setColorAt(i, c.set(GREENS[Math.floor(R() * GREENS.length)]));
+  });
+  m.userData.noShadow = true; m.receiveShadow = true;
+  W.scene.add(m);
 }
 
 export function initDecor() {
@@ -58,6 +77,23 @@ export function initDecor() {
     const col = PETALS[Math.floor(R() * PETALS.length)];
     for (let k = 0; k < 7; k++) spots.push([x - 0.9 + k * 0.3 + (R() - 0.5) * 0.1, 0.62, z + (R() - 0.5) * 0.3, col]);
   }
+  // a ring of lawn round the plaza (Animal Crossing park), and grass tufts
+  const lawnT = grass(); lawnT.repeat.set(6, 6);
+  const lawn = new THREE.Mesh(new THREE.RingGeometry(10.8, 15.4, 64, 1).rotateX(-Math.PI / 2), toon({ color: '#ffffff', map: lawnT }));
+  lawn.scale.z = 0.75; lawn.position.set(P.plaza.x, 0.175, P.plaza.z);
+  W.scene.add(lawn);
+  const edge = new THREE.Mesh(new THREE.RingGeometry(15.4, 15.75, 64, 1).rotateX(-Math.PI / 2), toon({ color: '#d9c7a6' }));
+  edge.scale.z = 0.75; edge.position.set(P.plaza.x, 0.18, P.plaza.z);
+  const edge2 = edge.clone(); edge2.geometry = new THREE.RingGeometry(10.45, 10.8, 64, 1).rotateX(-Math.PI / 2);
+  W.scene.add(edge, edge2);
+  const tufts = [];
+  for (let k = 0; k < 260; k++) {
+    const a = R() * Math.PI * 2, rr = 11.2 + R() * 3.9;
+    tufts.push([P.plaza.x + Math.cos(a) * rr, 0.18, P.plaza.z + Math.sin(a) * rr * 0.75]);
+  }
+  for (const t of W.trees) for (let k = 0; k < 4; k++) { const a = R() * 6.3, rr = 1.1 + R() * 0.5; tufts.push([t.x + Math.cos(a) * rr, 0.16, t.z + Math.sin(a) * rr]); }
+  grassTufts(tufts);
+
   // flower beds round the plaza
   for (let k = 0; k < 80; k++) {
     const a = R() * Math.PI * 2, r = 13 + R() * 1.5;

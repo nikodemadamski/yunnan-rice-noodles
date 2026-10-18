@@ -15,6 +15,7 @@
 // Resolves with { greens, perfect, extras, pick, skill, total, medal }.
 
 import * as THREE from 'three';
+import { wood } from './textures.js';
 import { G, addTicker, clamp, esc } from './core.js';
 import { W } from './world.js';
 import { makeCharacter, mat, toon, outline } from './characters.js';
@@ -78,8 +79,10 @@ function buildSet() {
     mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.14, 16), '#8a5a3b', 0, 0.45, 0, { parent: j });
   }
   // the counter
-  mesh(new THREE.BoxGeometry(14, 0.35, 5.6), '#e8c49a', KX, TOP - 0.17, KZ - 0.3);
-  mesh(new THREE.BoxGeometry(13.6, TOP - 0.35, 5.2), '#b97f52', KX, (TOP - 0.35) / 2, KZ - 0.3, { ink: false });
+  const top = wood('#e3b47e'); top.repeat.set(3, 1.2);
+  const front = wood('#b97f52'); front.repeat.set(3, 0.4); front.rotation = Math.PI / 2; front.center.set(0.5, 0.5);
+  mesh(new THREE.BoxGeometry(14, 0.35, 5.6), toon({ color: '#ffffff', map: top }), KX, TOP - 0.17, KZ - 0.3);
+  mesh(new THREE.BoxGeometry(13.6, TOP - 0.35, 5.2), toon({ color: '#ffffff', map: front }), KX, (TOP - 0.35) / 2, KZ - 0.3, { ink: false });
   // stove + burner + knob
   mesh(new THREE.BoxGeometry(3.4, 0.2, 3.4), '#4a4550', POT.x, TOP + 0.1, POT.z);
   const ring = mesh(new THREE.TorusGeometry(0.85, 0.08, 8, 28).rotateX(Math.PI / 2), '#2a262e', POT.x, TOP + 0.22, POT.z, { ink: false });

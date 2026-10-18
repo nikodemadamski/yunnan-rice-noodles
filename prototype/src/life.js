@@ -324,6 +324,7 @@ export function initLife() {
 }
 
 export function updateLife(dt, t, focus) {
+  if (W.water?.material.map) { const m = W.water.material.map; m.offset.x += dt * 0.012; m.offset.y = Math.sin(t * 0.3) * 0.02; }
   updateBirds(dt, t, focus);
   updateCats(dt, t);
   updateFlyers(dt, t, focus);

@@ -6,6 +6,7 @@ import { updateFx, feel } from './fx.js';
 import { dressWorld } from './props.js';
 import { initDecor, updateDecor } from './decor.js';
 import { initLife, updateLife } from './life.js';
+import { paperOverlay } from './textures.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
@@ -31,6 +32,7 @@ applyShadows();
 dressWorld();
 initDecor();
 initLife();
+document.getElementById('scene').after(paperOverlay());   // paper grain + vignette over the 3D, under the UI
 teleport(P.start.x, P.start.z, Math.PI / 2);
 updateCamera(0, true);
 
