@@ -145,6 +145,14 @@ export function sfx(name) {
       tone('sine', 140, 70, 0.15, 0.6); break;
     case 'beep':
       tone('square', 880, 880, 0.1, 0.2); break;
+    case 'scratch':                                   // record scratch: the comedy stop
+      tone('sawtooth', 1400, 160, 0.22, 0.25); noise(0.22, 1800, 0.7, 0.4); break;
+    case 'sizzle':
+      noise(0.7, 5200, 0.6, 0.12); noise(0.4, 2600, 1.2, 0.06, 0.1); break;
+    case 'slam':
+      tone('square', 90, 40, 0.25, 0.5); noise(0.18, 400, 0.8, 0.7); break;
+    case 'whoosh':
+      noise(0.45, 900, 0.5, 0.35); tone('sine', 300, 1200, 0.4, 0.08); break;
     case 'gasp':
       tone('triangle', 500, 900, 0.25, 0.35); break;
   }
@@ -208,4 +216,24 @@ export function setEngine(v) {
   engine.a.frequency.setTargetAtTime(90 + v * 260, t, 0.08);
   engine.b.frequency.setTargetAtTime(180 + v * 520, t, 0.08);
   engine.g.gain.setTargetAtTime(v > 0.02 ? 0.02 + v * 0.05 : 0, t, 0.1);
+}
+
+// --- rain on the window (a looped, filtered noise bed) ---
+let rainNode = null;
+export function setRain(on) {
+  if (!ctx) return;
+  if (on && !rainNode) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 0.4;
+    const g = ctx.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.09, ctx.currentTime, 0.4);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start();
+    rainNode = { src, g };
+  } else if (!on && rainNode) {
+    const r = rainNode; rainNode = null;
+    r.g.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
+    setTimeout(() => r.src.stop(), 800);
+  }
 }

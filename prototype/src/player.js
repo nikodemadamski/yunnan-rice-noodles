@@ -298,7 +298,7 @@ export function updateCamera(dt, snap = false) {
   // never let a staged shot sit inside the player's head: hide them instead
   if (player.mode === 'foot') {
     const c = W.camera.position, h = player.char.root.position;
-    player.char.root.visible = Math.hypot(c.x - h.x, c.y - (h.y + 2.4), c.z - h.z) > 1.4;
+    player.char.root.visible = Math.hypot(c.x - h.x, c.y - (h.y + 2.05), c.z - h.z) > 1.4;
   }
   if (player.camShot) {
     const s = player.camShot;
@@ -310,6 +310,6 @@ export function updateCamera(dt, snap = false) {
   W.camera.position.set(camPos.x + sh.x, camPos.y + sh.y, camPos.z);
   W.camera.lookAt(camLook.x + sh.x * 0.5, camLook.y + sh.y * 0.5, camLook.z);
   // a little FOV kick at speed on the bike
-  const fov = (W.baseFov || 38) + (bike && !cine ? 4 * player.speed / BIKE_MAX : 0);
+  const fov = player.fovShot || (W.baseFov || 38) + (bike && !cine ? 4 * player.speed / BIKE_MAX : 0);   // fovShot: staged lens
   if (Math.abs(W.camera.fov - fov) > 0.05) { W.camera.fov += (fov - W.camera.fov) * k; W.camera.updateProjectionMatrix(); }
 }

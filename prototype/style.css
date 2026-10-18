@@ -594,12 +594,19 @@ body.cine #result-pop { display: none; }
 }
 @keyframes speedspin { to { transform: rotate(2deg); } }
 
-/* the Dublin PC screen, shown big beside his face in the opening */
-.pc-overlay {
-  position: absolute; right: 4vw; top: 50%; transform: translateY(-55%);
-  width: min(48vw, 560px); padding: 14px 14px 30px; background: #24222b; border-radius: 22px;
-  box-shadow: var(--shadow); animation: popin .35s both; pointer-events: none !important;
+
+/* opening: colour grades and a quiet lower-third caption */
+body.grade-memory #scene { filter: sepia(0.22) saturate(1.3) brightness(1.05) contrast(1.02); transition: filter .4s; }
+body.grade-dublin #scene { filter: saturate(0.6) brightness(0.92) contrast(0.97) hue-rotate(-6deg); transition: filter .4s; }
+body.grade-memory #ui::before, body.grade-dublin #ui::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(60, 30, 10, .35) 100%);
 }
-.pc-overlay::after { content: ""; position: absolute; left: 50%; bottom: 10px; width: 10px; height: 10px; border-radius: 50%; background: #49b26a; transform: translateX(-50%); }
-.pc-overlay canvas { display: block; width: 100%; height: auto; border-radius: 8px; }
-@media (max-aspect-ratio: 1/1) { .pc-overlay { width: 92vw; right: 4vw; top: 14%; transform: none; } }
+body.grade-dublin #ui::before { background: radial-gradient(ellipse at center, transparent 50%, rgba(10, 20, 35, .45) 100%); }
+.lower3 {
+  position: absolute; left: 6vw; bottom: 16vh; color: #fffaf0; font-weight: 800; font-size: 17px; letter-spacing: .5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .45); opacity: 0; animation: l3in .6s .2s forwards; pointer-events: none !important;
+}
+.lower3.out { animation: l3out .6s forwards; }
+@keyframes l3in { to { opacity: 1; } }
+@keyframes l3out { from { opacity: 1; } to { opacity: 0; } }
