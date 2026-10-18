@@ -2,7 +2,7 @@
 // (Pattern from open-source cooking games: a pure-logic kitchen core you can
 // unit-test and later drive from any UI or engine.)
 
-import { MENU, GUESTS, PARTS, BROTHS, NOODLE, BASE_PATIENCE, FILL, HEAT } from './shopdata.js';
+import { MENU, GUESTS, PARTS, BROTHS, NOODLE, BASE_PATIENCE, FILL, HEAT, COOK_HEAT } from './shopdata.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -137,6 +137,8 @@ export function addPart(s, ticketUid, part) {
   const t = s.tickets.find(x => x.uid === ticketUid);
   if (!t || t.served) return false;
   if (part === 'noodles' && t.noodles === null) return false;   // must come out of the basket first
+  // raw slices cook only in scalding broth (that's the whole trick of the dish)
+  if (PARTS[part]?.rank === 0 && (!t.broth || t.heat < COOK_HEAT)) t.undercooked = true;
   t.parts.push(part);
   return true;
 }
@@ -166,12 +168,22 @@ export function judge(t) {
   for (const p of a.ban || []) check(!parts.includes(p), `no ${PARTS[p].ico}, good`, no[p] || `I said no ${PARTS[p].name.toLowerCase()}!`);
   if (a.max) check(parts.length <= a.max, 'nice and light', no.max || 'Too much!');
   if (a.hot) check(t.heat >= 0.6, '🔥 piping hot', no.hot || 'It’s gone cold…');
-  // Grandma's rules, for every bowl
+  if (a.min) check(parts.length >= a.min, 'a proper feast', no.min || 'Is that all?');
+  // Grandma's rules, for every bowl: the order the saucers cross the bridge
   const craft = [];
   const hasNoodles = parts.includes('noodles');
   craft.push(hasNoodles); if (!hasNoodles) say(false, '', 'Where are the noodles?!');
-  const raw = parts.indexOf('meat'), nd = parts.indexOf('noodles');
-  if (raw >= 0 && nd >= 0) { const ok = raw < nd; craft.push(ok); if (!ok) say(false, '', 'The meat’s still raw! (raw first, noodles last)'); }
+  const ranks = parts.map(p => PARTS[p]?.rank ?? 3).filter(r => r >= 0);
+  let inOrder = 0, pairs = 0;
+  for (let i = 1; i < ranks.length; i++) { pairs++; if (ranks[i] >= ranks[i - 1]) inOrder++; }
+  if (pairs) {
+    craft.push(inOrder / pairs);
+    if (inOrder < pairs) {
+      const nd = parts.indexOf('noodles');
+      say(false, '', nd >= 0 && nd < parts.length - 1 && parts.slice(nd + 1).some(p => PARTS[p].rank >= 0) ? 'Noodles go in last!' : 'Raw first, then cooked, flowers, greens…');
+    } else if (ranks.length > 2) say(true, 'crossed the bridge in order', '');
+  }
+  if (t.undercooked) { craft.push(0); say(false, '', 'The slices are still raw! The broth wasn’t hot enough.'); }
   const fillOk = t.fill >= FILL.lo && t.fill <= FILL.hi;
   craft.push(fillOk ? 1 : Math.max(0, 1 - Math.min(Math.abs(t.fill - FILL.lo), Math.abs(t.fill - FILL.hi)) * 4));
   if (!fillOk) say(false, '', t.fill > FILL.hi ? 'It’s spilling over!' : 'Bit stingy with the broth…');

@@ -10,6 +10,7 @@ import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { shopService } from './shop3d.js';
 import { tasteMoment } from './taste.js';
+import { legend, learn, notesHtml } from './lore.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
 import { sfx, setMusic } from './audio.js';
@@ -262,7 +263,24 @@ export async function evening() {
       [SP.grandma, 'And look, the street’s hungry. We open the hatch tonight. You take orders, I keep the fire.', { face: 'happy', emote: '🏮' }],
     ]);
   });
+  await cutscene(async () => {
+    await talk([
+      [SP.grandma, 'But first. You’re serving Zhao’s noodles, so you should know why they’re called crossing the bridge.', { face: 'normal' }],
+    ]);
+    await legend();
+    await talk([
+      [SP.you, 'Is that… true?', { face: 'blank' }],
+      [SP.grandma, 'Who knows! It’s a story. But the oil is true, and so is the love. Zhao’s father brought the recipe up from Mengzi.', { face: 'happy', emote: '🌉' }],
+    ]);
+  });
   const svc = await shopService({ title: 'Old Zhao’s · first night open' });
+  await cutscene(async () => {
+    await talk([
+      [SP.grandma, 'Not bad, duck. Jianxinyuan on Baoshan Street has been doing this since 1906. We’ve been doing it for one night.', { face: 'happy' }],
+      [SP.grandma, 'In Mengzi they say the craft is national heritage now. Since 2014! A bowl of noodles, heritage. Zhao would have laughed till he cried.', { face: 'happy', emote: '😂' }],
+    ]);
+    learn('masters'); learn('heritage');
+  });
   // the night's bowls, in the shape the ending reads
   const r = { greens: svc.avg >= 85 ? 3 : svc.avg >= 65 ? 2 : 1, perfect: svc.avg >= 85, extras: [], avg: svc.avg, tips: svc.tips };
   await cutscene(async () => {
@@ -298,6 +316,7 @@ async function endCard(r) {
     <p>Thanks for riding, ${esc(G.name)}!</p>
     <p class="sub">💰 ¥${G.money} · ⭐ ${avg} average · 📒 ${G.findings.size} findings · 🍽️ Food Dex ${G.foodDex.size}
       · 💃 Auntie encounters ${G.auntieGags} · First night: ${r.avg ?? '—'} pts avg ${r.perfect ? '(perfect!)' : ''}</p>
+    ${notesHtml()}
     ${G.soul?.length ? `<h3>✨ Soul notes</h3>${G.soul.map(s => `<p class="sub"><b>${esc(s.title)}</b>: <i>${esc(s.lesson)}</i></p>`).join('')}` : ''}
     <h3>What’s next in the full game</h3>
     <p class="sub">Days 3–22: the rest of Kunming, Little Chilli & Uncle Spud’s feud, more Plankton schemes, the plain-broth customer,

@@ -18,6 +18,7 @@ import { emote, bark, beat } from './ui.js';
 import { sfx, note, setMusic } from './audio.js';
 import { hitstop } from './fx.js';
 import { act } from './acting.js';
+import { learn } from './lore.js';
 import { GUESTS, PARTS, BROTHS, NIGHT1, FILL } from './shopdata.js';
 import {
   createShop, takeOrder, startNoodles, liftNoodles, pour, addFat, addPart, undoPart, serve, tick, dayOver, drainEvents, noodleRing,
@@ -30,11 +31,14 @@ const BACK = KZ - 3.45;                     // where guests stand, behind the co
 const LINE_X = i => KX + 3.2 + i * 1.7;      // the queue at the order window (right)
 const WAIT_X = i => KX - 4.6 + i * 1.6;      // waiting for their bowls (left, by the stove)
 const BASKET_X = [POT.x - 0.5, POT.x + 0.5];
-const BINS = ['meat', 'egg', 'ham', 'mushroom', 'tofu', 'chives', 'noodles'];
-const BIN_X = i => KX - 1.9 + i * 0.86;
-const BIN_Z = KZ + 1.75;
-const JUGS = { hen: { x: KX - 1.2, z: KZ - 0.6, color: '#f2c14e' }, chilli: { x: KX + 1.4, z: KZ - 0.6, color: '#e0603a' } };
-const FAT = { x: KX + 2.3, z: KZ + 0.5 };
+// the saucers, two rows to the right of the bowl: the order they cross the
+// bridge reads left to right, top row then bottom (raw → cooked → flowers →
+// greens → noodles), so the counter itself teaches the ritual
+const ROWS = [['pork', 'fish', 'egg', 'ham', 'chrys', 'chilli'], ['pea', 'chives', 'tofu', 'jizong', 'noodles']];
+const BINS = ROWS.flat();
+const BIN_POS = p => { const r = ROWS.findIndex(row => row.includes(p)), i = ROWS[r].indexOf(p); return { x: KX + 1.35 + i * 0.88, z: KZ + 1.42 + r * 0.88 }; };
+const JUGS = { hen: { x: KX - 1.55, z: KZ + 0.1, color: '#f2c96a' } };
+const FAT = { x: KX - 1.45, z: KZ + 1.75 };
 const POUR_RATE = 0.42;                    // bowl fill per second while you hold a jug
 
 const LOOKS = {
@@ -48,8 +52,20 @@ const LOOKS = {
 // a little art for the toppings the bins hold
 const ART = {
   ...TOPPING_ART,
-  ham: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) mesh(new THREE.BoxGeometry(0.3, 0.05, 0.2), '#d9534f', (i - 1) * 0.1, 0.03 * i, 0, { parent: g, ink: false }).rotation.y = i; return g; },
-  mushroom: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { mesh(new THREE.SphereGeometry(0.1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#a0703c', (i - 1) * 0.15, 0.05, 0, { parent: g, ink: false }); } return g; },
+  pork: () => TOPPING_ART.meat(),
+  // paper-thin black fish: pearly white with a grey edge
+  fish: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const m = mesh(new THREE.BoxGeometry(0.4, 0.03, 0.2), '#f6f1ea', (i - 1) * 0.08, 0.02 * i, 0, { parent: g, ink: false }); m.rotation.y = i * 0.5 - 0.4; mesh(new THREE.BoxGeometry(0.4, 0.032, 0.03), '#9aa0aa', 0, 0, 0.1, { parent: m, ink: false }); } return g; },
+  // quail eggs: small, cream, freckled
+  egg: () => { const g = new THREE.Group(); for (const [x, z] of [[-0.12, 0], [0.1, 0.06], [0, -0.1]]) { const e = mesh(new THREE.SphereGeometry(0.085, 10, 8), '#efe2c8', x, 0.05, z, { parent: g, ink: false }); e.scale.y = 1.25; for (let k = 0; k < 3; k++) mesh(new THREE.SphereGeometry(0.018, 5, 4), '#6b4a32', Math.cos(k * 2) * 0.07, 0.02 + k * 0.025, Math.sin(k * 2) * 0.07, { parent: e, ink: false }); } return g; },
+  // Xuanwei ham: deep red with a white rind of fat
+  ham: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const m = mesh(new THREE.BoxGeometry(0.3, 0.05, 0.2), '#b3343a', (i - 1) * 0.1, 0.03 * i, 0, { parent: g, ink: false }); m.rotation.y = i; mesh(new THREE.BoxGeometry(0.3, 0.052, 0.04), '#fbefe4', 0, 0, 0.1, { parent: m, ink: false }); } return g; },
+  // chrysanthemum petals, scattered gold
+  chrys: () => { const g = new THREE.Group(); for (let i = 0; i < 14; i++) { const p = mesh(new THREE.SphereGeometry(0.05, 6, 4), i % 3 ? '#ffd23f' : '#ffe680', (Math.random() - 0.5) * 0.4, 0.03, (Math.random() - 0.5) * 0.3, { parent: g, ink: false }); p.scale.set(1.6, 0.3, 0.6); p.rotation.y = Math.random() * 3; } return g; },
+  pea: () => { const g = new THREE.Group(); for (let i = 0; i < 7; i++) { const l = mesh(new THREE.SphereGeometry(0.07, 8, 6), i % 2 ? '#7bd36a' : '#5fbf4e', (Math.random() - 0.5) * 0.35, 0.04, (Math.random() - 0.5) * 0.25, { parent: g, ink: false }); l.scale.set(1.4, 0.4, 0.9); } return g; },
+  // jizong: tall white-stemmed wild mushrooms with brown caps
+  jizong: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const x = (i - 1) * 0.13; mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.22, 6), '#efe5d2', x, 0.11, 0, { parent: g, ink: false }); mesh(new THREE.ConeGeometry(0.08, 0.07, 10), '#8a6244', x, 0.25, 0, { parent: g, ink: false }); } return g; },
+  // a saucer of red chilli oil
+  chilli: () => { const g = new THREE.Group(); mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 18), '#c9301d', 0, 0.03, 0, { parent: g, ink: false }); for (let i = 0; i < 6; i++) mesh(new THREE.SphereGeometry(0.03, 5, 4), '#5a1a10', (Math.random() - 0.5) * 0.35, 0.05, (Math.random() - 0.5) * 0.35, { parent: g, ink: false }); return g; },
   tofu: () => { const g = new THREE.Group(); for (let i = 0; i < 2; i++) mesh(new THREE.BoxGeometry(0.34, 0.03, 0.22), '#f3dfa2', 0, 0.02 + i * 0.04, 0, { parent: g, ink: false }).rotation.y = i * 0.7; return g; },
 };
 
@@ -57,7 +73,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   // stations for service: everything happens behind/at the counter
   STATIONS.order = { x: KX + 4.4, z: KZ - 2.4, w: 3.4, h: 2.4, hostX: KX - 6.4, lookY: 1.2, tilt: 3.2 };
   STATIONS.stove = { x: POT.x + 0.6, z: KZ - 1.2, w: 3.2, h: 3.0, hostX: KX - 6.4 };
-  STATIONS.build = { x: KX + 0.3, z: KZ + 0.2, w: 3.5, h: 2.8, hostX: KX - 6.4 };
+  STATIONS.build = { x: KX + 1.9, z: KZ + 0.9, w: 4.4, h: 2.7, hostX: KX - 6.4 };
   const K = begin({ steps: [], host: 'gran', station: 'order' });
   setMusic('day');
   const S = createShop(schedule, { baskets: 2 });
@@ -75,7 +91,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     <div class="svc-money">💰 <b>0</b></div>
     <div class="svc-title">${esc(title)}</div>
     <div class="svc-help"></div>
-    <div class="svc-labels"></div>`);
+    <div class="svc-labels"></div>
+    <button class="svc-rules-btn" title="Grandma's rules">📜</button>`);
   const rail = hud.querySelector('.svc-rail'), rings = hud.querySelector('.svc-rings'), buildBar = hud.querySelector('.svc-build');
   let station = 'order', selected = null, shown = { money: 0 };
   const go = st => {
@@ -108,6 +125,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     return g;
   });
   K.potBroth.material.color.set('#d9ecf5');
+  K.board.visible = false;
   // broth jugs
   for (const [id, j] of Object.entries(JUGS)) {
     const g = new THREE.Group();
@@ -140,7 +158,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     const g = dish(ART[p] || ART.chives);
     g.scale.setScalar(0.95);
     g.userData.pick = `part:${p}`;
-    g.position.set(BIN_X(i), TOP, BIN_Z);
+    const q = BIN_POS(p);
+    g.position.set(q.x, TOP, q.z);
     W.scene.add(g); add(g);
     return g;
   });
@@ -254,7 +273,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     let h = '';
     if (station === 'order') h = line ? '👆 Tap a customer to take their order' : S.tickets.some(q => !q.served) ? 'No one in line. Go cook! ♨️' : 'Waiting for customers…';
     if (station === 'stove') h = ready ? '✅ Green ring! Tap the basket to lift' : needNoodles && freeBasket ? '👆 Tap an empty basket to cook noodles for the chosen ticket' : S.baskets.some(b => b.ticket) ? 'Lift when the ring is in the green. Go do something else meanwhile!' : 'Nothing to cook. Take an order 🛎️';
-    if (station === 'build') h = !t ? '👆 Pick a ticket at the top' : !t.broth ? '✋ Hold a jug to pour. Stop at the gold line' : !t.fat && t.parts.length === 0 ? 'Drag toppings in. A spoon of fat ✨ keeps it hot!' : t.noodles === null ? 'Noodles aren’t ready yet. Stove ♨️' : '✋ Drag toppings in: raw first, noodles last. Then Serve';
+    if (station === 'build') h = !t ? '👆 Pick a ticket at the top' : !t.broth ? '✋ Hold the broth jug. Stop at the gold line' : !t.fat && t.parts.length === 0 ? '✨ Seal it with chicken oil, then the saucers, raw first' : t.noodles === null ? 'Noodles aren’t ready yet. Stove ♨️' : '✋ Drag the saucers in: raw → ham → flowers → greens → noodles last';
     if (line && station !== 'order') h = '🛎️ Someone’s at the window! · ' + h;
     if (helpEl.textContent !== h) helpEl.textContent = h;
   }
@@ -272,6 +291,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       selected = t.uid;
       const c = people[uid].char;
       bark(c, t.ask.say, 4.2);
+      if (/Zhuangyuan|Xiucai|Juren/.test(t.ask.say)) learn('tiers');
       c.setFace('happy');
       sfx('ding');
       layout(); renderRail();
@@ -313,7 +333,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (!addFat(S, t.uid)) return;
       sfx('sizzle'); note(880, 0.2, 'sine', 0.08);
       burst(BOWL.x, TOP + 0.7, BOWL.z, 12, '#ffd76a', { up: 1.5, speed: 1.5 });
-      pop('✨ Sealed in the heat', x, y - 40, 'gold');
+      pop('✨ A coin-thick seal of chicken oil', x, y - 40, 'gold');
+      learn('seal');
       renderBowl(); renderRail();
     }
   }
@@ -345,6 +366,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       const t = selectedTicket();
       if (!t) return;
       const s2 = toScreen(BOWL.x, TOP + 1.3, BOWL.z);
+      learn('broth');
       if (t.fill >= FILL.lo && t.fill <= FILL.hi) { pop('Right on the line!', s2.x, s2.y, 'gold'); sfx('ding'); }
       else if (t.fill > FILL.hi) { pop('Spilling over!', s2.x, s2.y, 'bad'); sfx('bump'); }
       else pop('A bit more…', s2.x, s2.y);
@@ -361,6 +383,13 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     const t = selectedTicket();
     if (!t) return;
     if (!addPart(S, t.uid, h.part)) { const s2 = toScreen(BOWL.x, TOP + 1.3, BOWL.z); pop('Noodles aren’t cooked yet!', s2.x, s2.y, 'bad'); sfx('bump'); return; }
+    if (PARTS[h.part].rank === 0) {
+      const s3 = toScreen(BOWL.x, TOP + 1.7, BOWL.z);
+      learn('raw');
+      if (t.heat >= 0.55) pop('Tssss… cooked in seconds', s3.x, s3.y - 30, 'gold');
+      else { pop('…it won’t cook. Too cold!', s3.x, s3.y - 30, 'bad'); }
+    }
+    if (h.part === 'chrys') learn('chrys');
     sfx('splash'); note(520 + t.parts.length * 70, 0.12, 'sine', 0.1);
     burst(BOWL.x, TOP + 0.7, BOWL.z, 6, t.broth ? BROTHS[t.broth].color : '#ffffff', { up: 2, speed: 1.4 });
     const s2 = toScreen(BOWL.x, TOP + 1.4, BOWL.z);
@@ -404,6 +433,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     // they tell you what they noticed: the worst thing first, or the best
     const notes = res.judge.notes;
     const bad = notes.find(n => !n.ok), good = notes.filter(n => n.ok);
+    if (notes.some(n => n.ok && /in order/.test(n.text))) learn('order');
     bark(c, bad ? bad.text : good.length ? `Mm! ${good.map(n => n.text).slice(0, 2).join(' · ')}` : 'Mm!', 3.2);
     notes.slice(0, 4).forEach((n, i) => setTimeout(() => pop(`${n.ok ? '✓' : '✗'} ${n.text}`, s.x + (i % 2 ? 90 : -90), s.y - 40 - i * 34, n.ok ? '' : 'bad'), 250 + i * 260));
     pop(`${res.points} pts · ¥${res.tip}`, s.x, s.y, res.points >= 80 ? 'gold' : '');
@@ -419,9 +449,9 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   // labels under every bin and jug, so you can read the counter at a glance
   const labelsEl = hud.querySelector('.svc-labels');
   const LABELS = [
-    ...BINS.map((p, i) => ({ text: `${PARTS[p].ico} ${PARTS[p].name.split(' ').pop()}`, x: BIN_X(i), y: TOP, z: BIN_Z + 0.55 })),
-    ...Object.entries(JUGS).map(([id, j]) => ({ text: `${BROTHS[id].ico} ${id === 'hen' ? 'hen broth' : 'chilli broth'}`, x: j.x, y: TOP + 1.05, z: j.z })),
-    { text: '✨ chicken fat', x: FAT.x, y: TOP + 1.05, z: FAT.z },
+    ...BINS.map(p => { const q = BIN_POS(p), top = ROWS[0].includes(p); return { text: `${PARTS[p].ico} ${PARTS[p].short}`, x: q.x, y: TOP + (top ? 0.25 : 0), z: q.z + (top ? -0.52 : 0.5) }; }),
+    { text: '🐔 old hen broth', x: JUGS.hen.x, y: TOP + 1.05, z: JUGS.hen.z },
+    { text: '✨ chicken oil', x: FAT.x, y: TOP + 0.95, z: FAT.z },
   ];
   labelsEl.innerHTML = LABELS.map(l => `<span>${esc(l.text)}</span>`).join('');
   function renderLabels() {
@@ -432,6 +462,32 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
 
   // dev/test hook
   window.__shop = { S, go, people, baskets, bins, fatJar, get station() { return station; }, get selected() { return selected; } };
+
+  // ---------- Grandma's rules: the real ritual, on a card by the stove ----------
+  const RULES = `<div class="k-ticket svc-rules-card">
+    <b>📜 Grandma’s rules · 过桥米线</b>
+    <ol>
+      <li><b>The broth.</b> Old hen and pork bones, four hours on the fire, never a drop of water added. Pour it scalding, up to the line.</li>
+      <li><b>The seal.</b> A coin-thick layer of chicken oil on top. No steam shows, but underneath it stays hotter than 95°C. That’s what crosses the bridge.</li>
+      <li><b>Raw first.</b> Paper-thin pork loin, black fish, quail egg, while it’s hottest. They cook in seconds. In cold broth, they don’t.</li>
+      <li><b>Then cooked, flowers, greens.</b> Xuanwei ham, chrysanthemum petals, pea shoots, chives, tofu skin, jizong.</li>
+      <li><b>Noodles last.</b> Always.</li>
+    </ol>
+    <p class="sub">Chilli oil is a saucer, not the broth. And listen to what they ask for: a Xiucai set is small, a Zhuangyuan set is the whole feast.</p>
+    <div class="row" style="justify-content:flex-end"><button class="btn-big" data-go>Open the hatch 🏮</button></div>
+  </div>`;
+  async function showRules(blocking) {
+    const el = document.createElement('div');
+    el.className = 'k3-result svc-rules';
+    el.innerHTML = RULES;
+    hud.appendChild(el);
+    sfx('pop');
+    await new Promise(res => el.querySelector('[data-go]').addEventListener('click', res));
+    el.remove();
+  }
+  hud.querySelector('.svc-rules-btn').addEventListener('click', () => showRules(false));
+  if (!G.flags.rulesSeen) { G.flags.rulesSeen = true; await showRules(true); }
+  learn('feast');
 
   // ---------- the service loop ----------
   K.pickables = [];
@@ -497,6 +553,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   for (const o of props) W.scene.remove(o);
   for (const p of Object.values(people)) W.scene.remove(p.char.root);
   K.bowlBroth.visible = false;
+  K.board.visible = true;
   hud.classList.remove('service');
   end();
   G.money += S.tips;

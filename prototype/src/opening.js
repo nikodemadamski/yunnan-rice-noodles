@@ -202,9 +202,40 @@ function buildMemory() {
   rim.position.y = 0.36;
   const broth = new THREE.Mesh(new THREE.CircleGeometry(0.58, 32).rotateX(-Math.PI / 2), toon({ color: '#f2c46d', emissive: '#7a4a10', emissiveIntensity: 0.25 }));
   broth.position.y = 0.3;
-  bowl.add(shell, rim, broth);
+  // the coin-thick seal of chicken oil: calm, golden, glinting; no steam gets
+  // out, which is why first-timers burn their mouths (it's over 95°C under there)
+  const sheen = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.56, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffe9a0', transparent: true, opacity: 0.35, depthWrite: false }));
+  sheen.position.y = 0.305;
+  const glints = [];
+  for (let i = 0; i < 5; i++) {
+    const gl = new THREE.Mesh(new THREE.CircleGeometry(0.035, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false }));
+    gl.position.set(Math.cos(i * 1.3) * 0.3, 0.31, Math.sin(i * 1.3) * 0.3);
+    bowl.add(gl); glints.push(gl);
+  }
+  bowl.add(shell, rim, broth, sheen);
   bowl.position.set(MX, 1.09, MZ);
   W.scene.add(bowl);
+  addTicker(dt => { sheen.rotation.y += dt * 0.15; glints.forEach((g, i) => { g.material.opacity = 0.3 + Math.max(0, Math.sin(performance.now() / 600 + i * 1.7)) * 0.7; }); });
+  // the tray of little saucers round the bowl: "a feast for one"
+  const SAUCERS = [
+    ['#b3343a', '#fbefe4'],   // Xuanwei ham
+    ['#ffd23f', '#ffe680'],   // chrysanthemum petals
+    ['#6cc35a', '#8fd97a'],   // pea shoots
+    ['#f3dfa2', '#e8cf86'],   // tofu skin
+    ['#fffaf0', '#f2ead8'],   // fresh rice noodles
+    ['#efe2c8', '#6b4a32'],   // quail eggs
+  ];
+  SAUCERS.forEach(([c1, c2], i) => {
+    const a = [-0.5, -1.05, 2.5, 3.05, 3.6, 4.15][i], R = 0.9;
+    const x = MX + Math.cos(a) * R, z = MZ + Math.sin(a) * R;
+    const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.04, 20), mat('#ffffff'));
+    sc.position.set(x, 1.11, z); W.scene.add(sc); outline(sc, 1.05);
+    for (let k = 0; k < 5; k++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), mat(k % 2 ? c2 : c1));
+      b.scale.set(1.3, 0.5, 1); b.position.set(x + Math.cos(k * 1.3) * 0.08, 1.15, z + Math.sin(k * 1.3) * 0.08);
+      W.scene.add(b);
+    }
+  });
   // the raw ingredients wait on a little plate, then cross the "bridge" into the broth
   const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.05, 24), mat('#ffffff'));
   plate.position.set(MX + 0.75, 1.12, MZ + 0.35);
@@ -220,7 +251,7 @@ function buildMemory() {
   for (let i = 0; i < 4; i++) add(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 5).rotateZ(Math.PI / 2), '#4caf50', -0.05 + i * 0.05, 0.18, i);
   // steam
   const steam = [];
-  const steamMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35, depthWrite: false });
+  const steamMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, depthWrite: false });   // barely: the oil keeps it in
   for (let i = 0; i < 9; i++) {
     const p = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), steamMat.clone());
     p.userData.noShadow = true; p.userData.t = i / 9;
@@ -242,9 +273,10 @@ function buildMemory() {
     for (const p of steam) {
       p.userData.t = (p.userData.t + dt * 0.35) % 1;
       const k = p.userData.t;
-      p.position.set(MX + Math.sin(k * 6 + p.id) * 0.18, 1.5 + k * 1.6, MZ + Math.cos(k * 5 + p.id) * 0.15);
-      p.scale.setScalar(0.6 + k * 2.2);
-      p.material.opacity = 0.32 * Math.sin(k * Math.PI);
+      // the oil holds the steam in: only a faint shimmer escapes at the rim
+      p.position.set(MX + Math.sin(k * 6 + p.id) * 0.45, 1.42 + k * 0.45, MZ + Math.cos(k * 5 + p.id) * 0.4);
+      p.scale.setScalar(0.35 + k * 0.6);
+      p.material.opacity = 0.07 * Math.sin(k * Math.PI);
     }
     if (dropT >= 0) {                                   // ingredients arc in, one by one
       dropT += dt;
@@ -399,7 +431,8 @@ export async function opening(opts = {}) {
       // S3 the ritual, framed with room around the bowl (3.4 s)
       cut({ x: MX - 4.4, y: 4.4, z: MZ + 1.8 }, { x: MX + 0.1, y: 1.3, z: MZ }, 38);
       move({ x: MX - 3.9, y: 4.0, z: MZ + 1.6 }, { x: MX + 0.1, y: 1.3, z: MZ }, 0.3);
-      await beat(3.4);
+      await talk([[SP.zhao, '生的先下，米线最后。Raw first, little one. Noodles last.', { face: 'happy', hold: 1.6 }]]);
+      await talk([[SP.zhao, '小心烫！No steam, but it’s hotter than fire. The oil keeps it in.', { face: 'smug', hold: 1.6 }]]);
       // S4 the boy, waist-up (3.6 s): the first slurp, then pure joy
       cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
       act(hero, 'eat');

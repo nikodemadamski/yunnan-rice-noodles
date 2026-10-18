@@ -15,7 +15,7 @@ test('noodles: firm, perfect window, then soft but never ruined', () => {
 test('build: right broth, items and order score 1; wrong order scores less', () => {
   const perfect = buildScore('classic', 'hen', MENU.classic.parts);
   assert.equal(perfect.total, 1);
-  const shuffled = buildScore('classic', 'hen', ['noodles', 'chives', 'egg', 'meat']);
+  const shuffled = buildScore('classic', 'hen', [...MENU.classic.parts].reverse());
   assert.equal(shuffled.items, 1);
   assert.equal(shuffled.order, 0);
   assert.ok(shuffled.total < perfect.total);
@@ -32,13 +32,13 @@ test('a bowl that answers what the guest asked for earns high points, tip and a 
   const s = createShop([{ at: 0, who: 'li' }]);
   tick(s, 0.1);
   const t = takeOrder(s, s.guests[0].uid);
-  assert.match(t.ask.say, /classic/i);
+  assert.match(t.ask.say, /Zhuangyuan/);
   assert.ok(startNoodles(s, 0, t.uid));
   tick(s, NOODLE.cook + 1);
   assert.equal(liftNoodles(s, 0), 1);
   pour(s, t.uid, 'hen', 0.8);
   addFat(s, t.uid);
-  for (const p of ['meat', 'egg', 'chives', 'noodles']) assert.ok(addPart(s, t.uid, p));
+  for (const p of ['pork', 'egg', 'ham', 'chrys', 'pea', 'noodles']) assert.ok(addPart(s, t.uid, p));
   const r = serve(s, t.uid);
   assert.equal(r.judge.ask, 1);
   assert.equal(r.judge.craft, 1);
@@ -69,15 +69,28 @@ test('the kid notices green stuff, and counts the eggs', () => {
   assert.ok(j.notes.some(n => !n.ok && /TWO eggs/.test(n.text)));
 });
 
-test('raw meat must cross the bridge before the noodles', () => {
+test('the saucers cross in order: raw, cooked, flowers, greens, noodles last', () => {
   const s = createShop([{ at: 0, who: 'li' }]);
   tick(s, 0.1);
   const t = takeOrder(s, s.guests[0].uid);
   pour(s, t.uid, 'hen', 0.8); t.noodles = 1;
-  for (const p of ['noodles', 'meat', 'egg', 'chives']) addPart(s, t.uid, p);
+  for (const p of ['noodles', 'pork', 'egg', 'chives']) addPart(s, t.uid, p);
   const j = judge(t);
   assert.ok(j.craft < 1);
-  assert.ok(j.notes.some(n => /raw/.test(n.text)));
+  assert.ok(j.notes.some(n => /last/.test(n.text)));
+});
+
+test('raw slices only cook in scalding broth', () => {
+  const s = createShop([{ at: 0, who: 'lan' }]);
+  tick(s, 0.1);
+  const t = takeOrder(s, s.guests[0].uid);
+  pour(s, t.uid, 'hen', 0.8);
+  tick(s, HEAT.plain * 0.7);          // left to cool, no oil seal
+  t.noodles = 1;
+  addPart(s, t.uid, 'fish'); addPart(s, t.uid, 'noodles');
+  const j = judge(t);
+  assert.ok(j.notes.some(n => /still raw/.test(n.text)));
+  assert.ok(j.notes.some(n => /Lukewarm/.test(n.text)));
 });
 
 test('broth cools from the pour; the chicken-fat layer keeps it hot', () => {
@@ -125,7 +138,7 @@ test('waiting forever lowers points but guests never leave (cosy)', () => {
   assert.equal(s.guests[0].patience, 0);
   const t = takeOrder(s, s.guests[0].uid);
   setBroth(s, t.uid, 'hen');
-  addPart(s, t.uid, 'meat');
+  addPart(s, t.uid, 'pork');
   const r = serve(s, t.uid);
   assert.ok(r.wait >= 0.3 && r.wait < 0.31);
   assert.equal(s.stars.lan, 0);
