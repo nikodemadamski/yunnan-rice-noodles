@@ -49,3 +49,15 @@ export const NOODLE = { cook: 7, perfect: 3, soft: 6 };
 
 // Seconds of patience for a guest with multiplier 1.
 export const BASE_PATIENCE = 50;
+
+// Reopening night: a real rush. Orders overlap, two baskets aren't enough for
+// everyone, so you choose who to cook for first (watch their patience bars).
+export const NIGHT1 = [
+  { at: 0, who: 'li' },
+  { at: 7, who: 'student' },
+  { at: 18, who: 'kid' },
+  { at: 27, who: 'auntie' },
+  { at: 40, who: 'lan' },
+  { at: 50, who: 'student' },
+  { at: 61, who: 'li' },
+];

@@ -671,3 +671,41 @@ body.grade-sepia #scene { filter: sepia(0.75) saturate(0.85) brightness(1.06) co
 .phone3 { position: absolute; transform: translate(-50%, -100%); background: #7a52c7; color: #fff; font-weight: 900; font-size: 14px; padding: 6px 12px; border-radius: 12px; box-shadow: var(--shadow); animation: buzz .25s 3; pointer-events: none !important; }
 @keyframes buzz { 50% { transform: translate(calc(-50% + 3px), -100%); } }
 @media (max-aspect-ratio: 1/1) { .live3 .live3-chat { top: auto; bottom: 120px; height: 26vh; width: 60vw; } }
+
+/* ---------- Papa's-style service (shop3d.js) ---------- */
+.k3.service .k3-top, .k3.service .k3-bottom { display: none; }
+.svc-rail { position: absolute; top: 8px; left: 8px; right: 110px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.svc-ticket { flex: 0 0 auto; width: 132px; text-align: left; background: #fffaf0; border: 3px solid #e8d9c0; border-radius: 10px; padding: 6px 8px; font: inherit; font-size: 12px; color: #5b4636; box-shadow: 0 3px 0 #d6c3a3; cursor: pointer; transform: rotate(-1deg); transition: transform .15s; }
+.svc-ticket:nth-child(even) { transform: rotate(1deg); }
+.svc-ticket.sel { border-color: #f0b429; box-shadow: 0 3px 0 #c98a0e, 0 0 0 3px rgba(240,180,41,.35); transform: translateY(4px); }
+.svc-ticket .tk-head { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.svc-ticket .tk-pat { flex: 1; height: 6px; background: #eee3d0; border-radius: 99px; overflow: hidden; }
+.svc-ticket .tk-pat i { display: block; height: 100%; border-radius: 99px; transition: width .25s; }
+.svc-ticket .tk-dish { font-weight: 800; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svc-ticket .tk-row { display: flex; flex-wrap: wrap; gap: 3px; }
+.svc-ticket .tk-row span { background: #f3e9d8; border-radius: 6px; padding: 0 3px; opacity: .75; }
+.svc-ticket .tk-row span.done { background: #c8ecd0; opacity: 1; }
+.svc-ticket .tk-row span.bad { background: #ffd0cc; opacity: 1; }
+.svc-ticket .tk-noodle { font-size: 11px; opacity: .8; margin-top: 2px; }
+.svc-tabs { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+.svc-tabs button { position: relative; font: inherit; font-weight: 800; font-size: 16px; padding: 10px 18px; border-radius: 14px; border: 3px solid #e8d9c0; background: #fffaf0; color: #5b4636; box-shadow: 0 4px 0 #d6c3a3; cursor: pointer; }
+.svc-tabs button.on { background: #ffd23f; border-color: #c98a0e; box-shadow: 0 4px 0 #a8730a; }
+.svc-tabs button i { position: absolute; top: -9px; right: -9px; min-width: 22px; height: 22px; border-radius: 99px; font-style: normal; font-size: 13px; line-height: 22px; text-align: center; display: none; }
+.svc-tabs button i.on { display: block; background: #5aa8ff; color: #fff; }
+.svc-tabs button i.hot { display: block; background: #e2574c; color: #fff; animation: svcPulse .8s ease-in-out infinite; }
+@keyframes svcPulse { 50% { transform: scale(1.25); } }
+.svc-rings { position: absolute; inset: 0; pointer-events: none !important; }
+.svc-ring { position: absolute; width: 58px; height: 58px; transform: translate(-50%, -50%); }
+.svc-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.svc-ring circle { fill: none; stroke-width: 6; }
+.svc-ring .bg { stroke: rgba(255,250,240,.85); fill: rgba(255,250,240,.6); }
+.svc-ring .zone { stroke: rgba(73,178,106,.35); }
+.svc-ring .fill { stroke-linecap: round; }
+.svc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: #5b4636; }
+.svc-ring.ready { animation: svcPulse .6s ease-in-out infinite; }
+.svc-build { position: absolute; right: 14px; bottom: 76px; display: flex; flex-direction: column; gap: 8px; }
+.svc-money { position: absolute; top: 10px; right: 10px; background: #fffaf0; border: 3px solid #e8d9c0; border-radius: 12px; padding: 6px 10px; font-weight: 900; color: #5b4636; }
+.svc-title { position: absolute; bottom: 70px; left: 12px; font-weight: 800; color: #fffaf0; text-shadow: 0 2px 0 #5b4636; pointer-events: none !important; }
+@media (max-width: 600px) { .svc-build { bottom: 150px; } .svc-help { font-size: 13px; } .svc-tabs button { padding: 8px 12px; font-size: 14px; } .svc-ticket { width: 116px; } .svc-rail { right: 84px; } }
+.svc-help { position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%); max-width: min(560px, 90vw); text-align: center; background: rgba(91,70,54,.82); color: #fffaf0; font-weight: 800; font-size: 15px; padding: 6px 14px; border-radius: 99px; pointer-events: none !important; }
+.k3.service .svc-title { bottom: auto; left: auto; top: 54px; right: 12px; font-size: 13px; opacity: .85; }

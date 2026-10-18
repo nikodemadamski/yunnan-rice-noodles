@@ -65,8 +65,8 @@ export function say(sp, text, o = {}) {
     el.innerHTML = '';
     timer.style.width = '0%';
     let shown = 0, acc = 0, held = 0;
-    const cps = (o.speed || 1) * 38;
-    const hold = o.hold ?? Math.min(4.2, 1.1 + total * 0.03);
+    const cps = (o.speed || 1) * 62;
+    const hold = o.hold ?? Math.min(2.8, 0.8 + total * 0.02);
     clearAction();
     let talkT = 0;
     const finish = () => {

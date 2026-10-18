@@ -17,7 +17,7 @@ import { opening } from './opening.js';
 import { simScene } from './sim.js';
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { cookBowl } from './kitchen3d.js';
-import { shopDay } from './shop.js';
+import { shopService } from './shop3d.js';
 
 const $ = id => document.getElementById(id);
 
@@ -174,7 +174,7 @@ async function run() {
   if (mode === 'shop') {
     teleport(-15, -7.2, Math.PI);
     updateCamera(0, true);
-    await shopDay();
+    await shopService();
     location.hash = '';
     location.reload();
     return;

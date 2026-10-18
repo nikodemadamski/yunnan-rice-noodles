@@ -848,8 +848,8 @@ function frameCounter(snap = true) {
   const aspect = innerWidth / innerHeight;
   const fov = aspect < 0.8 ? 58 : 40;
   const s = STATIONS[station] || STATIONS.all;
-  const look = new THREE.Vector3(s.x, TOP + 0.4, s.z);
-  const dir = new THREE.Vector3(0, 7.2, 8.6).normalize();       // a warm 3/4 view: faces, not the tops of heads
+  const look = new THREE.Vector3(s.x, TOP + (s.lookY ?? 0.4), s.z);
+  const dir = new THREE.Vector3(0, s.tilt ?? 7.2, 8.6).normalize();       // a warm 3/4 view: faces, not the tops of heads
   const halfW = s.w, halfH = s.h;
   const tv = Math.tan(THREE.MathUtils.degToRad(fov / 2));
   const dist = Math.max(halfH / tv, halfW / (tv * aspect)) * 1.05;

@@ -8,7 +8,7 @@ import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
 import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, foodReveal, danmaku, cutscene, beat, shot } from './ui.js';
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
-import { cookBowl } from './kitchen3d.js';
+import { shopService } from './shop3d.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
 import { sfx, setMusic } from './audio.js';
@@ -247,9 +247,12 @@ export async function evening() {
       G.findings.size <= 1
         ? [SP.grandma, 'Not much today? Never mind. Bad bowls teach us too.', { face: 'normal' }]
         : [SP.grandma, `${G.findings.size} things! Good duck. Let’s see what they taste like.`, { face: 'happy', emote: '✨' }],
+      [SP.grandma, 'And look, the street’s hungry. We open the hatch tonight. You take orders, I keep the fire.', { face: 'happy', emote: '🏮' }],
     ]);
   });
-  const r = await cookBowl();
+  const svc = await shopService({ title: 'Old Zhao’s · first night open' });
+  // the night's bowls, in the shape the ending reads
+  const r = { greens: svc.avg >= 85 ? 3 : svc.avg >= 65 ? 2 : 1, perfect: svc.avg >= 85, extras: [], avg: svc.avg, tips: svc.tips };
   await cutscene(async () => {
     if (r.perfect) {
       await foodReveal('🍜', 'Almost Grandpa’s Bowl', 'Old hen broth. A shining layer of fat. Chives. Nothing else.');
@@ -273,7 +276,7 @@ async function endCard(r) {
     <h2>🌉 End of the prototype</h2>
     <p>Thanks for riding, ${esc(G.name)}!</p>
     <p class="sub">💰 ¥${G.money} · ⭐ ${avg} average · 📒 ${G.findings.size} findings · 🍽️ Food Dex ${G.foodDex.size}
-      · 💃 Auntie encounters ${G.auntieGags} · Best bowl: ${r.greens}/3 ${r.perfect ? '(perfect!)' : ''}</p>
+      · 💃 Auntie encounters ${G.auntieGags} · First night: ${r.avg ?? '—'} pts avg ${r.perfect ? '(perfect!)' : ''}</p>
     <h3>What’s next in the full game</h3>
     <p class="sub">Days 3–22: the rest of Kunming, Little Chilli & Uncle Spud’s feud, more Plankton schemes, the plain-broth customer,
       Qingming, the trip to Mengzi, and the Supreme Mega Championship.</p>
