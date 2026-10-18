@@ -8,6 +8,7 @@ import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
 import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, foodReveal, danmaku, cutscene, beat, shot } from './ui.js';
 import { bowlLab } from './bowllab.js';
+import { cookBowl } from './kitchen.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
 import { sfx, setMusic } from './audio.js';
@@ -237,7 +238,7 @@ export async function evening() {
         : [SP.grandma, `${G.findings.size} things! Good duck. Let’s see what they taste like.`, { face: 'happy', emote: '✨' }],
     ]);
   });
-  const r = await bowlLab('free');
+  const r = await cookBowl();
   await cutscene(async () => {
     if (r.perfect) {
       await foodReveal('🍜', 'Almost Grandpa’s Bowl', 'Old hen broth. A shining layer of fat. Chives. Nothing else.');

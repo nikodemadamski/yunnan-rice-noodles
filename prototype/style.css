@@ -369,3 +369,50 @@ body.cine #choices { bottom: calc(11vh + 120px); }
 @keyframes slideout { to { transform: translateX(120%); opacity: 0; } }
 body.cine #result-pop { display: none; }
 #result-pop h3 { margin: 8px 0 4px; font-size: 14px; font-weight: 900; }
+
+/* ---------- grandma's kitchen (Cooking Mama / Papa's style) ---------- */
+.kitchen {
+  width: min(600px, 98vw); max-height: 96vh; overflow: auto;
+  background: #fff7fc; border: 6px solid #c86bfa; border-radius: 30px;
+  padding: 12px 14px 14px; box-shadow: var(--shadow);
+}
+.k-steps { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.k-step {
+  font-size: 12px; font-weight: 900; padding: 4px 10px; border-radius: 99px;
+  background: #f1e3fb; color: #9b7bb3;
+}
+.k-step.on { background: #c86bfa; color: #fff; }
+.k-step.done { background: #dff3e4; color: #23743d; }
+.k-title { margin: 8px 0 6px; font-size: 22px; font-weight: 900; text-align: center; color: #7a3fa8; }
+.k-stage { position: relative; }
+.k-canvas { width: min(100%, calc(44vh * 560 / 340)); aspect-ratio: 560 / 340; display: block; margin: 0 auto; border-radius: 20px; border: 4px solid #5b4636; touch-action: none; }
+.k-msg { text-align: center; font-weight: 800; font-size: 14px; margin: 8px 0 4px; min-height: 1.2em; }
+.kitchen .hold-btn { margin-top: 6px; }
+.k-ui { margin-top: 6px; }
+.k-ui > .k-bin { margin: 4px; }
+.k-bins { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 6px; }
+.k-bin {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 76px;
+  background: #fff; border: 3px solid #e7d2f3; border-radius: 16px; padding: 6px 8px;
+  font-weight: 800; font-size: 12px; box-shadow: 0 3px 0 #e7d2f3;
+}
+.k-bin .ico { font-size: 28px; }
+.k-bin:active { transform: translateY(2px); }
+.k-bin:disabled { opacity: 0.4; }
+.k-bin.used { opacity: 0.35; }
+.k-bin.extra { border-color: #ffd23f; box-shadow: 0 3px 0 #ffd23f; }
+.k-stamp {
+  position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%) rotate(-12deg);
+  font-size: clamp(40px, 11vw, 72px); font-weight: 900; color: #fff; padding: 4px 22px; border-radius: 18px;
+  border: 6px solid #fff; animation: stamp 0.35s cubic-bezier(.2,1.6,.4,1); pointer-events: none;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.2);
+}
+.k-stamp.perfect { background: #ff4f8b; }
+.k-stamp.great { background: #f08a4b; }
+.k-stamp.ok { background: #49b26a; }
+.k-stamp.oops { background: #7d8590; }
+@keyframes stamp { from { transform: translate(-50%, -50%) rotate(-12deg) scale(2.4); opacity: 0; } }
+.k-ticket { background: #fffdf6; border: 3px dashed #d9c3a5; border-radius: 16px; padding: 10px 12px; }
+.k-ticket .meter .bar { height: 10px; }
+.k-total { font-size: 26px; font-weight: 900; color: #e0602c; }
+.kitchen.build .k-canvas { width: min(100%, calc(30vh * 560 / 340)); }
