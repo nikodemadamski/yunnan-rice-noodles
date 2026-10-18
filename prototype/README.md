@@ -28,7 +28,7 @@ Shortcuts: `?start=day2` or `#day2` (skip to the delivery day), `?start=evening`
 | Deliveries: pick-up → bag-packing puzzle → ride (heat + slosh) → a twist at the drop-off | `src/deliveries.js`, `src/bag.js` |
 | Twists: red-hat crowd search, stealth surprise (vision cone), lonely Mr Li (stay or go), quick-run montage | `src/deliveries.js` |
 | Plankton scheme: sneak a look at Auntie Fu's secret jar | `src/peek.js` |
-| Evening kitchen (Cooking Mama / Papa's style): simmer & skim the broth, slice on the lines, pour the oil layer, build the bowl in the legend's order before it cools, then a score ticket + grandma's verdict on the recipe | `src/kitchen.js` |
+| Evening kitchen (Cooking Mama / Papa's style), 7 stations: simmer & skim, slice on the lines, crack the quail eggs, blanch the noodles (timer ring), pour the oil layer, build in the legend's order before it cools, then a score ticket, medal and grandma's verdict. Each step opens with a hint; a failed step gets "Grandma will fix it!" and the bowl carries on | `src/kitchen.js` |
 | Day 1's AI-recipe disaster (auto-plays) and the recipe data / verdicts | `src/bowllab.js` |
 | God of Cookery "food reveal" moments, livestream bullet comments, emotes, barks | `src/ui.js` |
 | Animalese-style voices with Mandarin tone contours, SFX, pentatonic music (all synthesised) | `src/audio.js` |

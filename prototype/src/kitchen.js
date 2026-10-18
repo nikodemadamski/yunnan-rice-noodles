@@ -1,9 +1,13 @@
 // Grandma's kitchen: cook a cross-bridge bowl, Cooking Mama / Papa's style.
 //   1 Broth  – drop in the base, hold the flame in the simmer zone, skim the scum
 //   2 Slice  – chop the meat on each dashed line as it slides under the knife
-//   3 Oil    – pick an oil, hold to pour, let go inside the band
-//   4 Build  – add ingredients from the bins in the legend's order before it cools
-//   5 Taste  – a score ticket per station + grandma's verdict on the recipe
+//   3 Egg    – tap when the swinging quail egg is over the star
+//   4 Noodles – lift the basket when the timer-ring needle is in the green
+//   5 Oil    – pick an oil, hold to pour, let go inside the band
+//   6 Build  – add ingredients from the bins in the legend's order before it cools
+//   7 Taste  – a score ticket per station, a medal, and grandma's verdict on the recipe
+// Every gesture step opens with a one-second hint; a failed step gets a
+// "Grandma will fix it!" and the bowl carries on (no step ever blocks the dish).
 // Resolves with { greens, perfect, extras, pick, skill } like the old Bowl Lab.
 
 import { G, addTicker, clamp, esc, rng } from './core.js';
@@ -13,7 +17,7 @@ import { sfx } from './audio.js';
 import { SLOTS, EXTRAS, hasOption } from './bowllab.js';
 
 const W = 560, H = 340;
-const STEPS = ['Broth', 'Slice', 'Oil', 'Build', 'Taste'];
+const STEPS = ['Broth', 'Slice', 'Egg', 'Noodles', 'Oil', 'Build', 'Taste'];
 const R = rng(88);
 
 let canvas, ctx, ui, title, msg, panel, holdBtn;
@@ -31,9 +35,34 @@ async function stamp(score) {
   const el = document.createElement('div');
   el.className = `k-stamp ${cls}`;
   el.textContent = text;
-  panel.querySelector('.k-stage').appendChild(el);
+  const stage = panel.querySelector('.k-stage');
+  stage.appendChild(el);
   sfx(score >= 0.7 ? 'ding' : score >= 0.45 ? 'pop' : 'fail');
-  await beat(1.4);
+  // Grandma reacts: praise for a top step, and a failed step never stops the bowl
+  let say = null;
+  if (score >= 0.95) say = '👵✨ Better than Grandma!';
+  else if (score < 0.45) say = '👵🔥 Don’t worry, Grandma will fix it!';
+  let bubble = null;
+  if (say) {
+    bubble = document.createElement('div');
+    bubble.className = `k-grandma ${score < 0.45 ? 'fix' : ''}`;
+    bubble.textContent = say;
+    stage.appendChild(bubble);
+  }
+  await beat(say ? 1.9 : 1.4);
+  el.remove();
+  if (bubble) bubble.remove();
+}
+
+// A one-second "ghost hand" hint before each gesture step (Cooking Mama style).
+async function hint(gesture, text) {
+  tiles();   // never show the previous station behind the hint
+  const el = document.createElement('div');
+  el.className = 'k-hint';
+  el.innerHTML = `<span class="hand">${gesture}</span><span>${esc(text)}</span>`;
+  panel.querySelector('.k-stage').appendChild(el);
+  sfx('beep');
+  await beat(1.1);
   el.remove();
 }
 
@@ -206,9 +235,10 @@ async function stepBroth(st) {
   });
   setStep(0, '1 · Simmer & skim', 'Hold 🔥 (or Space) to raise the heat. Keep it in the green. Tap the scum to skim it!');
   showHold('🔥 Hold for heat');
+  await hint('👇', 'HOLD to heat · TAP the scum');
   let heat = 0.25, inZone = 0, spawned = 0, skimmed = 0, spawnT = 1;
   const bubbles = [], scum = [], fx = [];
-  const DUR = 12, LO = 0.45, HI = 0.72;
+  const DUR = 10, LO = 0.45, HI = 0.72;
   const onTap = e => {
     const p = toCanvas(e);
     for (let i = scum.length - 1; i >= 0; i--) {
@@ -271,6 +301,7 @@ async function stepBroth(st) {
 
 async function stepSlice(st) {
   setStep(1, '2 · Slice it thin', 'Tap (or Space) when a dashed line is under the knife. Thin slices cook in the hot broth!');
+  await hint('👆', 'TAP on the lines!');
   const KNIFE = 300, SPEED = 85, MARKS = 7, GAP = 44;
   let slabX = KNIFE + 70, chopT = 0, results = [];
   const marks = Array.from({ length: MARKS }, (_, i) => ({ off: 40 + i * GAP, hit: null }));
@@ -343,10 +374,115 @@ async function stepSlice(st) {
   await stamp(score);
 }
 
-// ---------- 3. oil ----------
+// ---------- 3. egg ----------
+
+async function stepEgg(st) {
+  setStep(2, '3 · Crack the quail eggs', 'The egg swings over the bowl. Tap (or Space) when it’s above the ★ to crack it in!');
+  await hint('👆', 'TAP over the ★');
+  const EGGS = 2, results = [], fx = [];
+  let pressed = false, fall = null;
+  const tap = () => { pressed = true; };
+  canvas.addEventListener('pointerdown', tap);
+  const onKey = e => { if (e.code === 'Space' || e.code === 'KeyE') tap(); };
+  addEventListener('keydown', onKey);
+  const brothColor = SLOTS[0].options.find(o => o.id === st.broth).color;
+  let swingT = 0;
+  const score = await run((dt, t) => {
+    swingT += dt;
+    const ex = 280 + Math.sin(swingT * 2.4) * 190;
+    if (pressed && !fall && results.length < EGGS) {
+      pressed = false;
+      const d = Math.abs(ex - 280);
+      const v = d < 14 ? 1 : d < 34 ? 0.75 : d < 60 ? 0.45 : 0;
+      results.push(v);
+      fall = { x: ex, y: 70, good: v > 0 };
+      sfx(v > 0 ? 'whack' : 'fail');
+      fx.push({ text: v === 1 ? 'Perfect!' : v >= 0.75 ? 'Good' : v > 0 ? 'OK' : 'Splat!', x: ex, y: 50, t: 0, color: v > 0 ? '#e0602c' : '#a3322a' });
+    }
+    pressed = false;
+    tiles();
+    // bowl, side view
+    ctx.fillStyle = brothColor; ctx.beginPath(); ctx.ellipse(280, 230, 150, 30, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#5b7fb5'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(130, 230); ctx.quadraticCurveTo(140, 330, 280, 332); ctx.quadraticCurveTo(420, 330, 430, 230); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f0b429'; ctx.font = '900 30px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('★', 280, 150);
+    if (results.length < EGGS && !fall) emoji('🥚', ex, 70, 46);
+    if (fall) {
+      fall.y += dt * 420;
+      emoji(fall.good ? '🍳' : '💥', fall.x, fall.y, 40);
+      if (fall.y > 220) { fall = null; if (results.length < EGGS) swingT = 0; }
+    }
+    results.forEach((v, i) => emoji(v > 0 ? '🍳' : '💥', 250 + i * 60, 230, 30));
+    floatText(fx, dt);
+    timerBar(Math.min(1, t / 12));
+    if (G.skip || (results.length >= EGGS && !fall) || t > 12) {
+      while (results.length < EGGS) results.push(0);
+      return results.reduce((a, b) => a + b, 0) / EGGS;
+    }
+  });
+  canvas.removeEventListener('pointerdown', tap);
+  removeEventListener('keydown', onKey);
+  st.egg = score;
+  await stamp(score);
+}
+
+// ---------- 4. noodles (Papa's-style timer ring) ----------
+
+async function stepNoodles(st) {
+  setStep(3, '4 · Blanch the noodles', 'Fresh rice noodles need a quick dip. Tap (or Space) to lift them when the needle is in the green!');
+  await hint('👆', 'TAP in the green');
+  const LO = 0.55, HI = 0.75, DUR = 5.5;
+  let lifted = null;
+  const lift = () => { if (lifted === null) lifted = 'now'; };
+  canvas.addEventListener('pointerdown', lift);
+  const onKey = e => { if (e.code === 'Space' || e.code === 'KeyE') lift(); };
+  addEventListener('keydown', onKey);
+  const score = await run((dt, t) => {
+    const v = Math.min(1, t / DUR);
+    if (lifted === 'now') { lifted = v; sfx('splash'); }
+    tiles();
+    flames(200, 190, 105, 0.8, t);
+    pot(200, 190, 105, '#e6eef2');
+    // strainer basket with noodles
+    const lift = lifted === null ? 0 : 60;
+    ctx.strokeStyle = '#7d5a3c'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(200, 190 - lift); ctx.lineTo(330, 60 - lift); ctx.stroke();
+    ctx.fillStyle = 'rgba(160,160,160,0.6)';
+    ctx.beginPath(); ctx.arc(200, 190 - lift, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fffaf0'; ctx.lineWidth = 3;
+    for (let i = 0; i < 7; i++) {
+      ctx.beginPath();
+      ctx.moveTo(160 + i * 12, 160 - lift);
+      ctx.bezierCurveTo(150 + i * 12, 190 - lift, 175 + i * 12, 200 - lift, 165 + i * 12, 225 - lift);
+      ctx.stroke();
+    }
+    // the timer ring (under / ideal / over)
+    const cx = 430, cy = 170, r = 70;
+    const arc = (a0, a1, col) => { ctx.strokeStyle = col; ctx.lineWidth = 18; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2 + a0 * 6.283, -Math.PI / 2 + a1 * 6.283); ctx.stroke(); };
+    arc(0, LO, '#d9d2e8'); arc(LO, HI, '#9be3a8'); arc(HI, 1, '#f3a0a0');
+    const nv = lifted === null ? v : lifted;
+    const na = -Math.PI / 2 + nv * 6.283;
+    ctx.strokeStyle = '#5b4636'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(na) * (r + 8), cy + Math.sin(na) * (r + 8)); ctx.stroke();
+    ctx.fillStyle = '#5b4636'; ctx.font = '900 14px Nunito, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(nv < LO ? 'Too firm' : nv <= HI ? 'Just right!' : 'Too soft!', cx, cy + r + 34);
+    if (G.skip || (lifted !== null && lifted !== 'now') || v >= 1) {
+      const x = lifted === null || lifted === 'now' ? 1 : lifted;
+      if (x >= LO && x <= HI) return 1;
+      return clamp(1 - Math.min(Math.abs(x - LO), Math.abs(x - HI)) * 4, 0, 1);
+    }
+  });
+  canvas.removeEventListener('pointerdown', lift);
+  removeEventListener('keydown', onKey);
+  await beat(0.4);
+  st.noodles = score;
+  await stamp(score);
+}
+
+// ---------- 5. oil ----------
 
 async function stepOil(st) {
-  setStep(2, '3 · Seal the heat', 'Pick an oil for the top of the broth.');
+  setStep(4, '5 · Seal the heat', 'Pick an oil for the top of the broth.');
   const brothColor = SLOTS[0].options.find(o => o.id === st.broth).color;
   tiles(); flames(280, 190, 110, 0.5, 0); pot(280, 190, 110, brothColor);
   const oil = await new Promise(res => pickButtons(SLOTS[1], res));
@@ -357,8 +493,9 @@ async function stepOil(st) {
     await beat(1.6);
     return;
   }
-  setStep(2, '3 · Pour the oil layer', 'Hold to pour (or hold Space). Let go inside the green band!');
+  setStep(4, '5 · Pour the oil layer', 'Hold to pour (or hold Space). Let go inside the green band!');
   showHold('🫗 Hold to pour');
+  await hint('👇', 'HOLD… let go in the green!');
   const LO = 0.55, HI = 0.8;
   let layer = 0, started = false;
   const tint = oil.id === 'chilli' ? '217,56,30' : '255,226,140';
@@ -409,7 +546,7 @@ const BINS = [
 ];
 
 async function stepBuild(st) {
-  setStep(3, '4 · Cross the bridge', 'Tap ingredients into the boiling bowl. The legend’s order: meat → egg → greens → noodles. Serve before it cools!');
+  setStep(5, '6 · Cross the bridge', 'Tap ingredients into the boiling bowl. The legend’s order: meat → egg → greens → noodles. Serve before it cools!');
   const added = [];
   const extras = [];
   const history = [];
@@ -505,7 +642,7 @@ function toppingPick(added) {
 }
 
 async function stepTaste(st) {
-  setStep(4, '5 · Grandma tastes', '');
+  setStep(6, '7 · Grandma tastes', '');
   const pick = { broth: st.broth, oil: st.oil, top: toppingPick(st.added) };
   const fb = {
     broth: SLOTS[0].options.find(o => o.id === pick.broth),
@@ -516,13 +653,17 @@ async function stepTaste(st) {
   const skill = {
     'Simmer & skim': st.brothScore,
     'Slicing': st.slice,
+    'Egg crack': st.egg,
+    'Noodles': st.noodles,
     'Oil layer': st.oilScore,
     'Order of the bridge': orderScore(st.added),
     'Served hot': clamp((st.heat - 0.3) / 0.6, 0, 1),
   };
-  const skillAvg = Object.values(skill).reduce((a, b) => a + b, 0) / 5;
+  const skillAvg = Object.values(skill).reduce((a, b) => a + b, 0) / Object.keys(skill).length;
   const recipe = greens / 3 * (st.extras.length ? 0.6 : 1);
   const total = Math.round((skillAvg * 0.5 + recipe * 0.5) * 100);
+  // Cooking Mama style medal for the whole bowl
+  const medal = total >= 95 ? ['🥇', 'Gold · Better than Grandma!'] : total >= 80 ? ['🥈', 'Silver'] : total >= 55 ? ['🥉', 'Bronze'] : ['👵', 'Grandma fixed it'];
   // grandma's tasting faces, then the ticket
   await run((dt, t) => {
     tiles();
@@ -534,7 +675,7 @@ async function stepTaste(st) {
   const dot = v => (v === 'good' ? '🟢' : v === 'close' ? '🟡' : '🔴');
   panel.querySelector('.k-stage').classList.add('hidden');
   ui.innerHTML = `<div class="k-ticket">
-    <div class="row" style="justify-content:space-between"><b>${total >= 80 ? '🏆' : total >= 55 ? '🍜' : '💥'} Grandma’s score</b><span class="k-total">${total}%</span></div>
+    <div class="row" style="justify-content:space-between"><b>${medal[0]} ${medal[1]}</b><span class="k-total">${total}%</span></div>
     ${Object.entries(skill).map(([k, v]) => `<div class="meter"><span style="width:150px; font-size:13px">${k}</span>${bar(v)}</div>`).join('')}
     <h3>Taste</h3>
     ${['broth', 'oil', 'top'].map(k => `<div class="fb ${fb[k].verdict}">${dot(fb[k].verdict)} ${esc(fb[k].fb)}</div>`).join('')}
@@ -543,7 +684,7 @@ async function stepTaste(st) {
   </div>`;
   sfx(total >= 80 ? 'reveal' : total >= 55 ? 'ding' : 'fail');
   await new Promise(res => ui.querySelector('#k-done').addEventListener('click', res));
-  return { greens, perfect: greens === 3 && st.extras.length === 0, extras: st.extras, pick, skill, total };
+  return { greens, perfect: greens === 3 && st.extras.length === 0, extras: st.extras, pick, skill, total, medal: medal[1] };
 }
 
 // ---------- entry ----------
@@ -573,6 +714,8 @@ export async function cookBowl() {
   const st = {};
   await stepBroth(st);
   await stepSlice(st);
+  await stepEgg(st);
+  await stepNoodles(st);
   await stepOil(st);
   await stepBuild(st);
   const result = await stepTaste(st);

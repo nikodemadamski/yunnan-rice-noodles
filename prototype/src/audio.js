@@ -50,7 +50,10 @@ export function toggleMute() {
 
 const SILENT = /[\s.,!?…—\-'"“”()（），。！？、：:;；~*0-9]/;
 
-export function blip(ch, voiceId) {
+// Mood shifts the voice like Animal Crossing: up when happy, down when sad.
+const MOOD_SEMITONES = { happy: 2, smug: 1, shock: 3, sad: -2, cry: -2, angry: -1 };
+
+export function blip(ch, voiceId, mood) {
   if (!ctx) return;
   const v = VOICES[voiceId];
   if (!v || SILENT.test(ch)) return;
@@ -59,7 +62,8 @@ export function blip(ch, voiceId) {
   const han = code > 0x2e80;
   const dur = han ? 0.09 : 0.06;
   const step = [0, 2, 4, 7, 9][code % 5];
-  const f0 = v.base * Math.pow(2, step / 12);
+  const shift = (MOOD_SEMITONES[mood] || 0) + (Math.random() - 0.5) * 2;   // ±1 semitone of life
+  const f0 = v.base * Math.pow(2, (step + shift) / 12);
   const contour = { flat: [1, 1, 1], up: [0.88, 1, 1.22], down: [1.25, 1.05, 0.82], dip: [1, 0.8, 1.08] }[v.tone];
 
   const osc = ctx.createOscillator();

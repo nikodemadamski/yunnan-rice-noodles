@@ -82,7 +82,7 @@ export function say(sp, text, o = {}) {
         if (takeAction()) acc = total;
         const next = Math.min(total, Math.floor(acc));
         while (shown < next) {
-          if (next - shown < 4) blip(chars[shown], sp.voice);
+          if (next - shown < 4) blip(chars[shown], sp.voice, o.face);
           shown++;
         }
         el.innerHTML = renderSegs(segs, shown);
