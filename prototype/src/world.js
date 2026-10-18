@@ -50,7 +50,7 @@ THREE.ShaderChunk.project_vertex = THREE.ShaderChunk.project_vertex.replace(
   #endif`);
 
 const SKY = {
-  day: { top: '#7cc8ff', mid: '#bfe5ff', low: '#fff0dc' },
+  day: { top: '#9db6ea', mid: '#f7c9bd', low: '#ffd9a4' },   // golden hour: lilac-blue, peach, gold
   night: { top: '#0f1430', mid: '#262a55', low: '#4a3a6a' },
 };
 
@@ -85,8 +85,8 @@ export function initWorld(canvas) {
   Object.assign(W, { renderer, scene, camera });
 
   // warm low side sun + soft sky fill; the sun's shadow box follows the player
-  W.hemi = new THREE.HemisphereLight(0xfff1dc, 0x9c8fd0, 1.05);   // warm light, lilac shadows
-  W.sun = new THREE.DirectionalLight(0xffdcae, 3.0);
+  W.hemi = new THREE.HemisphereLight(0xffe6cc, 0xa58fd0, 1.0);    // warm light, lilac shadows
+  W.sun = new THREE.DirectionalLight(0xffc98f, 3.1);           // a low golden sun
   W.sun.castShadow = true;
   const phone = Math.min(innerWidth, innerHeight) < 700;
   W.sun.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048);
@@ -94,7 +94,7 @@ export function initWorld(canvas) {
   W.sun.shadow.bias = -0.0005;
   W.sun.shadow.normalBias = 0.03;
   scene.add(W.hemi, W.sun, W.sun.target);
-  scene.fog = new THREE.FogExp2(0xe9e4f6, 0.0042);
+  scene.fog = new THREE.FogExp2(0xf6d8c8, 0.0040);
   scene.add(makeSky());
 
   buildGround();
@@ -241,8 +241,8 @@ function buildGround() {
   W.scene.add(ground);
 
   // painted asphalt, cobbled pavements: never one flat colour
-  const asph = asphalt();
-  const roadMat = (w, d) => { const t = asph.clone(); t.repeat.set(w / 8, d / 8); return toon({ color: '#ffffff', map: t }); };
+  const asph = flagstones(['#b8b0c4', '#aea6bb', '#c2bacb', '#b3abc0', '#bdb5c6'], '#8f879e');   // stone-paved roads (concept art)
+  const roadMat = (w, d) => { const t = asph.clone(); t.repeat.set(w / 5, d / 5); return toon({ color: '#ffffff', map: t }); };
   const road = { x: roadMat(180, 10), z: roadMat(10, 180) };
   const line = mat('#fffaf0');
   for (const z of [-40, 0, 40]) {
@@ -469,8 +469,8 @@ function buildLandmarks() {
 // ---------- trees, lanterns, bumps ----------
 
 function tree(x, z, duck = false) {
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 2, 8), mat('#8a5a3b'));
-  trunk.position.set(x, 1, z);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 2.8, 8), mat('#8a5a3b'));
+  trunk.position.set(x, 1.4, z);
   W.scene.add(trunk);
   if (duck) {
     const body = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), mat('#4f9a3a'));
@@ -484,16 +484,28 @@ function tree(x, z, duck = false) {
     W.scene.add(body, headM, beak, tail);
   } else {
     // a puffy cloud of a canopy: three soft balls, half the town in spring blossom
-    const blossom = R() < 0.45;
-    const cols = blossom ? ['#ffc2d6', '#ffd6e3', '#ffb0c8'] : ['#7cc95a', '#8fd468', '#6bbb4e'];
+    const blossom = R() < 0.65;
+    const cols = blossom ? ['#ffbfd3', '#ffd3e1', '#f9a9c4'] : ['#7cc95a', '#8fd468', '#6bbb4e'];
     const crown = new THREE.Group();
-    const r0 = 1.3 + R() * 0.35;
-    for (const [dx, dy, dz, k] of [[0, 0.2, 0, 1], [-0.75, -0.25, 0.3, 0.72], [0.7, -0.2, -0.25, 0.75]]) {
+    const r0 = 1.45 + R() * 0.4;
+    const balls = [[0, 0.25, 0, 1], [-0.8, -0.2, 0.3, 0.72], [0.75, -0.15, -0.25, 0.75], [0.1, -0.3, 0.75, 0.62], [-0.2, 0.55, -0.45, 0.6]];
+    for (const [dx, dy, dz, k] of balls) {
       const b = new THREE.Mesh(new THREE.SphereGeometry(r0 * k, 18, 14), mat(cols[Math.floor(R() * 3)]));
       b.position.set(dx * r0, dy * r0, dz * r0);
       crown.add(b);
     }
-    crown.position.set(x, 3, z);
+    if (blossom) {                                   // clusters of single flowers on the surface
+      const dot = new THREE.SphereGeometry(0.11, 6, 5);
+      for (let i = 0; i < 26; i++) {
+        const [dx, dy, dz, k] = balls[i % balls.length];
+        const a = R() * Math.PI * 2, e = (R() - 0.3) * 1.2, rr = r0 * k;
+        const f = new THREE.Mesh(dot, mat(R() < 0.5 ? '#ffffff' : '#ff93b6'));
+        f.position.set(dx * r0 + Math.cos(a) * Math.cos(e) * rr, dy * r0 + Math.sin(e) * rr, dz * r0 + Math.sin(a) * Math.cos(e) * rr);
+        f.userData.noOutline = true;
+        crown.add(f);
+      }
+    }
+    crown.position.set(x, 3.3, z);
     crown.rotation.y = R() * 6;
     outline(crown, 1.04);
     W.scene.add(crown);
@@ -674,15 +686,15 @@ export function setMarker(pos, radius = 2.5) {
 
 export function setNight(on) {
   W.night = on;
-  const bg = on ? '#1d2440' : '#bfe6ff';
+  const bg = on ? '#1d2440' : '#f7c9bd';
   const sky = on ? SKY.night : SKY.day;
   for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(sky[k]);
   W.scene.background = null;
-  W.scene.fog.color.set(on ? '#3a3360' : '#e9e4f6');
-  W.hemi.intensity = on ? 0.6 : 1.05;
-  W.hemi.color.set(on ? '#8fa0ff' : '#fff1dc');
-  W.sun.intensity = on ? 0.35 : 3.0;
-  W.sun.color.set(on ? '#9fb4ff' : '#ffdcae');
+  W.scene.fog.color.set(on ? '#3a3360' : '#f6d8c8');
+  W.hemi.intensity = on ? 0.6 : 1.0;
+  W.hemi.color.set(on ? '#8fa0ff' : '#ffe6cc');
+  W.sun.intensity = on ? 0.35 : 3.1;
+  W.sun.color.set(on ? '#9fb4ff' : '#ffc98f');
   for (const m of W.lanterns) m.emissiveIntensity = on ? 1.4 : 0;
   for (const m of W.windowMats) m.emissiveIntensity = on ? 0.9 : 0;
   document.body.style.background = bg;
@@ -753,7 +765,7 @@ export function updateOcclusion(cam, target) {
 
 // Keep the sun's shadow box centred on what the camera looks at (snapped to
 // shadow-map texels so shadows don't shimmer while moving).
-const SUN_OFFSET = new THREE.Vector3(-40, 50, 25);
+const SUN_OFFSET = new THREE.Vector3(-46, 34, 30);   // low sun: long golden-hour shadows
 export function updateSun(focus) {
   const texel = 64 / W.sun.shadow.mapSize.x;
   const x = Math.round(focus.x / texel) * texel, z = Math.round(focus.z / texel) * texel;

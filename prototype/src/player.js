@@ -119,7 +119,10 @@ function makeBike() {
 
 export function initPlayer() {
   player.char = makeCharacter({
-    skin: '#ffe0cc', shirt: '#4a8f5a', pants: '#3d4f6b', hair: '#d9772b', hairStyle: 'spiky', blush: true,
+    // the main character (character sheet): a curly messy bun with a daisy clip,
+    // a cream knit jumper, rolled-up jeans, white sneakers, a brown backpack
+    skin: '#ffe3cf', shirt: '#fcf5ea', knit: true, pants: '#7ea6d4', cuffs: '#9cbde3', hair: '#3f271b', hairStyle: 'messybun',
+    flower: true, backpack: '#8f5a34', shoes: '#fbf7f0', sneakers: true, blush: true,
   });
   W.scene.add(player.char.root);
   player.bike = makeBike();

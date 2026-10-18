@@ -135,6 +135,39 @@ function faceTexture(expr, o) {
   return tex;
 }
 
+// a ribbed knit, for jumpers (soft vertical ribs, cream on cream)
+let knitTex = null;
+function knit() {
+  if (knitTex) return knitTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 64, 64);
+  for (let x = 0; x < 64; x += 8) {
+    const gr = g.createLinearGradient(x, 0, x + 8, 0);
+    gr.addColorStop(0, 'rgba(150,120,90,0.22)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(150,120,90,0.22)');
+    g.fillStyle = gr; g.fillRect(x, 0, 8, 64);
+    for (let y = 0; y < 64; y += 8) { g.strokeStyle = 'rgba(150,120,90,0.12)'; g.beginPath(); g.moveTo(x + 1, y + 6); g.lineTo(x + 4, y + 2); g.lineTo(x + 7, y + 6); g.stroke(); }
+  }
+  knitTex = new THREE.CanvasTexture(c);
+  knitTex.wrapS = knitTex.wrapT = THREE.RepeatWrapping; knitTex.repeat.set(4, 2);
+  knitTex.colorSpace = THREE.SRGBColorSpace;
+  return knitTex;
+}
+
+// a little white daisy (hair clip, backpack patch)
+function daisy(r = 0.12) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const p = new THREE.Mesh(new THREE.SphereGeometry(r * 0.55, 10, 8), mat('#fffdf6'));
+    p.scale.set(1, 0.45, 0.7); const a = i / 6 * Math.PI * 2;
+    p.position.set(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7, 0); p.rotation.z = a;
+    g.add(p);
+  }
+  const c = new THREE.Mesh(new THREE.SphereGeometry(r * 0.35, 10, 8), mat('#f6c443'));
+  c.position.z = r * 0.12; g.add(c);
+  return g;
+}
+
 const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12, depthWrite: false });
 const shadowGeo = new THREE.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2);
 
@@ -170,10 +203,20 @@ export function makeCharacter(opts = {}) {
       shoe.scale.set(1, 0.6, 1.3); shoe.position.set(x, 0.1, 0.05);
       body.add(shoe);
       body.add(leg);
+      if (o.sneakers) {                              // white sneakers: a sole and a tan heel tab
+        const sole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 14), mat('#e9dfcf'));
+        sole.scale.set(1, 1, 1.3); sole.position.set(x, 0.035, 0.05); body.add(sole);
+        const tab = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat('#d9a35a')); tab.position.set(x, 0.16, -0.15); body.add(tab);
+      }
+      if (o.cuffs) {                                 // rolled-up jeans
+        const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.06, 8, 16).rotateX(Math.PI / 2), mat(o.cuffs));
+        cuff.position.set(x, 0.24, 0); body.add(cuff);
+      }
     }
   }
   // torso
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.47, 0.26, 6, 16), mat(o.shirt));
+  const shirtMat = o.knit ? toon({ color: o.shirt, map: knit() }) : mat(o.shirt);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.47, 0.26, 6, 16), shirtMat);
   torso.position.y = 0.98;
   torso.scale.x = o.wide;
   body.add(torso);
@@ -183,7 +226,7 @@ export function makeCharacter(opts = {}) {
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group();
     pivot.position.set(side * (0.47 * o.wide + 0.06), 1.28, 0);
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.26, 4, 8), mat(o.shirt));
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(o.knit ? 0.15 : 0.13, 0.26, 4, 8), shirtMat);   // knit sleeves are a bit puffy
     arm.position.y = -0.22;
     pivot.add(arm);
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat(o.skin));
@@ -191,6 +234,28 @@ export function makeCharacter(opts = {}) {
     pivot.add(hand);
     body.add(pivot);
     arms.push(pivot);
+  }
+
+  if (o.knit) {                                    // a ribbed collar
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 20).rotateX(Math.PI / 2), shirtMat);
+    collar.position.y = 1.42; body.add(collar);
+  }
+  if (o.backpack) {                                // a brown leather backpack with a daisy patch
+    const pack = new THREE.Group();
+    const bag = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.22, 6, 12), mat(o.backpack));
+    bag.scale.set(1.15, 1, 0.6); pack.add(bag);
+    const flap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat('#a06a3e'));
+    flap.scale.set(1.18, 0.6, 0.68); flap.position.y = 0.12; pack.add(flap);
+    const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.08), mat('#a06a3e'));
+    pocket.position.set(0, -0.12, -0.17); pack.add(pocket);
+    const d = daisy(0.07); d.position.set(0, -0.1, -0.22); d.rotation.y = Math.PI; pack.add(d);
+    pack.position.set(0, 1.02, -0.42);
+    body.add(pack);
+    for (const sx of [-1, 1]) {                    // straps over the shoulders
+      const strap = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.04, 6, 14, Math.PI), mat('#7a4a2a'));
+      strap.rotation.y = Math.PI / 2; strap.position.set(sx * 0.26, 1.1, -0.05); strap.scale.set(1, 1.15, 1);
+      body.add(strap);
+    }
   }
 
   // head
@@ -228,7 +293,16 @@ export function makeCharacter(opts = {}) {
       blob(0.22, 0.8 * Math.sin(th) * Math.sin(a), 0.8 * Math.cos(th), 0.8 * Math.sin(th) * Math.cos(a), 1.25, 0.75, 0.6);
     }
   }
-  if (o.hairStyle === 'bun') {
+  if (o.hairStyle === 'messybun') {
+    // a big curly top-knot made of curls, and loose ringlets framing the face
+    for (const [x, y, z, rr] of [[0, 0.98, -0.12, 0.3], [-0.2, 0.92, -0.05, 0.2], [0.2, 0.94, -0.08, 0.2], [0.02, 1.15, -0.1, 0.2], [-0.12, 1.06, -0.3, 0.19], [0.15, 1.06, -0.28, 0.18], [0.0, 0.9, -0.36, 0.2]]) tufts.push(blob(rr, x, y, z));
+    for (const sx of [-1, 1]) {                    // two soft ringlets by each cheek
+      blob(0.17, sx * 0.72, -0.12, 0.18, 0.8, 1.2, 0.8);
+      blob(0.12, sx * 0.7, -0.42, 0.12, 0.8, 1.3, 0.8);
+    }
+    for (const [x, y, z, rr] of [[-0.5, 0.42, 0.6, 0.12], [0.48, 0.45, 0.6, 0.11]]) blob(rr, x, y, z);
+    for (const [x, y, z] of [[-0.45, 0.62, -0.5], [0.45, 0.6, -0.5], [0, 0.5, -0.75], [-0.6, 0.2, -0.45], [0.6, 0.2, -0.45]]) blob(0.2, x, y, z);   // curly volume at the back
+  } else if (o.hairStyle === 'bun') {
     blob(0.34, 0, 0.74, -0.32);
   } else if (o.hairStyle === 'long') {
     const longBack = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 0.45, 6, 16), hairMat);
@@ -245,6 +319,11 @@ export function makeCharacter(opts = {}) {
     tufts.push(curl);
   } else if (o.hairStyle === 'bald') {
     for (const x of [-0.72, 0.72]) blob(0.22, x, -0.05, -0.1);
+  }
+
+  if (o.flower) {                                  // the white daisy clip, just above the right ear
+    const f = daisy(0.13); f.position.set(0.58, 0.48, 0.42); f.rotation.y = 0.9;
+    head.add(f); tufts.push(f);
   }
 
   // hats

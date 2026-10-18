@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { W, P, addCollider } from './world.js';
 import { toon } from './characters.js';
 import { rng } from './core.js';
-import { grass } from './textures.js';
+import { grass, wood } from './textures.js';
 import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 const R = rng(31);
@@ -59,7 +59,7 @@ export function initDecor() {
     }
   }
   // flower boxes on the pavement edges of Grandpa's street and the avenues
-  const boxMat = toon({ color: '#ffffff' }), soil = toon({ color: '#8a5a3b' });
+  const boxMat = toon({ map: wood('#b98352') }), soil = toon({ color: '#8a5a3b' });
   const boxes = [];
   for (let x = -38; x <= 38; x += 12) for (const z of [-6.9, 6.9]) {
     const bx = x + 3;

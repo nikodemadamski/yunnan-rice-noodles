@@ -71,10 +71,10 @@ export function cobbles() {
 }
 
 /** Old-street bluestone flags (青石板): big worn slabs, blue-grey, rain-polished. */
-export function flagstones() {
+export function flagstones(tones = null, joint = '#7d8590') {
   const S = 512, [c, ctx] = canvas(S);
-  ctx.fillStyle = '#7d8590'; ctx.fillRect(0, 0, S, S);              // joints
-  const SLABS = ['#a9b2bb', '#9fa9b3', '#b3bbc2', '#a3aab6', '#aeb4b0', '#9aa4ae'];
+  ctx.fillStyle = joint; ctx.fillRect(0, 0, S, S);              // joints
+  const SLABS = tones || ['#a9b2bb', '#9fa9b3', '#b3bbc2', '#a3aab6', '#aeb4b0', '#9aa4ae'];
   const rows = 4, h = S / rows;
   for (let r = 0; r < rows; r++) {
     let x = -R() * h;

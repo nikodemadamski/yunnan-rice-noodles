@@ -454,7 +454,7 @@ export async function opening(opts = {}) {
       act(hero, 'eat');
       cut({ x: MX - 3.8, y: 3.4, z: MZ + 5.9 }, { x: MX, y: 1.45, z: MZ - 1.55 }, 32);
       move({ x: MX - 3.5, y: 3.3, z: MZ + 5.4 }, { x: MX, y: 1.45, z: MZ - 1.55 }, 0.3);
-      await talk([[SP.zhao, '慢慢吃。Eat slowly, boy.', { face: 'happy', hold: 1.8 }]]);
+      await talk([[SP.zhao, '慢慢吃。Eat slowly, little one.', { face: 'happy', hold: 1.8 }]]);
       act(zhao, 'chuckle');
       emote(zhao, '❤️', 1.8);
       await beat(1.8);

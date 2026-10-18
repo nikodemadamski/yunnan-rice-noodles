@@ -172,7 +172,7 @@ async function pickupFu(run) {
 
 const CROWD_LINES = [
   'This hat? It’s ORANGE. Like a persimmon.',
-  'Pink, young man. PINK. Very different.',
+  'Pink, my dear. PINK. Very different.',
   'Red SCARF. Your app can’t tell a hat from a scarf?',
   'No hat. Do I look like I own a hat?',
   'Mine’s more of a… mango. Mango hat.',
