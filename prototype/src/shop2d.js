@@ -78,7 +78,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   G.busy++;
   G.skip = false;
   G.flags.frozen3d = true;
-  setMusic('day');
+  setMusic('shop');
   const cv = document.createElement('canvas');
   cv.className = 'shop2d';
   document.getElementById('ui').appendChild(cv);

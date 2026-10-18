@@ -416,7 +416,7 @@ export async function opening(opts = {}) {
       for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(golden[k]);
       W.scene.fog.color.set('#ffd9a8');
       grade('memory');
-      setMusic('day');
+      setMusic('memory');
       document.getElementById('fade').classList.add('on');
       teleport(MX, MZ + 1.45, Math.PI);
       hero.setFace('happy');
@@ -478,7 +478,7 @@ export async function opening(opts = {}) {
       }
 
       // ===== ACT 2 · Dublin =====
-      setMusic(null);
+      setMusic('office');
       setRain(true);
       grade('dublin');
       W.scene.fog.color.set('#c9d0d8');
@@ -501,7 +501,7 @@ export async function opening(opts = {}) {
       grade(null);
       sfx('pop');
       cut(INSERT, SCREEN, 46);
-      setMusic('day');
+      setMusic('memory');                         // the daydream: colour and the flute flood back
       await beat(3.2);
       // S10 him, slow push-in (4.4 s): he sits up; longing
       grade('dublin');

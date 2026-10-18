@@ -11,7 +11,7 @@ import { paperOverlay } from './textures.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
-import { initAudio, setMusic, toggleMute, sfx, setEngine } from './audio.js';
+import { initAudio, setMusic, toggleMute, sfx, setEngine, speak, tapStream } from './audio.js';
 import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote, cutscene } from './ui.js';
 import { updateInteract } from './interact.js';
 import { updateRun } from './deliveries.js';
@@ -228,4 +228,5 @@ async function run() {
 }
 
 window.__game = { G, player, W, N, setMode, teleport };
+window.__audio = { initAudio, setMusic, speak, sfx, tapStream };   // dev: previews and tests
 run();

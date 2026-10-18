@@ -126,7 +126,7 @@ const LIVE = [
 ];
 
 export async function promptPalLive() {
-  setMusic('day');
+  setMusic('shop');
   const S = stage();
   const st = {
     viewers: 1204, chat: [], hearts: [], step: -1, sure: false, sureUsed: false, ai: '', grannyMood: 'normal', wangMood: 'happy',

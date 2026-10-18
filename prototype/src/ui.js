@@ -3,7 +3,7 @@
 
 import { G, addTicker, wait, esc } from './core.js';
 import { takeAction, clearAction, queueAction } from './input.js';
-import { blip, sfx } from './audio.js';
+import { speak, sfx } from './audio.js';
 import { toScreen, W } from './world.js';
 import { player } from './player.js';
 
@@ -65,7 +65,7 @@ export function say(sp, text, o = {}) {
     el.innerHTML = '';
     timer.style.width = '0%';
     let shown = 0, acc = 0, held = 0;
-    const cps = (o.speed || 1) * 62;
+    const cps = (o.speed || 1) * 40;                  // close to the voice's pace, like Animal Crossing
     const hold = o.hold ?? Math.min(2.8, 0.8 + total * 0.02);
     clearAction();
     let talkT = 0;
@@ -82,7 +82,7 @@ export function say(sp, text, o = {}) {
         if (takeAction()) acc = total;
         const next = Math.min(total, Math.floor(acc));
         while (shown < next) {
-          if (next - shown < 4) blip(chars[shown], sp.voice, o.face);
+          speak(chars, shown, sp.voice, o.face);      // the voice keeps its own pace and skips when behind
           shown++;
         }
         el.innerHTML = renderSegs(segs, shown);

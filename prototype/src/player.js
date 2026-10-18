@@ -279,15 +279,24 @@ function syncMeshes(dt, t) {
 
 const camPos = new THREE.Vector3(0, 30, 30);
 const camLook = new THREE.Vector3();
+const camFocus = new THREE.Vector3(), camRig = new THREE.Vector3(0, 11.5, 15), camLead = { x: 0, z: 0 };
+let camBlend = 1;
 let camYaw = 0;
 
 export function updateCamera(dt, snap = false) {
   const f = player.camFocus || player.pos;
   const bike = player.mode === 'bike';
   const cine = G.flags.cine;
-  const ahead = cine ? 0 : bike ? 5 * player.speed / BIKE_MAX : 1.5 * player.speed / WALK;
-  const tx = f.x + Math.sin(player.heading) * ahead;
-  const tz = f.z + Math.cos(player.heading) * ahead;
+  // Animal Crossing camera: fixed angle, glued to a smoothed focus point.
+  // The look-ahead follows *velocity* and builds/fades slowly (~0.8 s), so
+  // turning on the spot never swings the view.
+  const vx = bike ? Math.sin(player.heading) * player.speed : player.vel.x;
+  const vz = bike ? Math.cos(player.heading) * player.speed : player.vel.z;
+  const leadMax = cine ? 0 : bike ? 3.5 / BIKE_MAX : 0.9 / WALK;
+  const kl = snap ? 1 : 1 - Math.exp(-dt * 1.3);
+  camLead.x += (vx * leadMax - camLead.x) * kl;
+  camLead.z += (vz * leadMax - camLead.z) * kl;
+  const tx = f.x + camLead.x, tz = f.z + camLead.z;
   // cutscenes: lower, closer, slightly from the side, like a film camera
   // on a phone held upright, look down more steeply (more street, fewer walls in the way)
   const tall = W.camera.aspect < 0.8 && !cine;
@@ -296,9 +305,17 @@ export function updateCamera(dt, snap = false) {
   camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
   const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;
   const oz = Math.cos(camYaw) * back - Math.sin(camYaw) * side;
+  camFocus.lerp(new THREE.Vector3(tx, cine ? 2.3 : 1.5, tz), k);
+  camRig.x += (ox - camRig.x) * k; camRig.y += (h - camRig.y) * k; camRig.z += (oz - camRig.z) * k;
+  if (player.camShot || snap) camBlend = snap ? 1 : 0;
   if (!player.camShot) {
-    camPos.lerp(new THREE.Vector3(tx + ox, h, tz + oz), k);
-    camLook.lerp(new THREE.Vector3(tx, cine ? 2.3 : 1.5, tz), k);
+    const want = new THREE.Vector3(camFocus.x + camRig.x, camRig.y, camFocus.z + camRig.z);   // rigid: no parallax wobble
+    if (camBlend >= 1) { camPos.copy(want); camLook.copy(camFocus); }
+    else {                                   // ease back from a staged shot instead of jumping
+      const kb = 1 - Math.exp(-dt * 5);
+      camPos.lerp(want, kb); camLook.lerp(camFocus, kb);
+      if (camPos.distanceTo(want) < 0.05) camBlend = 1;
+    }
   }
   // never let a staged shot sit inside the player's head: hide them instead
   if (player.mode === 'foot') {

@@ -1,7 +1,7 @@
 // The Kunming neighbourhood: roads, blocks, landmarks, NPC registry,
 // collisions, day/night and the delivery marker.
 
-import { cobbles, asphalt, grass, flagstones, water as waterTex, contact, brick, plaster } from './textures.js';
+import { cobbles, asphalt, grass, flagstones, water as waterTex, contact, brick, plaster, wood as woodTex } from './textures.js';
 import * as THREE from 'three';
 import { mat, toon, outline } from './characters.js';
 import { rng } from './core.js';
@@ -197,7 +197,7 @@ const WALLS = ['#ffe3c4', '#ffd9de', '#d6f0dd', '#d8e8ff', '#fff0b8', '#ecdcff',
 const ROOFS = ['#e8735a', '#5fa8d3', '#79b86e', '#c7697f', '#8f74c4'];
 
 // a soft dark pool where things meet the ground, so nothing floats
-let contactMat = null;
+let contactMat = null, lidMat = null;
 const PLINTH = [], LEDGE = [], KERB = [];
 // all plinths in two draw calls
 export function flushPlinths() {
@@ -223,8 +223,10 @@ export function building(x, z, w, d, h, opts = {}) {
   tex.repeat.set(Math.max(1, Math.round(w / 3)), Math.max(1, Math.round(h / 3)));
   const glow = windowGlowTex.clone();
   glow.repeat.copy(tex.repeat);
-  const side = toon({ color: wall, map: tex, emissive: 0xffb347, emissiveMap: glow, emissiveIntensity: 0 });
+  const clip = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e5)];   // moved down to 1.5 m for a cutaway
+  const side = toon({ color: wall, map: tex, emissive: 0xffb347, emissiveMap: glow, emissiveIntensity: 0, clippingPlanes: clip, side: THREE.DoubleSide });
   const top = mat(opts.roof || ROOFS[Math.floor(R() * ROOFS.length)]).clone();
+  top.clippingPlanes = clip; top.side = THREE.DoubleSide;
   W.windowMats.push(side);
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, top, top, side, side]);
   m.position.set(x, h / 2, z);
@@ -243,7 +245,13 @@ export function building(x, z, w, d, h, opts = {}) {
   }
   groundShadow(x, z, w + 2.2, d + 2.2);
   addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2);
-  const rec = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h, mats: [side, top], roof: null, faded: false };
+  // the lid of a cut-away building: a solid top at the cut, so it reads as a
+  // low wall, never a hollow box you can see through
+  lidMat ||= (() => { const t = woodTex('#c9935f'); t.repeat.set(2, 2); return toon({ color: '#ffffff', map: t }); })();   // a dollhouse floor
+  const lid = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), lidMat);
+  lid.position.set(x, 1.5, z); lid.visible = false; lid.userData.noShadow = true;
+  W.scene.add(lid);
+  const rec = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h, mats: [side, top], clip, lid, roof: null, faded: false };
   W.buildings.push(rec);
   if (opts.pitched ?? R() < 0.7) {
     const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 * 1.02, Math.min(w, d) * 0.45, 4).rotateY(Math.PI / 4), top);
@@ -259,9 +267,11 @@ export function building(x, z, w, d, h, opts = {}) {
 // ---------- ground & roads ----------
 
 function buildGround() {
-  const grassT = grass(); grassT.repeat.set(500 / 9, 500 / 9);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), toon({ color: '#ffffff', map: grassT }));
-  ground.rotation.x = -Math.PI / 2;
+  // one big lawn under everything, including the far-off intro sets (office
+  // at x 400, Grandpa's memory street at x 600), so no shot ever sees the void
+  const grassT = grass(); grassT.repeat.set(1500 / 9, 700 / 9);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1500, 700), toon({ color: '#ffffff', map: grassT, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }));   // always loses depth ties to paving and water laid on top
+  ground.rotation.x = -Math.PI / 2; ground.position.set(250, 0, 264);   // starts at the shore (z -86): no grass under the sea to flicker through
   W.scene.add(ground);
 
   // painted asphalt, cobbled pavements: never one flat colour
@@ -782,16 +792,18 @@ function segHitsBox(p, q, b) {
   return true;
 }
 
-const CUT = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.5)];
 // screen points (NDC) whose view of the street must stay clear: the lower
 // two-thirds of the frame, where the player and the pavement are
-const OCC_NDC = [[0, -0.1], [-0.85, -0.1], [0.85, -0.1], [-0.5, -0.55], [0.5, -0.55], [0, -0.55], [-0.85, -0.85], [0.85, -0.85], [0, -0.9]];
+// (rooftops along the bottom edge are fine, like Animal Crossing; only walls
+// across the middle band, where you look, get cut)
+const OCC_NDC = [[0, -0.1], [-0.8, -0.1], [0.8, -0.1], [-0.45, 0.15], [0.45, 0.15]];
+const OCC_RING = [[2.5, 0], [-2.5, 0], [0, 2], [0, -2]];
 const _v = new THREE.Vector3();
 export function updateOcclusion(cam, target) {
   // rays from the player, and from street points seen across the screen, to
   // the camera: any building they pass through is cut away
   const q = { x: cam.x, y: cam.y, z: cam.z };
-  const ps = [{ x: target.x, y: 1.2, z: target.z }];
+  const ps = [{ x: target.x, y: 1.2, z: target.z }, ...OCC_RING.map(([dx, dz]) => ({ x: target.x + dx, y: 1.2, z: target.z + dz }))];
   for (const [nx, ny] of OCC_NDC) {
     _v.set(nx, ny, 0.5).unproject(W.camera).sub(W.camera.position);
     if (_v.y >= -1e-3) continue;
@@ -807,7 +819,8 @@ export function updateOcclusion(cam, target) {
     b.faded = hide;
     // a cutaway, like a dollhouse: the building in front is cut down to a low
     // stump so you always see the duck, and the street never goes empty
-    for (const m of b.mats) { m.clippingPlanes = hide ? CUT : null; m.side = hide ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; }
+    b.clip[0].constant = hide ? 1.5 : 1e5;      // same shader either way: no recompile hitch on phones
+    b.lid.visible = hide;
   }
 }
 
