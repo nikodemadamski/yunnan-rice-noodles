@@ -123,3 +123,47 @@ $> await Cutscene.walk("wang", Vector2(-15, 1.5), 3.0)
 ```
 
 Plan: one `.dialogue` file per day (`day01` … `day22`), a `Cutscene` autoload with the camera / NPC / emote API that `npcs.js` and `ui.js` provide today, and a `Flags` autoload for story state.
+
+### Animal Crossing decomp (ACreTeam/ac-decomp): talking and cutscenes
+
+**Licence:** CC0 for the community's reconstruction, but the design and logic are Nintendo's, so we only study it.
+
+- **Text box** (`include/m_msg.h`, `src/game/m_msg.c`):
+  - One window with 8 states (hide, appear, normal, typing, disappear + waits). State changes are *requests* applied at the end of the frame.
+  - **Opening:** grows over 18 frames with ease-in/out, then a 20-frame pause before typing.
+  - **Typing** (`m_msg_cursol.c_inc`): a letter every other frame; B = fast text. Skipping a page is only allowed where the text says so.
+  - **Advancing:** a pulsing arrow; pressing goes to the next page or closes; some messages close by themselves after a set time (`MsgTimeEnd`), which is the same idea as our auto-advance.
+  - About 120 control codes inside the text: pause, insert a name or item, choices, colour, size, start/stop music, sound effects, random follow-up messages.
+- **Animalese voice** (`m_msg_sound.c_inc`, `m_font_main.c_inc`, `jaudio_NES/game/game64.c_inc`):
+  - A 256-entry table maps letters to 26 letter sounds; punctuation is silent.
+  - The **next letter is passed too**, so consonant + vowel pairs merge into syllables and long vowels stretch, with a little randomness on repeats. That's why it sounds like babble, not spelling.
+  - **Per character:** each villager has a voice id plus a pitch/speed preset from its personality type. Bigger text = louder and higher.
+  - **Mood codes in the text** (normal, angry, sad, fun, sleepy, gloomy) shape pitch *over time*: angry = random spikes, sad/sleepy = slow downward drift, fun = bouncy.
+  - **Player setting:** full animalese, a simple "bebebe" click, or silent.
+- **Reactions** (`ac_npc_talk.c_inc`, `m_demo.h`):
+  - The text writes small numbers into a shared table (reaction code, mood + minutes, timed actions like handing over an item).
+  - The speaking NPC reads the table each frame, plays an "in → loop" animation from about 43 manga reactions, spawns the icon on a set animation frame, then clears it. The dialogue code never needs to know which character it is.
+- **Cutscenes ("demos")** (`src/game/m_demo.c`):
+  - One manager; only one scene runs at a time. Actors *request* a scene and a priority rule picks the winner. For talking, the NPC is chosen 60% by facing angle and 40% by distance.
+  - **Lifecycle:** wait → ready → run → stop, each type with a start check (the player has turned to face the NPC) and an end check (the window closed). The manager handles the camera and input lock in one place.
+  - **Talking** freezes both actors, opens the window, plays a zoom sound and **lowers the music**.
+  - **Long scenes are "director" actors** (`ac_intro_demo.c`): a step list of init + per-frame functions that wait on conditions (the train arrived, the player reached a spot, the NPC finished speaking).
+
+**Takeaways for us:**
+1. Inline text commands for writers: `{pause:20}`, `{mood:sad}`, `{emote:shock}`, `{choice}`, `{next:id}`.
+2. Voice that looks at the *next* letter to merge consonant + vowel into syllables, and mood codes that shape pitch over time (angry spikes, sad drift).
+3. Reactions as fire-and-forget signals the speaker picks up.
+4. Lower the music while someone talks.
+5. Pick who you talk to by facing angle + distance (60/40).
+6. Our async `cutscene()` scripts are the web version of AC's director actors, so the design holds.
+
+## Summary: what we'll build next
+
+| From | Feature | Status |
+|---|---|---|
+| Animal Crossing + Paper Mario | Inline text commands (`{pause}`, `{mood}`, `{emote}`, `<wave>`, `<shake>`) | Next |
+| Animal Crossing + animalese-tts | Syllable-merging voice, mood pitch-over-time, sentence melody, punctuation pauses | Next |
+| Paper Mario | Bubble grows out of the speaker, sound panned by screen position, talk/idle "speaking" flag | Next |
+| Animal Crossing | Duck the music while talking; talk target by facing + distance | Next |
+| Pass the Plate! + Undercooked | Recipes, assemblies and orders as data; gesture recogniser; perfect window | Next (noodle-shop mode) |
+| Dialogue Manager | Story format for the Godot build | When we move to Godot |
