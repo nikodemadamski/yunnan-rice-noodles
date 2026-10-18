@@ -489,3 +489,97 @@ body.cine #result-pop { display: none; }
 .tbl table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
 .tbl th, .tbl td { padding: 4px 6px; border-bottom: 1px solid #eadfc8; text-align: left; white-space: nowrap; }
 #panel.dim { background: rgba(40, 30, 20, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+/* ---------- opening: the flight card ---------- */
+.flight { display: grid; gap: 12px; justify-items: center; width: min(640px, 96vw); }
+.route { width: 100%; background: #2f5d8a; border-radius: 26px; box-shadow: var(--shadow); }
+.route text { fill: #fffaf0; font: 900 17px "Nunito", system-ui, sans-serif; }
+.fl-phone {
+  background: #f6f0ff; border: 4px solid #2b2238; border-radius: 22px; padding: 12px 16px;
+  font-weight: 800; line-height: 1.45; box-shadow: var(--shadow); width: min(320px, 90vw); color: #3d2f5a;
+  animation: popin 0.4s 0.6s both;
+}
+
+/* ---------- SIM card: the Judge (haggling calculator) ---------- */
+.judge {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  width: min(380px, 96vw); background: #2f6fb6; border-radius: 26px; padding: 12px;
+  box-shadow: var(--shadow); color: #fff; animation: sheet 0.35s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes sheet { from { transform: translate(-50%, 110%); } to { transform: translate(-50%, 0); } }
+.j-top { display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-bottom: 8px; }
+.j-cups span { font-size: 20px; margin-right: 2px; transition: filter .3s, opacity .3s; }
+.j-cups .cold { filter: grayscale(1); opacity: .35; }
+.j-num { background: rgba(0, 0, 0, .25); border-radius: 10px; padding: 3px 8px; font-size: 14px; letter-spacing: .5px; }
+.j-lcd { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #c9d8b4; color: #24301c; border-radius: 14px; padding: 8px 12px; border: 3px solid #1d3b5f; }
+.j-lcd small { display: block; font-size: 10px; font-weight: 900; opacity: .7; }
+.j-lcd b { font: 900 26px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.j-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.j-keys button, .j-acts button {
+  border: 0; border-radius: 14px; padding: 9px 0; font: 900 20px "Nunito", system-ui, sans-serif;
+  background: var(--cream); color: var(--ink); box-shadow: 0 4px 0 rgba(0, 0, 0, .25); cursor: pointer;
+}
+.j-keys button:active, .j-acts button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
+.j-keys .ok { background: var(--duck); }
+.j-acts { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; }
+.j-acts button { font-size: 15px; padding: 7px 4px; line-height: 1.1; }
+.j-acts small { display: block; font-size: 11px; color: var(--ink-soft); }
+
+/* ---------- SIM card: passport + real-name form ---------- */
+.reg { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: flex-start; }
+.passport {
+  width: min(240px, 92vw); background: #1f5a3c; color: #f3e5b5; border-radius: 18px; padding: 14px;
+  box-shadow: var(--shadow); display: grid; gap: 8px; transform: rotate(-2deg);
+}
+.pp-head { font-weight: 900; letter-spacing: 2px; font-size: 12px; text-align: center; }
+.pp-photo { width: 64px; height: 76px; background: #f3e5b5; border-radius: 8px; display: grid; place-items: center; font-size: 34px; justify-self: center; }
+.passport label { font-size: 12px; font-weight: 800; opacity: .85; }
+.passport input { font: 900 18px "Nunito", system-ui, sans-serif; border: 0; border-radius: 10px; padding: 8px 10px; width: 100%; color: var(--ink); }
+.regform {
+  width: min(330px, 92vw); background: #fff; border-radius: 6px; padding: 14px 16px; box-shadow: var(--shadow);
+  background-image: repeating-linear-gradient(transparent 0 33px, #e8eef8 33px 34px); transform: rotate(1deg);
+}
+.rf-head { font-weight: 900; color: #b8322a; border-bottom: 3px double #b8322a; padding-bottom: 6px; margin-bottom: 6px; }
+.rf-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 6px; align-items: center; min-height: 34px; }
+.rf-row span { font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+.rf-row b { font: 700 19px "Segoe Print", "Comic Sans MS", cursive; color: #1d3b8f; overflow-wrap: anywhere; }
+.rf-row .fix { font-size: 12px; padding: 4px 8px; }
+.flash { position: absolute; inset: 0; background: #fff; animation: flash 0.7s ease-out both; pointer-events: none; }
+@keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+
+/* ---------- Day 1 cooking stages ---------- */
+.cook {
+  position: absolute; inset: 0; display: flex; gap: 12px; align-items: center; justify-content: center;
+  padding: 12px; background: rgba(40, 30, 20, .55); opacity: 0; transition: opacity .4s;
+}
+.cook.in { opacity: 1; }
+.cook-quiet { background: rgba(10, 6, 12, .82); transition-duration: 1.2s; }
+.ck-frame { position: relative; flex: 1 1 auto; max-width: min(900px, calc((100vh - 24px) * 560 / 340)); }
+.ck-frame canvas { display: block; width: 100%; height: auto; border-radius: 22px; box-shadow: var(--shadow); touch-action: none; cursor: grab; }
+.cook-quiet .ck-frame canvas { border-radius: 8px; box-shadow: 0 0 80px rgba(255, 170, 90, .25); }
+.ck-cap, .ck-hint { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .5s; white-space: nowrap; }
+.ck-cap.on, .ck-hint.on { opacity: 1; }
+.ck-cap { bottom: 34px; font-weight: 900; font-size: 20px; color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, .6); }
+.ck-hint { bottom: 8px; font-weight: 800; font-size: 14px; color: #fff; background: rgba(0, 0, 0, .4); border-radius: 99px; padding: 3px 12px; }
+.cook-live .ck-cap { display: none; }
+.cook-live .ck-hint { bottom: 10px; background: var(--duck); color: var(--ink); font-size: 15px; }
+.ck-chat {
+  flex: 0 0 230px; align-self: stretch; max-height: 92vh; display: flex; flex-direction: column;
+  background: #f6f0ff; border: 5px solid #2b2238; border-radius: 26px; overflow: hidden; box-shadow: var(--shadow);
+}
+.ck-chat-head { display: flex; gap: 8px; align-items: center; padding: 10px 12px; background: #efe9ff; border-bottom: 2px solid #ddd2f7; font-size: 15px; }
+.ck-chat-head small { color: var(--good); font-weight: 800; margin-left: auto; }
+.ck-pp { width: 26px; height: 26px; border-radius: 50%; background: #7a52c7; color: #fff; display: grid; place-items: center; font-weight: 900; }
+.ck-msgs { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ck-b { max-width: 92%; padding: 8px 11px; border-radius: 16px; font-weight: 800; font-size: 14px; line-height: 1.3; animation: popin .3s both; }
+.ck-b.pp { background: #fff; color: #3d2f5a; border-bottom-left-radius: 4px; }
+.ck-b.me { background: #7a52c7; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.ck-sure { margin: 8px; border: 0; border-radius: 14px; padding: 9px; font: 900 15px "Nunito", system-ui, sans-serif; background: #fff; color: #7a52c7; box-shadow: 0 3px 0 #ddd2f7; cursor: pointer; }
+.ck-sure:disabled { opacity: .45; }
+@media (max-width: 720px), (max-aspect-ratio: 1/1) {
+  .cook { flex-direction: column; justify-content: flex-start; gap: 8px; padding: 8px; }
+  .ck-frame { width: 100%; flex: 0 0 auto; }
+  .ck-chat { flex: 0 1 auto; width: 100%; max-height: 34vh; order: 2; }
+  .ck-cap { font-size: 16px; bottom: 30px; white-space: normal; width: 92%; }
+}
+@keyframes popin { from { transform: scale(0.6); opacity: 0; } }

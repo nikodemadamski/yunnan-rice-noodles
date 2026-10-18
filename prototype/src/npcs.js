@@ -1,7 +1,7 @@
 // The cast and their little behaviours (idle, wander, dance, patrol, ride, walkTo).
 
 import * as THREE from 'three';
-import { makeCharacter, mat } from './characters.js';
+import { makeCharacter, mat, outline } from './characters.js';
 import { W, P, collide } from './world.js';
 import { player } from './player.js';
 import { G, rng, dist2 } from './core.js';
@@ -109,6 +109,7 @@ function addBlueBike(npc) {
   const w1 = new THREE.Mesh(w, mat('#222222')); w1.position.set(0, 0.4, 0.95);
   const w2 = new THREE.Mesh(w, mat('#222222')); w2.position.set(0, 0.4, -0.95);
   g.add(frame, crate, w1, w2);
+  outline(g, 1.05);
   npc.char.root.add(g);
   g.position.y = -0.1;
   npc.char.body.position.y = 0.45;

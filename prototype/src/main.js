@@ -1,7 +1,8 @@
 // Boot, title screen, main loop, HUD and ambient gags.
 
 import { G, CLOCK_SPEED, runTickers, fmtClock, esc } from './core.js';
-import { W, P, initWorld, updateWorld, updateOcclusion } from './world.js';
+import { W, P, initWorld, updateWorld, updateOcclusion, updateSun, applyShadows } from './world.js';
+import { updateFx, feel } from './fx.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
@@ -10,7 +11,9 @@ import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote, cut
 import { updateInteract } from './interact.js';
 import { updateRun } from './deliveries.js';
 import { day1, day2, evening, openBoard } from './story.js';
-import { prologue } from './phone.js';
+import { opening } from './opening.js';
+import { simScene } from './sim.js';
+import { promptPalLive, chilliBowl } from './day1cook.js';
 import { shopDay } from './shop.js';
 
 const $ = id => document.getElementById(id);
@@ -19,6 +22,7 @@ initWorld($('scene'));
 initPlayer();
 initNPCs();
 initInput();
+applyShadows();
 teleport(P.start.x, P.start.z, Math.PI / 2);
 updateCamera(0, true);
 
@@ -101,8 +105,11 @@ function updateGags(dt) {
 
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const raw = Math.min(0.05, (now - last) / 1000);
   last = now;
+  // hit-stop: freeze the world for a few frames on impacts (UI keeps running)
+  let dt = raw;
+  if (feel.hitstop > 0) { feel.hitstop -= raw; dt = 0; }
   const t = now / 1000;
   if (G.clockRunning && G.busy === 0) G.clock += dt * CLOCK_SPEED;
   updatePlayer(dt, t);
@@ -111,12 +118,14 @@ function frame(now) {
   updateGags(dt);
   updateRun(dt);
   updateInteract();
-  runTickers(dt);
-  updateCamera(dt);
+  runTickers(raw);
+  updateFx(raw);
+  updateCamera(raw);
+  updateSun(player.camFocus || player.pos);
   updateOcclusion(W.camera.position, player.camFocus || player.pos);
-  updateFloating(dt);
-  updateHUD(dt);
-  W.renderer.render(W.scene, W.camera);
+  updateFloating(raw);
+  updateHUD(raw);
+  if (!G.flags.frozen3d) W.renderer.render(W.scene, W.camera);   // a full-screen minigame covers the world
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -157,10 +166,21 @@ async function run() {
     location.reload();
     return;
   }
+  // dev shortcuts for single scenes: #opening, #sim, #live, #chilli
+  if (['opening', 'sim', 'live', 'chilli'].includes(mode)) {
+    $('fade').classList.remove('on');
+    if (mode === 'opening') await opening();
+    if (mode === 'sim') await simScene();
+    if (mode === 'live') await promptPalLive();
+    if (mode === 'chilli') await chilliBowl();
+    toast(`Scene finished · ${esc(JSON.stringify(G.flags.chilliBowl || G.flags.sim || G.name))}`, 8);
+    return;
+  }
   if (mode === 'full') {
     await fadeOut(0.3);
     $('fade').classList.remove('on');
-    await cutscene(prologue);
+    await opening();
+    await simScene();
     await day1();
   }
   if (mode === 'full' || mode === 'day2') {

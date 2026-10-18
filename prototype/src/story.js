@@ -7,7 +7,7 @@ import { P, setMarker, setNight } from './world.js';
 import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
 import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, foodReveal, danmaku, cutscene, beat, shot } from './ui.js';
-import { bowlLab } from './bowllab.js';
+import { promptPalLive, chilliBowl } from './day1cook.js';
 import { cookBowl } from './kitchen.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
@@ -81,12 +81,13 @@ export async function day1() {
       [SP.you, 'The AI said it’s perfect. I’ll cook it right here!', { face: 'happy', emote: '✨' }],
       [SP.wang, 'A foreigner with a phone recipe?! Wonderful content! Cook it! LIVE! 一、二、三！', { zh: '直播！一、二、三！', face: 'happy' }],
     ]);
+  });
 
-    await bowlLab('ai');
+  // --- PromptPal Live: you play this one
+  await promptPalLive();
 
+  await cutscene(async () => {
     shot({ x: -15, z: -4 });
-    danmaku(['哈哈哈哈哈', 'CHEESE?!?!', '外国人别闹了 😂', 'RIP noodles', '老王666', 'gold leaf lmao', 'sparkler in SOUP??', '奶奶的表情 😭', '黑暗料理', 'AI recipe 🤡', '笑死我了', 'free content 👍'], 6);
-    sfx('fail');
     N.grandma.char.setFace('shock');
     emote(N.grandma.char, '😱');
     await beat(1.2);
@@ -126,13 +127,23 @@ export async function day1() {
       [SP.chilli, 'YOU. You put *cheese* in Grandpa Zhao’s soup?!', { zh: '你！你在赵爷爷的汤里放芝士？！', face: 'angry' }],
       [SP.you, 'The AI said it was perfect…', { face: 'sad' }],
       [SP.chilli, 'The AI. Hmph.', { face: 'angry' }],
-      [SP.chilli, '…Here. Eat. Don’t talk.', { zh: '……吃。别说话。', face: 'normal', emote: '🍜' }],
+      [SP.chilli, '…Here. Sit. You’re going to cook. Properly.', { zh: '……坐。你来做。', face: 'normal', emote: '🍜' }],
     ]);
-    await foodReveal('🍜', '…!!!', 'Clear broth. A few chives. A thin shine of oil on top. Nothing else. So why is it SO good?');
+    await talk([[SP.chilli, 'Grandpa Zhao’s way. I show you once. Then you.', { face: 'normal' }]]);
+  });
+
+  // --- Little Chilli's bowl: the same verbs, slowly
+  const bowl = await chilliBowl();
+  setMusic('night');
+
+  await cutscene(async () => {
     await talk([
       [SP.you, 'This is… nothing special. Why is it SO GOOD?', { face: 'shock' }],
       [SP.chilli, 'Grandpa Zhao fed me this every day when I was a kid with nowhere to go. Never charged me once.', { face: 'normal' }],
       [SP.chilli, 'Plain broth, a little oil, chives. He always said: “Less, Little Chilli. Always less.”', { face: 'sad' }],
+      bowl.score >= 5
+        ? [SP.chilli, '…You have quiet hands. For a foreigner.', { face: 'happy', emote: '✨' }]
+        : [SP.chilli, 'Your hands are too loud. Phone hands. You’ll learn.', { face: 'smug' }],
     ]);
     G.findings.add('top:chives');
     G.memories = ['Little Chilli’s bowl: clear broth, a shine of oil, chives. “Less. Always less.”'];

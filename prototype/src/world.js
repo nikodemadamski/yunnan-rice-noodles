@@ -2,7 +2,7 @@
 // collisions, day/night and the delivery marker.
 
 import * as THREE from 'three';
-import { mat } from './characters.js';
+import { mat, toon } from './characters.js';
 import { rng } from './core.js';
 
 export const W = {
@@ -25,6 +25,7 @@ export const P = {
   wangFront: { x: -15, z: 7.5 },
   chilliStall: { x: -28, z: 6.8 },
   spudStall: { x: -28, z: -6.8 },
+  simStall: { x: -42.5, z: 9.2 },
   fuDoor: { x: 15, z: -7.5 },
   jiDoor: { x: 58, z: -20 },
   roseDoor: { x: -58, z: -20 },
@@ -41,15 +42,25 @@ export function initWorld(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
   Object.assign(W, { renderer, scene, camera });
 
-  W.hemi = new THREE.HemisphereLight(0xfff4dc, 0x7fa86a, 2.2);
-  W.sun = new THREE.DirectionalLight(0xffffff, 1.8);
-  W.sun.position.set(-30, 60, 40);
-  scene.add(W.hemi, W.sun);
-  scene.fog = new THREE.Fog(0xcfe9ff, 80, 190);
+  // warm low side sun + soft sky fill; the sun's shadow box follows the player
+  W.hemi = new THREE.HemisphereLight(0xfff1d6, 0x9bbf7a, 1.3);
+  W.sun = new THREE.DirectionalLight(0xfff0d0, 2.8);
+  W.sun.castShadow = true;
+  const phone = Math.min(innerWidth, innerHeight) < 700;
+  W.sun.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048);
+  Object.assign(W.sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 160 });
+  W.sun.shadow.bias = -0.0005;
+  W.sun.shadow.normalBias = 0.03;
+  scene.add(W.hemi, W.sun, W.sun.target);
+  scene.fog = new THREE.FogExp2(0xcfe9ff, 0.0062);
 
   buildGround();
   buildBlocks();
@@ -65,7 +76,7 @@ export function initWorld(canvas) {
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
-    camera.fov = camera.aspect < 0.8 ? 52 : 38;
+    camera.fov = W.baseFov = camera.aspect < 0.8 ? 52 : 38;
     camera.updateProjectionMatrix();
   };
   resize();
@@ -142,7 +153,7 @@ function building(x, z, w, d, h, opts = {}) {
   tex.repeat.set(Math.max(1, Math.round(w / 3)), Math.max(1, Math.round(h / 3)));
   const glow = windowGlowTex.clone();
   glow.repeat.copy(tex.repeat);
-  const side = new THREE.MeshLambertMaterial({ color: wall, map: tex, emissive: 0xffb347, emissiveMap: glow, emissiveIntensity: 0 });
+  const side = toon({ color: wall, map: tex, emissive: 0xffb347, emissiveMap: glow, emissiveIntensity: 0 });
   const top = mat(opts.roof || ROOFS[Math.floor(R() * ROOFS.length)]).clone();
   W.windowMats.push(side);
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, top, top, side, side]);
@@ -242,7 +253,7 @@ function buildBlocks() {
 
 // ---------- landmarks ----------
 
-function stall(x, z, facing, color, sign, tilt = 0) {
+export function stall(x, z, facing, color, sign, tilt = 0) {
   const g = new THREE.Group();
   const counter = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.1, 1.6), mat('#a8754a'));
   counter.position.y = 0.55;
@@ -270,7 +281,7 @@ function stall(x, z, facing, color, sign, tilt = 0) {
 function buildLandmarks() {
   // Old Zhao's shop: shuttered
   building(-15, -13.5, 10, 9, 7, { wall: '#efe4cf', roof: '#7b4b3a', pitched: true });
-  const shutter = new THREE.Mesh(new THREE.PlaneGeometry(7, 4.2), new THREE.MeshLambertMaterial({
+  const shutter = new THREE.Mesh(new THREE.PlaneGeometry(7, 4.2), toon({
     map: canvasTex(256, 160, (g) => {
       g.fillStyle = '#9aa0a6'; g.fillRect(0, 0, 256, 160);
       g.strokeStyle = '#7d8389'; g.lineWidth = 3;
@@ -305,6 +316,7 @@ function buildLandmarks() {
   // Street stalls (Little Chilli's sign is falling apart)
   stall(P.chilliStall.x, 9.2, Math.PI, '#d63c2f', ['小辣烧饵块', "LITTLE CHILLI'S ERKUAI"], 0.18);
   stall(P.spudStall.x, -9.2, 0, '#a86b2d', ['土豆叔炸洋芋', "UNCLE SPUD'S FRIED POTATOES"]);
+  stall(P.simStall.x, P.simStall.z, Math.PI, '#2f6fb6', ['段阿姨手机卡', "AUNTIE DUAN'S SIM CARDS"]);
 
   // Auntie Fu's small-pot noodles
   building(15, -14, 10, 8, 7, { wall: '#f6e3c6', roof: '#7b4b3a', pitched: true });
@@ -415,7 +427,7 @@ function buildLanterns() {
   for (let x = -40; x <= 40; x += 6) {
     for (const z of [-5.6, 5.6]) {
       if (Math.abs(x - P.chilliStall.x) < 3 || Math.abs(x - P.spudStall.x) < 3) continue;
-      const m = new THREE.MeshLambertMaterial({ color: '#d8322a', emissive: '#ff5a2a', emissiveIntensity: 0 });
+      const m = toon({ color: '#d8322a', emissive: '#ff5a2a', emissiveIntensity: 0 });
       const l = new THREE.Mesh(geo, m);
       l.scale.y = 1.2;
       l.position.set(x, 4.2, z);
@@ -435,7 +447,7 @@ function buildBumps() {
     for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#222' : '#ffd23f'; g.fillRect(i * 8, 0, 8, 16); }
   });
   tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(4, 1);
-  const m = new THREE.MeshLambertMaterial({ map: tex });
+  const m = toon({ map: tex });
   const spots = [
     { x: -50, z: -22, along: 'z' }, { x: 0, z: 22, along: 'z' }, { x: 50, z: -12, along: 'z' },
     { x: 35, z: -40, along: 'x' }, { x: -32, z: 40, along: 'x' }, { x: 50, z: 26, along: 'z' },
@@ -450,7 +462,7 @@ function buildBumps() {
 }
 
 function buildLake() {
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), new THREE.MeshLambertMaterial({ color: '#76c2dc' }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), toon({ color: '#76c2dc' }));
   water.rotation.x = -Math.PI / 2;
   water.position.set(20, 0.12, -66.5);
   W.scene.add(water);
@@ -488,7 +500,7 @@ function buildLake() {
 
 function buildMarker() {
   const g = new THREE.Group();
-  const pin = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshLambertMaterial({ color: '#ffd23f', emissive: '#ffb000', emissiveIntensity: 0.5 }));
+  const pin = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), toon({ color: '#ffd23f', emissive: '#ffb000', emissiveIntensity: 0.5 }));
   pin.scale.y = 1.5;
   pin.position.y = 6;
   const ring = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.7, 32), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
@@ -518,9 +530,10 @@ export function setNight(on) {
   const bg = on ? '#1d2440' : '#bfe6ff';
   W.scene.background = new THREE.Color(bg);
   W.scene.fog.color.set(on ? '#1d2440' : '#cfe9ff');
-  W.hemi.intensity = on ? 0.7 : 2.2;
-  W.hemi.color.set(on ? '#8fa0ff' : '#fff4dc');
-  W.sun.intensity = on ? 0.25 : 1.8;
+  W.hemi.intensity = on ? 0.55 : 1.3;
+  W.hemi.color.set(on ? '#8fa0ff' : '#fff1d6');
+  W.sun.intensity = on ? 0.35 : 2.8;
+  W.sun.color.set(on ? '#9fb4ff' : '#fff0d0');
   for (const m of W.lanterns) m.emissiveIntensity = on ? 1.4 : 0;
   for (const m of W.windowMats) m.emissiveIntensity = on ? 0.9 : 0;
   document.body.style.background = bg;
@@ -584,6 +597,33 @@ export function updateOcclusion(cam, target) {
     for (const m of b.mats) { m.transparent = hide; m.opacity = hide ? 0.22 : 1; m.depthWrite = !hide; m.needsUpdate = true; }
     if (b.roof) b.roof.visible = !hide;
   }
+}
+
+// Keep the sun's shadow box centred on what the camera looks at (snapped to
+// shadow-map texels so shadows don't shimmer while moving).
+const SUN_OFFSET = new THREE.Vector3(-40, 50, 25);
+export function updateSun(focus) {
+  const texel = 64 / W.sun.shadow.mapSize.x;
+  const x = Math.round(focus.x / texel) * texel, z = Math.round(focus.z / texel) * texel;
+  W.sun.target.position.set(x, 0, z);
+  W.sun.position.set(x + SUN_OFFSET.x, SUN_OFFSET.y, z + SUN_OFFSET.z);
+}
+
+// Every solid mesh casts and receives shadows; flat ground only receives.
+export function applyShadows() {
+  W.scene.traverse(o => {
+    if (!o.isMesh) return;
+    o.receiveShadow = true;
+    const g = o.geometry && o.geometry.type;
+    let flat = g === 'PlaneGeometry' || g === 'CircleGeometry' || g === 'RingGeometry';
+    if (!flat && o.geometry) {
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const b = o.geometry.boundingBox;
+      flat = (b.max.y - b.min.y) * o.scale.y < 0.3;   // roads, slabs, lane lines
+    }
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    o.castShadow = !flat && !o.userData.noShadow && !mats.some(m => m && m.transparent);
+  });
 }
 
 // Project a world point to screen pixels (null when behind the camera).

@@ -3,11 +3,35 @@
 
 import * as THREE from 'three';
 
+// One 3-step gradient shared by every material: soft cel shading, like a picture book.
+const GRADIENT = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+GRADIENT.minFilter = GRADIENT.magFilter = THREE.NearestFilter;
+GRADIENT.needsUpdate = true;
+
+export function toon(params = {}) {
+  return new THREE.MeshToonMaterial({ gradientMap: GRADIENT, ...params });
+}
+
 const matCache = new Map();
 export function mat(color, extra = {}) {
   const key = color + JSON.stringify(extra);
-  if (!matCache.has(key)) matCache.set(key, new THREE.MeshLambertMaterial({ color, ...extra }));
+  if (!matCache.has(key)) matCache.set(key, toon({ color, ...extra }));
   return matCache.get(key);
+}
+
+// Inverted-hull ink outline (cheap, reads well at our camera distance).
+const INK = new THREE.MeshBasicMaterial({ color: '#3a2a20', side: THREE.BackSide });
+export function outline(root, thickness = 1.06) {
+  const meshes = [];
+  root.traverse(o => { if (o.isMesh && !o.userData.noOutline && !o.userData.hasHull) meshes.push(o); });
+  for (const m of meshes) {
+    const hull = new THREE.Mesh(m.geometry, INK);
+    hull.userData.noOutline = true;
+    hull.userData.noShadow = true;
+    hull.scale.setScalar(thickness);
+    m.add(hull);
+    m.userData.hasHull = true;
+  }
 }
 
 const faceCache = new Map();
@@ -106,7 +130,7 @@ function faceTexture(expr, o) {
   return tex;
 }
 
-const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false });
+const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12, depthWrite: false });
 const shadowGeo = new THREE.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2);
 
 /**
@@ -123,6 +147,7 @@ export function makeCharacter(opts = {}) {
   root.add(body);
 
   const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+  shadow.userData.noOutline = true;
   shadow.position.y = 0.03;
   root.add(shadow);
 
@@ -169,6 +194,7 @@ export function makeCharacter(opts = {}) {
 
   const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture('normal', o), transparent: true, depthWrite: false });
   const face = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.86), faceMat);
+  face.userData.noOutline = true;
   face.position.set(0, -0.05, 0.79);
   face.rotation.x = -0.12;
   head.add(face);
@@ -248,8 +274,10 @@ export function makeCharacter(opts = {}) {
       s.position.y = -0.72;
       hatParts.add(s);
     }
+    outline(hatParts, 1.07);
   };
   setHat(o.hat);
+  outline(body, 1.07);
 
   // props
   const prop = new THREE.Group();
@@ -262,8 +290,9 @@ export function makeCharacter(opts = {}) {
     phone.position.z = 1.3; phone.position.y = 0.1;
     prop.add(stick, phone);
   } else if (o.prop === 'fan') {
-    const fan = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16, 0, Math.PI), new THREE.MeshLambertMaterial({ color: '#ff6fa8', side: THREE.DoubleSide }));
+    const fan = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16, 0, Math.PI), toon({ color: '#ff6fa8', side: THREE.DoubleSide }));
     fan.position.set(0, -0.1, 0.1);
+    fan.userData.noOutline = true;
     prop.add(fan);
   } else if (o.prop === 'ladle') {
     const h = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 6), mat('#8a6a4a'));

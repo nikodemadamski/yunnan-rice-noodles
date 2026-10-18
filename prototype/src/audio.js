@@ -184,3 +184,9 @@ export function setMusic(mood) {
     o.start(t); o.stop(t + 0.65);
   }, speed);
 }
+
+/** A single pitched note (stir laps, hold hums, alarms). */
+export function note(freq, dur = 0.15, wave = 'triangle', vol = 0.25, delay = 0) {
+  if (!ctx) return;
+  tone(wave, freq, freq, dur, vol, delay);
+}
