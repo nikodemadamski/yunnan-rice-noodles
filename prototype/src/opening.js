@@ -16,6 +16,7 @@ import { SP } from './npcs.js';
 import { say, talk, fadeIn, fadeOut, beat, openPanel, closePanel, emote, bark, cutscene, hideDialogue } from './ui.js';
 import { sfx, setMusic, setRain, note } from './audio.js';
 import { addTrauma, hitstop } from './fx.js';
+import { act, stopActing } from './acting.js';
 
 const OX = 400, OZ = 400;           // the Dublin office set, far outside the town
 const MX = 600, MZ = 400;           // the memory set
@@ -169,7 +170,12 @@ function buildOffice() {
     for (const r of rain) { r.position.y -= dt * 2.4; if (r.position.y < 2) r.position.y = 4.8; }
     if (screen.stamp > 0 && screen.stamp < 1) { screen.stamp = Math.min(1, screen.stamp + dt * 6); drawScreen(); }
   });
-  built = { boss, coworker };
+  box(3.4, 0.15, 1.6, '#c8a27a', OX - 6.2, 1.35, OZ + 3.0);
+  const coworker2 = makeCharacter({ skin: '#f6d2b0', shirt: '#f4a6c0', pants: '#4a4f5a', hair: '#6b4a2f', hairStyle: 'bun' });
+  coworker2.root.position.set(OX - 6.2, 0.05, OZ + 4.2);
+  coworker2.root.rotation.y = Math.PI;
+  W.scene.add(coworker2.root);
+  built = { boss, coworker, coworker2 };
   SP.boss = { name: 'Boss', color: '#6b7c93', voice: 'spud', char: boss };
   return built;
 }
@@ -251,7 +257,55 @@ function buildMemory() {
       });
     }
   });
-  memory = { zhao, drop() { dropT = 0; } };
+  // a living street corner: house fronts, neighbours eating, people strolling past
+  const HOUSES = [['#ffd9de', '#e8735a'], ['#fff0b8', '#5fa8d3'], ['#d6f0dd', '#c7697f'], ['#d8e8ff', '#79b86e']];
+  HOUSES.forEach(([wall, roof], i) => {
+    const x = MX - 11 + i * 7.3, h = 6 + (i % 2) * 1.5;
+    box(6.6, h, 2, wall, x, h / 2, MZ - 9);
+    const r = new THREE.Mesh(new THREE.ConeGeometry(4.9, 2.4, 4).rotateY(Math.PI / 4), mat(roof));
+    r.scale.set(1, 1, 0.45); r.position.set(x, h + 1.2, MZ - 9);
+    W.scene.add(r);
+    for (const wx of [-1.6, 1.6]) {
+      box(1.3, 1.4, 0.1, '#8fc6e8', x + wx, h - 2, MZ - 7.95);
+      box(1.5, 0.25, 0.3, '#c9785a', x + wx, h - 2.8, MZ - 7.85);
+    }
+    box(1.6, 2.6, 0.1, '#a8754a', x, 1.3, MZ - 7.95);
+  });
+  const neighbours = [];
+  for (const [tx, tz, n] of [[-5, -1.8, 2], [5.2, -2.4, 1], [-4.2, 3.6, 1]]) {
+    const t2 = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.12, 24), mat('#c98f5c'));
+    t2.position.set(MX + tx, 0.95, MZ + tz);
+    const l2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.9, 10), mat('#8a5a3b'));
+    l2.position.set(MX + tx, 0.45, MZ + tz);
+    const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.24, 0.24, 20), mat('#f7f3ec'));
+    b2.position.set(MX + tx, 1.13, MZ + tz);
+    W.scene.add(t2, l2, b2);
+    for (let k = 0; k < n; k++) {
+      const side = k ? -1 : 1;
+      const c = makeCharacter({ skin: ['#f2cfae', '#e8bf95', '#f6d2b0'][k % 3], shirt: ['#7fb3e6', '#f4a6c0', '#9bd19b'][(tx > 0) + k], pants: '#4a4f5a', hair: '#5a3a28', hairStyle: ['short', 'long', 'bun'][(k + n) % 3], scale: 0.92 });
+      c.root.position.set(MX + tx + side * 1.15, 0.05, MZ + tz);
+      c.root.rotation.y = -side * Math.PI / 2;
+      W.scene.add(c.root);
+      neighbours.push(c);
+    }
+  }
+  const strollers = [];
+  for (let k = 0; k < 3; k++) {
+    const c = makeCharacter({ skin: '#f2cfae', shirt: ['#ffd23f', '#c9a6e8', '#f2a65a'][k], pants: '#3d4f6b', hair: '#4a3328', hairStyle: ['pony', 'short', 'long'][k], scale: 0.9 });
+    c.root.position.set(MX - 12 + k * 9, 0.05, MZ - 6.2 + (k % 2) * 0.8);
+    W.scene.add(c.root);
+    strollers.push({ c, dir: k % 2 ? -1 : 1, sp: 1.6 + k * 0.3 });
+  }
+  addTicker(dt => {
+    for (const s of strollers) {
+      const p = s.c.root.position;
+      p.x += s.dir * s.sp * dt;
+      if (p.x > MX + 13) p.x = MX - 13; if (p.x < MX - 13) p.x = MX + 13;
+      s.c.root.rotation.y = s.dir * Math.PI / 2;
+      s.c.animate(dt, s.sp, performance.now() / 1000 + p.z);
+    }
+  });
+  memory = { zhao, neighbours, drop() { dropT = 0; } };
   return memory;
 }
 
@@ -284,16 +338,39 @@ function lower3(text) {                                 // a quiet caption, bott
 
 // ---------- the sequence ----------
 
-export async function opening() {
-  const { boss } = buildOffice();
-  const { zhao, drop } = buildMemory();
+// Walk a staged character along waypoints with a proper walk cycle.
+function walkChar(c, pts, speed = 3.2) {
+  return new Promise(res => {
+    const path = pts.slice();
+    addTicker(dt => {
+      const p = c.root.position, tgt = path[0];
+      const dx = tgt.x - p.x, dz = tgt.z - p.z, d = Math.hypot(dx, dz);
+      if (d < 0.25 || G.skip) {
+        if (G.skip) { const last = path[path.length - 1]; p.x = last.x; p.z = last.z; path.length = 1; }
+        path.shift();
+        if (!path.length) { c.animate(dt, 0, performance.now() / 1000); res(); return true; }
+        return;
+      }
+      p.x += dx / d * speed * dt; p.z += dz / d * speed * dt;
+      c.root.rotation.y = Math.atan2(dx, dz);
+      c.animate(dt, speed, performance.now() / 1000);
+    });
+  });
+}
+const faceTo = (c, x, z) => { c.root.rotation.y = Math.atan2(x - c.root.position.x, z - c.root.position.z); };
+
+export async function opening(opts = {}) {
+  const { boss, coworker, coworker2 } = buildOffice();
+  const { zhao, neighbours, drop } = buildMemory();
   screen.mode = 'work'; screen.stamp = 0;
   drawScreen();
   player.char.setHat('none');
   const golden = { top: '#ffb27a', mid: '#ffd29a', low: '#fff0c8' };
+  const hero = player.char;
   try {
     await cutscene(async () => {
-      // ===== ACT 1 · the memory =====
+      // ===== ACT 1 · the memory (mostly medium and wide shots, long holds) =====
+      if (!opts.dublinOnly) {
       setNight(false);
       for (const k of ['top', 'mid', 'low']) W.skyU[k].value.set(golden[k]);
       W.scene.fog.color.set('#ffd9a8');
@@ -301,128 +378,160 @@ export async function opening() {
       setMusic('day');
       document.getElementById('fade').classList.add('on');
       teleport(MX, MZ + 1.45, Math.PI);
-      player.char.setFace('happy');
+      hero.setFace('happy');
       zhao.setFace('happy');
-      // Distances are set from the lens: a character is ~3 units tall with a
-      // ~1.9-unit head, so MCU ≈ 4.5 away at 32°, CU ≈ 3.2, ECU ≈ 3 at 24°.
-      // S1 establishing: crane down through the lanterns
-      cut({ x: MX + 12, y: 13, z: MZ + 14 }, { x: MX, y: 1.6, z: MZ }, 38);
-      await fadeIn(0.9);
+      act(zhao, 'ladle'); act(hero, 'bounce');
+      neighbours.forEach(n => { act(n, 'eat'); n.setFace('happy'); });
+      // S1 establishing (5 s): the street corner at golden hour, crane down
+      cut({ x: MX + 14, y: 10, z: MZ + 16 }, { x: MX, y: 1.6, z: MZ - 1 }, 40);
+      await fadeIn(1.2);
       lower3('Kunming · three springs ago');
-      move({ x: MX + 7.5, y: 5.2, z: MZ + 9.5 }, { x: MX, y: 1.8, z: MZ }, 0.8);
-      await beat(2.8);
-      // S2 insert: the ritual, raw slices crossing into the broth
-      cut({ x: MX - 2.1, y: 2.75, z: MZ + 0.5 }, { x: MX + 0.15, y: 1.3, z: MZ + 0.05 }, 34);
+      move({ x: MX + 9.5, y: 5.2, z: MZ + 11.5 }, { x: MX, y: 1.8, z: MZ - 0.5 }, 0.45);
+      await beat(4.6);
+      // S2 two-shot from the side (4 s): Grandpa ladles, the boy can't keep still
+      cut({ x: MX + 8.2, y: 3.3, z: MZ - 0.2 }, { x: MX, y: 1.7, z: MZ }, 34);
+      move({ x: MX + 7.2, y: 3.1, z: MZ - 0.1 }, { x: MX, y: 1.7, z: MZ }, 0.35);
+      await beat(1.6);
+      act(zhao, 'idle');
       drop();
-      move({ x: MX - 1.8, y: 2.45, z: MZ + 0.35 }, { x: MX + 0.1, y: 1.3, z: MZ }, 0.6);
-      await beat(2.2);
-      // S3 his face: the first sip (MCU from beside Grandpa)
-      cut({ x: MX + 2.1, y: 2.75, z: MZ - 2.6 }, { x: MX, y: 1.85, z: MZ + 1.45 }, 32);
-      player.squashV = 3;
-      emote(player.char, '✨', 1.8);
+      await beat(2.4);
+      // S3 the ritual, framed with room around the bowl (3.4 s)
+      cut({ x: MX - 4.4, y: 4.4, z: MZ + 1.8 }, { x: MX + 0.1, y: 1.3, z: MZ }, 38);
+      move({ x: MX - 3.9, y: 4.0, z: MZ + 1.6 }, { x: MX + 0.1, y: 1.3, z: MZ }, 0.3);
+      await beat(3.4);
+      // S4 the boy, waist-up (3.6 s): the first slurp, then pure joy
+      cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
+      act(hero, 'eat');
+      await beat(1.9);
+      act(hero, 'bounce');
+      emote(hero, '✨', 1.8);
       note(784, 0.5, 'sine', 0.12); note(1047, 0.7, 'sine', 0.1, 0.12);
-      await beat(2.0);
-      // S4 Grandpa, over the boy's shoulder: held, the emotional beat
-      cut({ x: MX - 2.2, y: 2.7, z: MZ + 3.4 }, { x: MX, y: 1.55, z: MZ - 1.55 }, 30);   // face in the upper third, above the dialogue
-      move({ x: MX - 1.9, y: 2.6, z: MZ + 2.9 }, { x: MX, y: 1.55, z: MZ - 1.55 }, 0.45);
-      await talk([[SP.zhao, '慢慢吃。Eat slowly, boy.', { face: 'happy', hold: 1.6 }]]);
-      emote(zhao, '❤️', 1.6);
-      await beat(1.0);
-      // S5 wide: the two of them, pulling away; the memory whites out
-      cut({ x: MX - 8.5, y: 4.2, z: MZ + 6.5 }, { x: MX, y: 1.8, z: MZ }, 38);
-      move({ x: MX - 11, y: 5.4, z: MZ + 8.8 }, { x: MX, y: 1.8, z: MZ }, 0.55);
+      await beat(1.7);
+      // S5 Grandpa over the boy's shoulder (5 s): the line, then he chuckles
+      act(hero, 'eat');
+      cut({ x: MX - 3.8, y: 3.4, z: MZ + 5.9 }, { x: MX, y: 1.45, z: MZ - 1.55 }, 32);
+      move({ x: MX - 3.5, y: 3.3, z: MZ + 5.4 }, { x: MX, y: 1.45, z: MZ - 1.55 }, 0.3);
+      await talk([[SP.zhao, '慢慢吃。Eat slowly, boy.', { face: 'happy', hold: 1.8 }]]);
+      act(zhao, 'chuckle');
+      emote(zhao, '❤️', 1.8);
       await beat(1.8);
+      // S6 wide, pulling away (4 s); the memory whites out
+      act(zhao, 'ladle');
+      cut({ x: MX - 9, y: 4.4, z: MZ + 7 }, { x: MX, y: 1.8, z: MZ - 0.5 }, 40);
+      move({ x: MX - 13, y: 6.5, z: MZ + 10.5 }, { x: MX, y: 1.8, z: MZ - 0.5 }, 0.4);
+      await beat(3.2);
       document.getElementById('fade').style.background = '#fff6e6';
-      await fadeOut(0.7);
+      await fadeOut(1.0);
       document.getElementById('fade').style.background = '';
+      stopActing();
+      }
 
       // ===== ACT 2 · Dublin =====
       setMusic(null);
       setRain(true);
       grade('dublin');
-      setNight(false);
       W.scene.fog.color.set('#c9d0d8');
       for (const [k, c] of [['top', '#9aa8b8'], ['mid', '#b8c2cc'], ['low', '#d0d6dc']]) W.skyU[k].value.set(c);
       teleport(OX - 2, OZ + 0.15, HERO_H);
-      player.char.setFace('blank');
-      // S6 symmetrical wide from behind: a small man, a big grey window, rain
+      hero.setFace('blank');
+      act(hero, 'slump'); act(coworker, 'type'); act(coworker2, 'type'); act(boss, 'idle');
+      // S7 wide (4.6 s): rain, typing, a small grey man
       cut({ x: OX - 2, y: 4.7, z: OZ + 5.7 }, { x: OX - 2, y: 2.1, z: OZ - 4 }, 54);
-      await fadeIn(0.25);
+      await fadeIn(0.6);
       lower3('Dublin · now');
-      await beat(2.6);
-      // S7 his face, lit by the spreadsheet (MCU from the far side of the monitor)
-      cut({ x: OX - 0.2, y: 2.7, z: OZ - 4.0 }, { x: OX - 2, y: 1.85, z: OZ + 0.15 }, 32);
-      emote(player.char, '💤', 1.4);
-      await beat(1.8);
-      // S8 insert, in full colour: he opens a photo. Match cut: the bowl, again
+      await beat(4.4);
+      // S8 him, waist-up (3.6 s): a sigh
+      cut({ x: OX + 0.6, y: 3.1, z: OZ - 5.0 }, { x: OX - 2, y: 1.6, z: OZ + 0.15 }, 34);
+      await beat(1.2);
+      emote(hero, '💤', 1.8);
+      await beat(2.4);
+      // S9 insert, full colour (3.2 s): the photo. Match cut: the same bowl
       screen.mode = 'photo'; drawScreen();
       grade(null);
       sfx('pop');
       cut(INSERT, SCREEN, 46);
       setMusic('day');
-      await beat(1.9);
-      // S9 slow push-in on his face: longing
+      await beat(3.2);
+      // S10 him, slow push-in (4.4 s): he sits up; longing
       grade('dublin');
-      cut({ x: OX + 0.3, y: 2.8, z: OZ - 4.6 }, { x: OX - 2, y: 1.85, z: OZ + 0.15 }, 30);
-      player.char.setFace('happy');
-      move({ x: OX - 0.4, y: 2.5, z: OZ - 3.4 }, { x: OX - 2, y: 1.85, z: OZ + 0.15 }, 0.5);
-      await beat(2.5);
-      // S10 insert: the stamp lands
+      act(hero, 'perk');
+      hero.setFace('happy');
+      cut({ x: OX + 1.0, y: 3.2, z: OZ - 5.6 }, { x: OX - 2, y: 1.6, z: OZ + 0.15 }, 34);
+      move({ x: OX - 0.1, y: 2.7, z: OZ - 3.9 }, { x: OX - 2, y: 1.7, z: OZ + 0.15 }, 0.35);
+      await beat(1.6);
+      emote(hero, '💗', 2);
+      await beat(2.8);
+      // S11 insert (2.6 s): the stamp lands
       grade(null);
       cut(INSERT, SCREEN, 46);
       setMusic(null);
       screen.stamp = 0.01;
       sfx('scratch'); sfx('slam');
-      hitstop(90); addTrauma(0.6);
-      await beat(1.3);
-      // S11 extreme close-up, hit-zoom, one beat of dead silence
+      hitstop(90); addTrauma(0.5);
+      await beat(2.6);
+      // S12 close-up, the one tight shot (3.4 s): silence, then WHAT
       grade('dublin');
-      cut({ x: OX - 1.2, y: 2.25, z: OZ - 2.8 }, { x: OX - 2, y: 1.7, z: OZ + 0.15 }, 27);
-      player.char.setFace('shock');
+      act(hero, null);
+      cut({ x: OX - 0.6, y: 2.6, z: OZ - 3.6 }, { x: OX - 2, y: 1.7, z: OZ + 0.15 }, 32);
+      hero.setFace('shock');
       setRain(false);
-      await beat(1.0);
-      addTrauma(0.8);
+      await beat(1.4);
+      addTrauma(0.6);
       sfx('gasp');
-      await talk([[SP.you, 'WHAT?!', { face: 'shock', hold: 0.7 }]]);
+      player.squashV = 5;
+      await talk([[SP.you, 'WHAT?!', { face: 'shock', hold: 0.9 }]]);
       setRain(true);
-      // S12 whip-pan to the boss; shot / reverse-shot, both cameras on one side of the line
-      boss.root.rotation.y = -1.875;                    // he looks across at our hero
-      move({ x: OX + 0.85, y: 2.85, z: OZ + 2.35 }, { x: OX + 5.5, y: 1.5, z: OZ + 2.5 }, 14, 30);
-      sfx('whoosh');
-      await beat(0.35);
-      boss.setFace('shock');
-      await talk([[SP.boss, '…Everything OK over there?', { face: 'shock', hold: 0.8 }]]);
-      player.heading = 1.27;
-      cut({ x: OX + 2.05, y: 2.75, z: OZ + 2.65 }, { x: OX - 2, y: 1.5, z: OZ + 0.15 }, 30);
-      player.char.setFace('angry');
-      await talk([[SP.you, 'I need my annual leave. All 22 days. Today.', { face: 'angry', hold: 0.9 }]]);
-      cut({ x: OX + 0.85, y: 2.75, z: OZ + 2.35 }, { x: OX + 5.5, y: 1.5, z: OZ + 2.5 }, 30);
+      // S13 reaction wide (3 s): the whole office turns to stare
+      act(coworker, null); act(coworker2, null);
+      cut({ x: OX - 4.6, y: 4.0, z: OZ + 1.6 }, { x: OX + 4.5, y: 1.5, z: OZ + 1.2 }, 50);   // past his head: the faces turned at him
+      for (const c of [coworker, coworker2, boss]) { faceTo(c, OX - 2, OZ + 0.15); c.setFace('shock'); emote(c, '❗', 1.6); }
+      sfx('pop');
+      await beat(2.8);
+      // S14 two-shot (side-on): the boss walks over
+      act(boss, null);
+      cut({ x: OX + 2.1, y: 3.3, z: OZ - 5.0 }, { x: OX - 0.6, y: 1.6, z: OZ + 0.9 }, 40);
+      await walkChar(boss, [{ x: OX + 2.6, z: OZ + 2.4 }, { x: OX + 0.7, z: OZ + 1.5 }], 3.2);
+      faceTo(boss, OX - 2, OZ + 0.15);
+      player.heading = 1.12;
+      hero.setFace('normal');
+      await talk([[SP.boss, '…Everything OK over there?', { face: 'shock', hold: 1.0 }]]);
+      // S15 him, medium close (3 s): the decision
+      cut({ x: OX + 0.2, y: 3.0, z: OZ + 4.6 }, { x: OX - 2, y: 1.45, z: OZ + 0.15 }, 34);   // 3/4 on him, clear of the boss
+      hero.setFace('angry');
+      act(hero, 'bounce');
+      await talk([[SP.you, 'I need my annual leave. All 22 days. Today.', { face: 'angry', hold: 1.1 }]]);
+      act(hero, null);
+      // S16 back to the two-shot: a long pause is the joke
+      cut({ x: OX + 2.1, y: 3.3, z: OZ - 5.0 }, { x: OX - 0.6, y: 1.6, z: OZ + 0.9 }, 40);
       boss.setFace('blank');
-      await beat(0.9);                                  // the pause is the joke
-      await talk([[SP.boss, '…Go.', { face: 'smug', hold: 0.7 }]]);
-      // S13 the sprint: cut on action, door slam, black
-      cut({ x: OX + 0.2, y: 5.5, z: OZ + 5.8 }, { x: OX + 5, y: 1.4, z: OZ + 2.6 }, 60);   // high wide: he bolts away, right to the door
-      player.char.setFace('happy');
+      await beat(1.6);
+      await talk([[SP.boss, '…Go.', { face: 'smug', hold: 0.9 }]]);
+      // S17 high wide: he bolts, round the boss, out the door
+      cut({ x: OX - 6, y: 5.4, z: OZ - 3.6 }, { x: OX + 3, y: 1.4, z: OZ + 3.4 }, 56);
+      hero.setFace('happy');
       sfx('whack');
       await new Promise(res => {
-        const path = [{ x: OX + 3, z: OZ + 5 }, { x: OX + 8.4, z: OZ + 3.8 }];   // round the boss, out the door
+        const path = [{ x: OX - 1.2, z: OZ + 4.4 }, { x: OX + 8.4, z: OZ + 3.8 }];
         addTicker(dt => {
           const target = path[0];
           const dx = target.x - player.pos.x, dz = target.z - player.pos.z, d = Math.hypot(dx, dz);
           if (d < 0.4 && path.length > 1) { path.shift(); return; }
           if (d < 0.4 || G.skip) { res(); return true; }
-          player.pos.x += dx / d * 11 * dt; player.pos.z += dz / d * 11 * dt;
+          player.pos.x += dx / d * 10 * dt; player.pos.z += dz / d * 10 * dt;
           player.heading = Math.atan2(dx, dz);
-          player.speed = 11;
-          player.char.root.position.set(player.pos.x, 0.1, player.pos.z);
+          player.speed = 10;
+          hero.root.position.set(player.pos.x, 0.1, player.pos.z);
         });
       });
       player.speed = 0;
       sfx('slam'); addTrauma(0.4);
+      for (const c of [coworker, coworker2, boss]) emote(c, '❓', 1.2);
+      await beat(1.0);
       document.getElementById('fade').classList.add('on');
-      await beat(0.4);
+      await beat(0.6);
     });
   } finally {
+    stopActing();
     setRain(false);
     grade(null);
     lower3(null);

@@ -179,9 +179,10 @@ async function run() {
     return;
   }
   // dev shortcuts for single scenes: #opening, #sim, #live, #chilli
-  if (['opening', 'sim', 'live', 'chilli'].includes(mode)) {
+  if (['opening', 'opening2', 'sim', 'live', 'chilli'].includes(mode)) {
     $('fade').classList.remove('on');
     if (mode === 'opening') await opening();
+    if (mode === 'opening2') await opening({ dublinOnly: true });
     if (mode === 'sim') await simScene();
     if (mode === 'live') await promptPalLive();
     if (mode === 'chilli') await chilliBowl();
