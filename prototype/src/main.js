@@ -16,6 +16,7 @@ import { day1, day2, evening, openBoard } from './story.js';
 import { opening } from './opening.js';
 import { simScene } from './sim.js';
 import { promptPalLive, chilliBowl } from './day1cook.js';
+import { cookBowl } from './kitchen3d.js';
 import { shopDay } from './shop.js';
 
 const $ = id => document.getElementById(id);
@@ -179,13 +180,17 @@ async function run() {
     return;
   }
   // dev shortcuts for single scenes: #opening, #sim, #live, #chilli
-  if (['opening', 'opening2', 'sim', 'live', 'chilli'].includes(mode)) {
+  if (['opening', 'opening2', 'sim', 'live', 'chilli', 'kitchen'].includes(mode)) {
     $('fade').classList.remove('on');
     if (mode === 'opening') await opening();
     if (mode === 'opening2') await opening({ dublinOnly: true });
     if (mode === 'sim') await simScene();
     if (mode === 'live') await promptPalLive();
     if (mode === 'chilli') await chilliBowl();
+    if (mode === 'kitchen') {
+      for (const f of ['broth:hen', 'oil:fat', 'top:chives', 'oil:chilli', 'top:rose']) G.findings.add(f);
+      G.flags.chilliBowl = await cookBowl();
+    }
     toast(`Scene finished · ${esc(JSON.stringify(G.flags.chilliBowl || G.flags.sim || G.name))}`, 8);
     return;
   }

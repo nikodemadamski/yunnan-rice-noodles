@@ -610,3 +610,40 @@ body.grade-dublin #ui::before { background: radial-gradient(ellipse at center, t
 .lower3.out { animation: l3out .6s forwards; }
 @keyframes l3in { to { opacity: 1; } }
 @keyframes l3out { from { opacity: 1; } to { opacity: 0; } }
+
+/* ---------- the 3D kitchen HUD ---------- */
+body.cooking #hud, body.cooking #touch { display: none !important; }
+.k3 { position: absolute; inset: 0; pointer-events: none !important; }
+.k3 > * { pointer-events: auto; }
+.k3-top { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; width: min(720px, 96vw); pointer-events: none !important; }
+.k3-bottom { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); text-align: center; width: min(720px, 96vw); pointer-events: none !important; }
+.k3-steps { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.k3-step { font-size: 12px; font-weight: 900; padding: 4px 10px; border-radius: 99px; background: rgba(255, 250, 240, .85); color: #a07c5e; box-shadow: 0 2px 0 rgba(0, 0, 0, .1); }
+.k3-step.on { background: #b8432f; color: #fff; transform: scale(1.08); }
+.k3-step.done { background: #dff3e4; color: #23743d; }
+.k3-title { margin-bottom: 4px; font-size: 26px; font-weight: 900; color: #fffaf0; text-shadow: 0 3px 0 #8a2f20, 0 6px 14px rgba(0, 0, 0, .35); }
+.k3-help { margin: 6px auto 0; display: inline-block; font-size: 15px; font-weight: 800; color: #5b4636; background: rgba(255, 250, 240, .92); border-radius: 99px; padding: 5px 14px; box-shadow: var(--shadow); }
+.k3-help:empty { display: none; }
+.k3-gauge { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); width: 34px; height: 46vh; background: #fffaf0; border: 4px solid #5b4636; border-radius: 99px; overflow: visible; }
+.k3-band { position: absolute; left: 3px; right: 3px; background: #9be3a8; border-radius: 6px; }
+.k3-needle { position: absolute; left: -12px; right: -12px; height: 6px; margin-bottom: -3px; background: #e0602c; border-radius: 3px; transition: bottom .08s linear; box-shadow: 0 2px 0 rgba(0, 0, 0, .2); }
+.k3-gauge span { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-weight: 900; font-size: 15px; color: #fffaf0; background: #5b4636; padding: 4px 10px; border-radius: 99px; }
+.k3-stamp { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) rotate(-8deg); font-size: 64px; font-weight: 900; color: #fff; padding: 6px 28px; border-radius: 22px; border: 6px solid #fff; box-shadow: var(--shadow); animation: k3stamp .45s cubic-bezier(.2, 1.6, .4, 1) both; pointer-events: none !important; }
+@keyframes k3stamp { from { transform: translate(-50%, -50%) rotate(-8deg) scale(2.6); opacity: 0; } }
+.k3-stamp.perfect { background: #ff4f8b; } .k3-stamp.great { background: #f08a4b; } .k3-stamp.ok { background: #49b26a; } .k3-stamp.oops { background: #7d8590; }
+.k3-hint { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); display: grid; place-items: center; gap: 4px; background: rgba(255, 250, 240, .95); border-radius: 26px; padding: 14px 26px; box-shadow: var(--shadow); font-size: 20px; color: #8a2f20; animation: popin .3s both; pointer-events: none !important; }
+.k3-hint .hand { font-size: 52px; animation: tap .5s ease-in-out infinite; }
+.k3-pop { position: absolute; transform: translate(-50%, -50%); font-weight: 900; font-size: 24px; color: #fffaf0; text-shadow: 0 3px 0 #5b4636; animation: k3pop .9s ease-out forwards; white-space: nowrap; pointer-events: none !important; }
+.k3-pop.gold { color: #ffd23f; font-size: 30px; } .k3-pop.bad { color: #ff8a80; } .k3-pop.fix { color: #fff; background: #b8432f; padding: 4px 14px; border-radius: 99px; text-shadow: none; }
+@keyframes k3pop { 0% { opacity: 0; margin-top: 10px; transform: translate(-50%, -50%) scale(.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 0; margin-top: -50px; transform: translate(-50%, -50%) scale(1); } }
+.k3-float { position: absolute; inset: 0; pointer-events: none !important; }
+.k3-ticket { position: absolute; left: 18px; top: 50%; transform: translateY(-50%) rotate(-2deg); background: #fffdf6; border: 3px dashed #d9c3a5; border-radius: 14px; padding: 12px 16px; width: 200px; box-shadow: var(--shadow); font-weight: 800; color: #5b4636; pointer-events: none !important; }
+.k3-ticket ol { margin: 6px 0; padding-left: 20px; } .k3-ticket small { color: #a07c5e; }
+.k3-serve { position: absolute; right: 22px; bottom: 22px; font-size: 22px; }
+.k3-result { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(40, 30, 20, .35); }
+.k3-result .k-ticket { width: min(460px, 94vw); max-height: 90vh; overflow: auto; }
+@media (max-aspect-ratio: 1/1) {
+  .k3-gauge { height: 30vh; right: 10px; width: 26px; }
+  .k3-ticket { top: auto; bottom: 90px; transform: rotate(-2deg); width: 170px; font-size: 13px; }
+  .k3-title { font-size: 20px; }
+}

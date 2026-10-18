@@ -8,7 +8,7 @@ import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
 import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, foodReveal, danmaku, cutscene, beat, shot } from './ui.js';
 import { promptPalLive, chilliBowl } from './day1cook.js';
-import { cookBowl } from './kitchen.js';
+import { cookBowl } from './kitchen3d.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
 import { sfx, setMusic } from './audio.js';
