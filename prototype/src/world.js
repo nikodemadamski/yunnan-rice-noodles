@@ -471,6 +471,8 @@ function tree(x, z, duck = false) {
     crown.rotation.y = R() * 6;
     outline(crown, 1.04);
     W.scene.add(crown);
+    crown.userData.ph = R() * 6;
+    (W.crowns ||= []).push(crown);
   }
   W.trees.push({ x, z });
   addCollider(x - 0.4, x + 0.4, z - 0.4, z + 0.4);

@@ -5,6 +5,7 @@ import { W, P, initWorld, updateWorld, updateOcclusion, updateSun, applyShadows 
 import { updateFx, feel } from './fx.js';
 import { dressWorld } from './props.js';
 import { initDecor, updateDecor } from './decor.js';
+import { initLife, updateLife } from './life.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
 import { N, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
@@ -29,6 +30,7 @@ initInput();
 applyShadows();
 dressWorld();
 initDecor();
+initLife();
 teleport(P.start.x, P.start.z, Math.PI / 2);
 updateCamera(0, true);
 
@@ -126,6 +128,7 @@ function frame(now) {
   updateNPCs(dt, t);
   updateWorld(dt, t);
   updateDecor(raw, t, player.camFocus || player.pos);
+  updateLife(dt, t, player.camFocus || player.pos);
   updateGags(dt);
   updateRun(dt);
   updateInteract();

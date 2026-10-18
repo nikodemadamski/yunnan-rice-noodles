@@ -153,6 +153,16 @@ export function sfx(name) {
       tone('square', 90, 40, 0.25, 0.5); noise(0.18, 400, 0.8, 0.7); break;
     case 'whoosh':
       noise(0.45, 900, 0.5, 0.35); tone('sine', 300, 1200, 0.4, 0.08); break;
+    case 'meow':
+      tone('triangle', 620, 940, 0.16, 0.18); tone('triangle', 940, 560, 0.3, 0.16, 0.15); break;
+    case 'purr':
+      for (let i = 0; i < 8; i++) noise(0.09, 120, 2, 0.35, i * 0.11); break;
+    case 'chirp':
+      tone('sine', 2600, 3400, 0.06, 0.08); tone('sine', 2900, 3700, 0.06, 0.07, 0.09); break;
+    case 'flutter':
+      for (let i = 0; i < 7; i++) noise(0.05, 1300 + i * 120, 1.5, 0.22, i * 0.045); break;
+    case 'bell':
+      tone('sine', 2093, 2093, 0.5, 0.2); tone('sine', 2637, 2637, 0.45, 0.12); tone('sine', 2093, 2093, 0.4, 0.15, 0.16); break;
     case 'gasp':
       tone('triangle', 500, 900, 0.25, 0.35); break;
   }
