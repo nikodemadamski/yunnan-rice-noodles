@@ -19,7 +19,7 @@ import { opening } from './opening.js';
 import { simScene } from './sim.js';
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { cookBowl } from './kitchen3d.js';
-import { shopService } from './shop3d.js';
+import { shopService } from './shop2d.js';
 import './taste.js';
 
 const $ = id => document.getElementById(id);

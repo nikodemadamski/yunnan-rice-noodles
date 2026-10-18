@@ -143,6 +143,15 @@ export function addPart(s, ticketUid, part) {
   return true;
 }
 
+/** Tip the bowl into the bin and start again (broth, oil and saucers; noodles stay cooked). */
+export function resetBowl(s, ticketUid) {
+  const t = s.tickets.find(x => x.uid === ticketUid);
+  if (!t || t.served) return false;
+  Object.assign(t, { broth: null, fill: 0, heat: 0, fat: false, mixed: false, undercooked: false, parts: [] });
+  if (t.noodles !== null) t.noodlesUsed = false;
+  return true;
+}
+
 export function undoPart(s, ticketUid) {
   const t = s.tickets.find(x => x.uid === ticketUid);
   if (!t || t.served || !t.parts.length) return false;

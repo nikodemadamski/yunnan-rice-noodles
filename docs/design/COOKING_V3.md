@@ -25,3 +25,22 @@ action was a tap. So v3 changes *what* you think about and *how it feels*.
 
 Score = wait 15% · noodles 15% · heat 15% · what they asked for 40% · craft
 (fill line, raw-before-noodles) 15%.
+
+## v4: drawn, like Good Pizza, Great Pizza (shop2d.js)
+
+The player shared Good Pizza, Great Pizza and Papa's screenshots: "that's how
+communication and cooking is meant to look". So the shop is now a fully drawn
+2D scene on the same rules:
+
+- **Look:** flat top-down kitchen, rose/cream checker floor, soft maroon ink,
+  paper grain, Patrick Hand lettering with a maroon outline, a cartoon glove.
+- **Talk:** the customer walks up to the counter, speaks in a bubble, and you
+  answer **Okay** or **What?** (they rephrase with a hint). Their reaction comes
+  back to the counter after you serve.
+- **Panels:** Order / Stove / Build, slide between them with tabs or a swipe.
+- **Hands:** drag noodle coils into baskets (segmented timer bars), hold the
+  broth pot to ladle to the gold line, tap the chicken oil, drag saucers from a
+  tray grid and drop them where you like; raw slices visibly cook on scalding
+  broth (pink → pale), but not on cold. Steam shows only without the oil seal.
+- **Caption bar:** a cream strip at the bottom that always says what's next,
+  or the selected customer's words.
