@@ -10,7 +10,8 @@
 import { tasteMoment } from './taste.js';
 import * as THREE from 'three';
 import { G, addTicker } from './core.js';
-import { W, makeSign, setNight } from './world.js';
+import { W, makeSign, setNight, building, flushPlinths, groundShadow } from './world.js';
+import { plaster, carpet, cobbles, wood } from './textures.js';
 import { makeCharacter, mat, toon, outline } from './characters.js';
 import { player, teleport, updateCamera } from './player.js';
 import { SP } from './npcs.js';
@@ -101,12 +102,22 @@ function drawScreen() {
 
 function buildOffice() {
   if (built) return built;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), mat('#d9b48a'));
+  const ct = carpet(); ct.repeat.set(18 / 2.5, 14 / 2.5);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), toon({ color: '#ffffff', map: ct }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(OX, 0.02, OZ); floor.receiveShadow = true;
   W.scene.add(floor);
-  box(18, 6, 0.3, '#f6e9d6', OX, 3, OZ - 6);          // back wall
-  box(0.3, 6, 12, '#f0e0ca', OX - 9, 3, OZ);          // left wall
-  box(0.3, 6, 12, '#f0e0ca', OX + 9, 3, OZ);          // right wall
+  // plaster walls (office grey), a scuffed baseboard, a soft shadow where wall meets floor
+  const wallMat = (w) => { const t = plaster(); t.repeat.set(w / 4, 6 / 4); return toon({ color: '#e6e2dc', map: t }); };
+  for (const [w, d, x, z] of [[18, 0.3, 0, -6], [0.3, 12, -9, 0], [0.3, 12, 9, 0]]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 6, d), wallMat(Math.max(w, d)));
+    m.position.set(OX + x, 3, OZ + z); m.receiveShadow = true; W.scene.add(m);
+  }
+  box(17.4, 0.28, 0.08, '#8d8780', OX, 0.14, OZ - 5.82);
+  box(0.08, 0.28, 11.6, '#8d8780', OX - 8.82, 0.14, OZ);
+  box(0.08, 0.28, 11.6, '#8d8780', OX + 8.82, 0.14, OZ);
+  groundShadow(OX, OZ - 5.4, 18, 1.2, 0.04);
+  groundShadow(OX - 8.6, OZ, 1.2, 12, 0.04);
+  groundShadow(OX + 8.6, OZ, 1.2, 12, 0.04);
   box(18.6, 0.3, 12.6, '#fbf5ec', OX, 6.1, OZ).castShadow = false;   // ceiling: no sky indoors
   // the front wall only exists from the inside: a plane facing into the room,
   // invisible to the wide shots looking in from outside
@@ -153,6 +164,7 @@ function buildOffice() {
   const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 10), mat('#5aa543'));
   leaves.position.set(OX - 7.5, 1.3, OZ - 4.8); W.scene.add(leaves);
   box(3.4, 0.15, 1.6, '#c8a27a', OX + 3.5, 1.35, OZ - 1.2);
+  for (const dx of [-1.55, 1.55]) box(0.12, 1.3, 1.4, '#a8825a', OX + 3.5 + dx, 0.65, OZ - 1.2);
   box(1.8, 1.1, 0.12, '#efe9df', OX + 3.5, 2.2, OZ - 1.6);
   const sign = makeSign(['GROWTH TEAM', 'Q3 · SYNERGY · AI-FIRST'], { bg: '#3b4a6b', w: 4, h: 1 });
   sign.position.set(OX + 4, 4.6, OZ - 5.8); W.scene.add(sign);
@@ -172,6 +184,7 @@ function buildOffice() {
     if (screen.stamp > 0 && screen.stamp < 1) { screen.stamp = Math.min(1, screen.stamp + dt * 6); drawScreen(); }
   });
   box(3.4, 0.15, 1.6, '#c8a27a', OX - 6.2, 1.35, OZ + 3.0);
+  for (const dx of [-1.55, 1.55]) box(0.12, 1.3, 1.4, '#a8825a', OX - 6.2 + dx, 0.65, OZ + 3.0);
   const coworker2 = makeCharacter({ skin: '#f6d2b0', shirt: '#f4a6c0', pants: '#4a4f5a', hair: '#6b4a2f', hairStyle: 'bun' });
   coworker2.root.position.set(OX - 6.2, 0.05, OZ + 4.2);
   coworker2.root.rotation.y = Math.PI;
@@ -185,8 +198,9 @@ function buildOffice() {
 
 function buildMemory() {
   if (memory) return memory;
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(9, 48), mat('#f3d6a8'));
-  floor.rotation.x = -Math.PI / 2; floor.position.set(MX, 0.02, MZ);
+  const cb = cobbles(); cb.repeat.set(70 / 5, 50 / 5);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 50), toon({ color: '#ffffff', map: cb }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(MX, 0.02, MZ + 8);
   W.scene.add(floor);
   // the table and two stools
   const top = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 0.14, 32), mat('#c98f5c'));
@@ -294,18 +308,12 @@ function buildMemory() {
   const HOUSES = [['#ffd9de', '#e8735a'], ['#fff0b8', '#5fa8d3'], ['#d6f0dd', '#c7697f'], ['#d8e8ff', '#79b86e']];
   HOUSES.forEach(([wall, roof], i) => {
     const x = MX - 11 + i * 7.3, h = 6 + (i % 2) * 1.5;
-    box(6.6, h, 2, wall, x, h / 2, MZ - 9);
-    const r = new THREE.Mesh(new THREE.ConeGeometry(4.9, 2.4, 4).rotateY(Math.PI / 4), mat(roof));
-    r.scale.set(1, 1, 0.45); r.position.set(x, h + 1.2, MZ - 9);
-    W.scene.add(r);
-    for (const wx of [-1.6, 1.6]) {
-      box(1.3, 1.4, 0.1, '#8fc6e8', x + wx, h - 2, MZ - 7.95);
-      box(1.5, 0.25, 0.3, '#c9785a', x + wx, h - 2.8, MZ - 7.85);
-    }
+    building(x, MZ - 10, 6.6, 4, h, { wall, roof, pitched: true, front: '+z' });
     box(1.6, 2.6, 0.1, '#a8754a', x, 1.3, MZ - 7.95);
   });
+  flushPlinths();
   const neighbours = [];
-  for (const [tx, tz, n] of [[-5, -1.8, 2], [5.2, -2.4, 1], [-4.2, 3.6, 1]]) {
+  for (const [tx, tz, n] of [[-6.5, -2.6, 2], [6.5, -3.2, 1], [-6, 4.6, 1]]) {
     const t2 = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.12, 24), mat('#c98f5c'));
     t2.position.set(MX + tx, 0.95, MZ + tz);
     const l2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.9, 10), mat('#8a5a3b'));
@@ -434,7 +442,7 @@ export async function opening(opts = {}) {
       await talk([[SP.zhao, '生的先下，米线最后。Raw first, little one. Noodles last.', { face: 'happy', hold: 1.6 }]]);
       await talk([[SP.zhao, '小心烫！No steam, but it’s hotter than fire. The oil keeps it in.', { face: 'smug', hold: 1.6 }]]);
       // S4 the boy, waist-up (3.6 s): the first slurp, then pure joy
-      cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
+      cut({ x: MX + 5.4, y: 2.9, z: MZ - 2.4 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);   // over his shoulder, hat in frame
       act(hero, 'eat');
       await beat(1.9);
       act(hero, null);
@@ -445,7 +453,7 @@ export async function opening(opts = {}) {
         heart: 'loved',
         lesson: 'I didn’t know a bowl of noodles could feel like being loved.',
       });
-      cut({ x: MX + 4.4, y: 3.3, z: MZ - 3.6 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);
+      cut({ x: MX + 5.4, y: 2.9, z: MZ - 2.4 }, { x: MX, y: 1.6, z: MZ + 1.45 }, 34);   // over his shoulder, hat in frame
       act(hero, 'bounce');
       emote(hero, '✨', 1.8);
       note(784, 0.5, 'sine', 0.12); note(1047, 0.7, 'sine', 0.1, 0.12);
@@ -585,6 +593,8 @@ export async function opening(opts = {}) {
     player.camFocus = null;
     setNight(false);
   }
+  // behind the flight map: Kunming waiting, not the empty office set
+  teleport(-15, -3, Math.PI); updateCamera(0, true);
   document.getElementById('fade').classList.remove('on');
   sfx('whoosh');
   await flight();

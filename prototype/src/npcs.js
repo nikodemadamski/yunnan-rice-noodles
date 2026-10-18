@@ -37,7 +37,7 @@ function spawn(id, look, pos, behavior = { type: 'idle' }, facing = 0) {
   char.root.position.set(pos.x, 0.1, pos.z);
   char.root.rotation.y = facing;
   W.scene.add(char.root);
-  const npc = { id, char, pos: new THREE.Vector3(pos.x, 0, pos.z), behavior, home: { ...pos }, facing, speed: 0, barkT: 0 };
+  const npc = { id, char, pos: new THREE.Vector3(pos.x, 0, pos.z), behavior, home: { ...pos }, facing, speed: 0, barkT: 0, hop: 0, anchor: null };
   N[id] = npc;
   if (SP[id]) SP[id].char = char;
   return npc;
@@ -95,7 +95,7 @@ export function initNPCs() {
   // a few passers-by on grandpa's street
   for (let i = 0; i < 4; i++) {
     spawn(`walker${i}`, { skin: SKINS[(i + 2) % 5], shirt: SHIRTS[(i + 3) % SHIRTS.length], pants: '#4a4f5a', hair: '#2a2a2a', hairStyle: ['short', 'long'][i % 2], scale: 0.95 },
-      { x: -30 + i * 12, z: i % 2 ? 6.5 : -6.5 }, { type: 'wander', rect: { x: 0, z: i % 2 ? 6.5 : -6.5, w: 70, d: 1.5 }, wait: 1 });
+      { x: -30 + i * 12, z: i % 2 ? 5.9 : -5.9 }, { type: 'wander', rect: { x: 0, z: i % 2 ? 5.9 : -5.9, w: 70, d: 0.4 }, wait: 1 });   // the lane in front of the planters
   }
 }
 
@@ -130,7 +130,62 @@ export function face(id, target) {
   n.facing = Math.atan2(t.x - n.pos.x, t.z - n.pos.z);
 }
 
+// People are solid at the feet. Nobody walks through anybody: the player is
+// pushed out of NPCs, NPCs in the player's path step aside (on the bike they
+// hop out of the way), then drift back to where they were standing.
+const BODY = 0.5, FOOT = 0.55, BIKE = 1.1;
+function makeWay(n, b, dt) {
+  if (b.type === 'ride' || G.flags.cutscene || G.flags.cine) { n.anchor = null; return 0; }
+  const bike = player.mode === 'bike';
+  const pv = bike ? { x: Math.sin(player.heading) * player.speed, z: Math.cos(player.heading) * player.speed } : player.vel;
+  const ps = Math.hypot(pv.x, pv.z);
+  let dx = n.pos.x - player.pos.x, dz = n.pos.z - player.pos.z, d = Math.hypot(dx, dz) || 1e-4;
+  const reach = (bike ? BIKE : FOOT) + BODY;
+  const homeable = b.type === 'idle' || b.type === 'dance';
+  let moved = 0;
+  // ahead of a moving player and close to their line: sidestep early
+  if (ps > 1 && d < (bike ? 6 : 2.6)) {
+    const ux = pv.x / ps, uz = pv.z / ps, along = dx * ux + dz * uz, side = dx * uz - dz * ux;
+    if (along > 0 && Math.abs(side) < reach + 0.2) {
+      if (homeable && !n.anchor) n.anchor = { x: n.pos.x, z: n.pos.z };
+      const s = side >= 0 ? 1 : -1, v = (bike ? 7 : 2.6) * dt;
+      n.pos.x += uz * s * v; n.pos.z += -ux * s * v;
+      if (bike && n.hop <= 0 && d < 4) {
+        n.hop = 0.45;
+        if (n.barkT <= 0) { n.barkT = 3; bark(n.char, ['Whoa!', '哎哟!', 'Careful, Duck!'][Math.floor(R() * 3)]); }
+      }
+      moved = bike ? 7 : 2.6;
+    }
+  }
+  // overlap: push both, the NPC takes most of it; a wall-pinned NPC pushes back fully
+  dx = n.pos.x - player.pos.x; dz = n.pos.z - player.pos.z; d = Math.hypot(dx, dz) || 1e-4;
+  if (d < reach) {
+    if (homeable && !n.anchor) n.anchor = { x: n.pos.x, z: n.pos.z };
+    const push = reach - d;
+    n.pos.x += dx / d * push * 0.75; n.pos.z += dz / d * push * 0.75;
+    collide(n.pos, 0.6);
+    dx = n.pos.x - player.pos.x; dz = n.pos.z - player.pos.z; d = Math.hypot(dx, dz) || 1e-4;
+    if (d < reach) { player.pos.x -= dx / d * (reach - d); player.pos.z -= dz / d * (reach - d); }
+  }
+  // drift back once the player has passed
+  if (n.anchor && d > reach + 1.5 && moved === 0) {
+    const ax = n.anchor.x - n.pos.x, az = n.anchor.z - n.pos.z, a = Math.hypot(ax, az);
+    if (a < 0.08) n.anchor = null;
+    else { const v = Math.min(a, 1.6 * dt); n.pos.x += ax / a * v; n.pos.z += az / a * v; n.facing = Math.atan2(ax, az); moved = 1.6; }
+  }
+  return moved;
+}
+
+// crowd members never stand inside each other
+function separate(list) {
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const a = list[i].pos, c = list[j].pos, dx = c.x - a.x, dz = c.z - a.z, d = Math.hypot(dx, dz);
+    if (d > 0 && d < BODY * 2) { const p = (BODY * 2 - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; c.x += dx / d * p; c.z += dz / d * p; }
+  }
+}
+
 export function updateNPCs(dt, t) {
+  separate(Object.values(N).filter(n => n.char.root.visible && n.behavior.type !== 'ride' && !n.walk && n.behavior.type !== 'dance'));
   for (const id in N) {
     const n = N[id];
     if (!n.char.root.visible) continue;
@@ -204,7 +259,9 @@ export function updateNPCs(dt, t) {
       if (dist2(n.pos, player.pos) < 7 && !G.flags.cutscene) n.facing = Math.atan2(player.pos.x - n.pos.x, player.pos.z - n.pos.z);
     }
     n.barkT -= dt;
-    n.char.root.position.set(n.pos.x, 0.1, n.pos.z);
+    if (!n.walk) speed = Math.max(speed, makeWay(n, b, dt));
+    n.char.root.position.set(n.pos.x, 0.1 + (n.hop > 0 ? Math.sin(n.hop / 0.45 * Math.PI) * 0.5 : 0), n.pos.z);
+    if (n.hop > 0) n.hop -= dt;
     const want = n.walk || b.type !== 'idle' ? n.facing : cheatFacing(n.facing, n.pos.x, n.pos.z);
     let dr = want - n.char.root.rotation.y;
     while (dr > Math.PI) dr -= Math.PI * 2;

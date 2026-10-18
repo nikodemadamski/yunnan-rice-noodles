@@ -220,3 +220,77 @@ export function paperOverlay() {
   el.style.backgroundImage = `url(${c.toDataURL()})`;
   return el;
 }
+
+// Old Kunming brick (青砖 grey-blue and warm red mixed), with moss creeping up
+// from the ground: for plinths, garden walls and chimneys.
+export function brick(moss = true) {
+  const S = 256, [c, ctx] = canvas(S);
+  ctx.fillStyle = '#8c7b70'; ctx.fillRect(0, 0, S, S);              // mortar
+  const bh = 32, bw = 64;
+  const tones = ['#b5735a', '#a8664f', '#c08367', '#8f8a8f', '#9b9599', '#b07a62'];
+  for (let row = 0; row < S / bh; row++) {
+    const off = row % 2 ? bw / 2 : 0;
+    for (let x = -bw; x < S + bw; x += bw) {
+      ctx.fillStyle = pick(tones);
+      ctx.beginPath(); ctx.roundRect(x + off + 2, row * bh + 2, bw - 4, bh - 4, 5); ctx.fill();
+      ctx.fillStyle = 'rgba(255,240,220,0.18)'; ctx.fillRect(x + off + 5, row * bh + 4, bw - 12, 3);   // lit top edge
+    }
+  }
+  speckle(ctx, S, 500, ['#5e4b40', '#e8d3c0', '#6f6066'], 1.4, 0.25);
+  if (moss) {
+    for (let i = 0; i < 70; i++) {
+      const x = R() * S, y = S - Math.pow(R(), 2) * 90;
+      ctx.fillStyle = pick(['rgba(104,150,72,0.55)', 'rgba(126,170,84,0.5)', 'rgba(82,128,62,0.5)']);
+      wrapDraw(ctx, S, x, y, 14, (px, py) => { ctx.beginPath(); ctx.ellipse(px, py, 6 + R() * 10, 4 + R() * 6, 0, 0, Math.PI * 2); ctx.fill(); });
+    }
+  }
+  return tex(c);
+}
+
+// Lime plaster: soft mottling, hairline cracks, rain streaks. Tinted by the
+// material colour, so it stays near-white.
+export function plaster() {
+  const S = 256, [c, ctx] = canvas(S);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, S, S);
+  for (let i = 0; i < 60; i++) {
+    const x = R() * S, y = R() * S, r = 10 + R() * 30;
+    ctx.fillStyle = `rgba(${R() < 0.5 ? '200,180,160' : '255,250,240'},${0.06 + R() * 0.08})`;
+    wrapDraw(ctx, S, x, y, r, (px, py) => { ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill(); });
+  }
+  speckle(ctx, S, 400, ['#c8b8a8', '#e8ddd0'], 1.2, 0.3);
+  ctx.strokeStyle = 'rgba(120,96,80,0.35)'; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+  for (let k = 0; k < 3; k++) {                                    // hairline cracks
+    let x = 30 + R() * 196, y = 30 + R() * 196;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let s = 0; s < 6; s++) { x += (R() - 0.5) * 22; y += 6 + R() * 10; ctx.lineTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(150,130,110,0.07)';                        // rain streaks
+  for (let k = 0; k < 6; k++) ctx.fillRect(R() * S, 0, 3 + R() * 6, S);
+  return tex(c);
+}
+
+// Glazed kitchen tiles (white with a soft blue/jade rim).
+export function tiles(base = '#f4f1ea', rim = '#9cc7c1') {
+  const S = 256, [c, ctx] = canvas(S);
+  ctx.fillStyle = '#d8d2c6'; ctx.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += 32) for (let x = 0; x < S; x += 32) {
+    ctx.fillStyle = base; ctx.beginPath(); ctx.roundRect(x + 1.5, y + 1.5, 29, 29, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(x + 5, y + 5, 10, 3);
+  }
+  ctx.strokeStyle = rim; ctx.lineWidth = 3;
+  for (let y = 0; y < S; y += 128) { ctx.beginPath(); ctx.moveTo(0, y + 1.5); ctx.lineTo(S, y + 1.5); ctx.stroke(); }
+  return tex(c);
+}
+
+// Office carpet tiles: grey, faint pattern, a coffee stain.
+export function carpet() {
+  const S = 256, [c, ctx] = canvas(S);
+  ctx.fillStyle = '#9a9a9e'; ctx.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += 64) for (let x = 0; x < S; x += 64) {
+    ctx.fillStyle = (x + y) % 128 ? '#94949a' : '#a0a0a4'; ctx.fillRect(x + 1, y + 1, 62, 62);
+  }
+  speckle(ctx, S, 1400, ['#7c7c82', '#b2b2b6'], 1, 0.4);
+  ctx.fillStyle = 'rgba(110,90,70,0.18)'; ctx.beginPath(); ctx.ellipse(170, 90, 14, 10, 0.4, 0, Math.PI * 2); ctx.fill();
+  return tex(c);
+}

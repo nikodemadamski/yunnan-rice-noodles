@@ -1,10 +1,11 @@
 // The Kunming neighbourhood: roads, blocks, landmarks, NPC registry,
 // collisions, day/night and the delivery marker.
 
-import { cobbles, asphalt, grass, flagstones, water as waterTex, contact } from './textures.js';
+import { cobbles, asphalt, grass, flagstones, water as waterTex, contact, brick, plaster } from './textures.js';
 import * as THREE from 'three';
 import { mat, toon, outline } from './characters.js';
 import { rng } from './core.js';
+import { mergeGeometries } from '../vendor/addons/utils/BufferGeometryUtils.js';
 
 export const W = {
   scene: null, camera: null, renderer: null,
@@ -100,6 +101,7 @@ export function initWorld(canvas) {
   buildGround();
   buildBlocks();
   buildLandmarks();
+  flushPlinths();
   buildTrees();
   buildLanterns();
   buildBumps();
@@ -165,8 +167,9 @@ let windowTex = null, windowGlowTex = null;
 function windowTextures() {
   if (windowTex) return;
   // a storybook window: arched pane, white frame, little shutters, a flower box
+  const plasterImg = plaster().image;
   windowTex = canvasTex(128, 128, (g) => {
-    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 128, 128);
+    g.drawImage(plasterImg, 0, 0, 128, 128);                        // lime plaster, cracks, streaks
     const pane = () => { g.beginPath(); g.moveTo(40, 92); g.lineTo(40, 46); g.arc(64, 46, 24, Math.PI, 0); g.lineTo(88, 92); g.closePath(); };
     g.fillStyle = '#8fc6e8'; pane(); g.fill();
     g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(46, 84); g.lineTo(46, 50); g.lineTo(56, 40); g.lineTo(56, 84); g.fill();
@@ -195,6 +198,15 @@ const ROOFS = ['#e8735a', '#5fa8d3', '#79b86e', '#c7697f', '#8f74c4'];
 
 // a soft dark pool where things meet the ground, so nothing floats
 let contactMat = null;
+const PLINTH = [], LEDGE = [], KERB = [];
+// all plinths in two draw calls
+export function flushPlinths() {
+  if (!PLINTH.length) return;
+  const b = new THREE.Mesh(mergeGeometries(PLINTH), toon({ color: '#ffffff', map: brick() }));
+  const l = new THREE.Mesh(mergeGeometries(LEDGE), mat('#d9cbb6'));
+  W.scene.add(b, l);
+  PLINTH.length = LEDGE.length = 0;
+}
 export function groundShadow(x, z, w, d, y = 0.17) {
   contactMat ||= new THREE.MeshBasicMaterial({ map: contact(), transparent: true, depthWrite: false });
   const s = new THREE.Mesh(new THREE.PlaneGeometry(w, d), contactMat);
@@ -204,7 +216,7 @@ export function groundShadow(x, z, w, d, y = 0.17) {
   return s;
 }
 
-function building(x, z, w, d, h, opts = {}) {
+export function building(x, z, w, d, h, opts = {}) {
   windowTextures();
   const wall = opts.wall || WALLS[Math.floor(R() * WALLS.length)];
   const tex = windowTex.clone();
@@ -217,6 +229,18 @@ function building(x, z, w, d, h, opts = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, top, top, side, side]);
   m.position.set(x, h / 2, z);
   W.scene.add(m);
+  // an old brick plinth with moss at its foot, capped by a stone ledge;
+  // skipped on the shopfront face (opts.front: '+z' | '-z' | '+x' | '-x')
+  for (const [face, sx, sz, len] of [['+z', 0, 1, w], ['-z', 0, -1, w], ['+x', 1, 0, d], ['-x', -1, 0, d]]) {
+    if (opts.front === face) continue;
+    const along = len + 0.16, px = x + sx * (w / 2 + 0.04), pz = z + sz * (d / 2 + 0.04);
+    const strip = sx ? new THREE.BoxGeometry(0.08, 1, along) : new THREE.BoxGeometry(along, 1, 0.08);
+    const uv = strip.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * along / 2, uv.getY(i) * 0.5);   // brick-sized bricks
+    PLINTH.push(strip.translate(px, 0.5, pz));
+    const ledge = sx ? new THREE.BoxGeometry(0.2, 0.12, along + 0.1) : new THREE.BoxGeometry(along + 0.1, 0.12, 0.2);
+    LEDGE.push(ledge.translate(x + sx * (w / 2 + 0.06), 1.04, z + sz * (d / 2 + 0.06)));
+  }
   groundShadow(x, z, w + 2.2, d + 2.2);
   addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2);
   const rec = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h, mats: [side, top], roof: null, faded: false };
@@ -269,7 +293,14 @@ function buildGround() {
     const s = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.16, z1 - z0), pave);
     s.position.set((x0 + x1) / 2, 0.08, (z0 + z1) / 2);
     W.scene.add(s);
+    // a granite kerb with a lit top edge around every block
+    const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    for (const [kw, kd, kx, kz] of [[w, 0.36, cx, z0 + 0.18], [w, 0.36, cx, z1 - 0.18], [0.36, d, x0 + 0.18, cz], [0.36, d, x1 - 0.18, cz]]) {
+      KERB.push(new THREE.BoxGeometry(kw, 0.2, kd).translate(kx, 0.1, kz));
+    }
   }));
+  W.scene.add(new THREE.Mesh(mergeGeometries(KERB), toon({ color: '#d4cbc0' })));
+  KERB.length = 0;
 }
 
 function bounds() {
@@ -350,7 +381,7 @@ export function stall(x, z, facing, color, sign, tilt = 0) {
 
 function buildLandmarks() {
   // Old Zhao's shop: shuttered
-  building(-15, -13.5, 10, 9, 7, { wall: '#efe4cf', roof: '#7b4b3a', pitched: true });
+  building(-15, -13.5, 10, 9, 7, { wall: '#efe4cf', roof: '#7b4b3a', pitched: true, front: '+z' });
   const shutter = new THREE.Mesh(new THREE.PlaneGeometry(7, 4.2), toon({
     map: canvasTex(256, 160, (g) => {
       g.fillStyle = '#9aa0a6'; g.fillRect(0, 0, 256, 160);
@@ -369,7 +400,7 @@ function buildLandmarks() {
   box(0.8, 0.5, 0.8, '#3b6fb6', -11.5, 0.25, -6.5);
 
   // Wang's Supreme Mega chain: loud, neon, gold
-  building(-15, 14.5, 14, 9, 10, { wall: '#ffe7f3', roof: '#ffcc00', pitched: false });
+  building(-15, 14.5, 14, 9, 10, { wall: '#ffe7f3', roof: '#ffcc00', pitched: false, front: '-z' });
   const neon = makeSign(['超级至尊过桥米线', 'SUPREME MEGA CROSS-BRIDGE NOODLE · 48 TOPPINGS!'], { bg: '#ff2d8a', fg: '#fff35c', w: 12, h: 2.4, glow: true });
   neon.position.set(-15, 8, 9.95);
   neon.rotation.y = Math.PI;
@@ -392,19 +423,19 @@ function buildLandmarks() {
   stall(P.simStall.x, P.simStall.z, Math.PI, '#2f6fb6', ['段阿姨手机卡', "AUNTIE DUAN'S SIM CARDS"]);
 
   // Auntie Fu's small-pot noodles
-  building(15, -14, 10, 8, 7, { wall: '#f6e3c6', roof: '#7b4b3a', pitched: true });
+  building(15, -14, 10, 8, 7, { wall: '#f6e3c6', roof: '#7b4b3a', pitched: true, front: '+z' });
   const fu = makeSign(['傅阿姨小锅米线', "AUNTIE FU'S SMALL-POT NOODLES"], { bg: '#b83b2e', w: 8, h: 1.5 });
   fu.position.set(15, 4.5, -9.95); W.scene.add(fu);
   box(4, 3, 0.1, '#6b4a2f', 15, 1.5, -9.97);
 
   // Steam-pot chicken house (faces west onto x=50 road)
-  building(64, -20, 10, 12, 8, { wall: '#efe7d6', roof: '#4f5d4c', pitched: true });
+  building(64, -20, 10, 12, 8, { wall: '#efe7d6', roof: '#4f5d4c', pitched: true, front: '-x' });
   const ji = makeSign(['老纪汽锅鸡', "UNCLE JI'S STEAM-POT CHICKEN"], { bg: '#7a4e2d', w: 9, h: 1.6 });
   ji.position.set(58.95, 5, -20); ji.rotation.y = -Math.PI / 2; W.scene.add(ji);
   box(0.1, 3, 4, '#5a3b22', 58.97, 1.5, -20);
 
   // Flower cake bakery (faces east onto x=-50 road)
-  building(-64, -20, 10, 12, 7, { wall: '#fde3ec', roof: '#c25b7a', pitched: true });
+  building(-64, -20, 10, 12, 7, { wall: '#fde3ec', roof: '#c25b7a', pitched: true, front: '+x' });
   const rose = makeSign(['玫瑰鲜花饼', "ROSE'S FLOWER CAKES"], { bg: '#d9577f', w: 8, h: 1.6 });
   rose.position.set(-58.95, 4.6, -20); rose.rotation.y = Math.PI / 2; W.scene.add(rose);
   box(0.1, 3, 4, '#a14462', -58.97, 1.5, -20);
@@ -545,6 +576,7 @@ function buildLanterns() {
   for (let x = -40; x <= 40; x += 6) {
     for (const z of [-5.6, 5.6]) {
       if (Math.abs(x - P.chilliStall.x) < 3 || Math.abs(x - P.spudStall.x) < 3) continue;
+      if (x === -16 && z < 0) continue;              // keep the FOR LEASE shutter readable
       const m = toon({ color: '#d8322a', emissive: '#ff5a2a', emissiveIntensity: 0 });
       const l = new THREE.Mesh(geo, m);
       l.scale.y = 1.2;
@@ -556,10 +588,11 @@ function buildLanterns() {
       }
       W.scene.add(l);
       W.lanterns.push(m);
-      if ((x + 40) % 12 === 0) {
+      if ((x + 40) % 12 === 0 && !(x === -16 && z < 0)) {   // no post in front of Old Zhao's shutter
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.6, 6), mat('#4a3a2c'));
         pole.position.set(x, 2.3, z + Math.sign(z) * 0.2);
         W.scene.add(pole);
+        addCollider(x - 0.2, x + 0.2, pole.position.z - 0.2, pole.position.z + 0.2);
       }
     }
   }
@@ -750,11 +783,26 @@ function segHitsBox(p, q, b) {
 }
 
 const CUT = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.5)];
+// screen points (NDC) whose view of the street must stay clear: the lower
+// two-thirds of the frame, where the player and the pavement are
+const OCC_NDC = [[0, -0.1], [-0.85, -0.1], [0.85, -0.1], [-0.5, -0.55], [0.5, -0.55], [0, -0.55], [-0.85, -0.85], [0.85, -0.85], [0, -0.9]];
+const _v = new THREE.Vector3();
 export function updateOcclusion(cam, target) {
-  const p = { x: target.x, y: 1.2, z: target.z };
+  // rays from the player, and from street points seen across the screen, to
+  // the camera: any building they pass through is cut away
   const q = { x: cam.x, y: cam.y, z: cam.z };
+  const ps = [{ x: target.x, y: 1.2, z: target.z }];
+  for (const [nx, ny] of OCC_NDC) {
+    _v.set(nx, ny, 0.5).unproject(W.camera).sub(W.camera.position);
+    if (_v.y >= -1e-3) continue;
+    const k = (1.2 - cam.y) / _v.y;
+    if (k <= 0 || k * _v.length() > 70) continue;
+    const px = cam.x + _v.x * k, pz = cam.z + _v.z * k;
+    if (W.buildings.some(b => px > b.x0 && px < b.x1 && pz > b.z0 && pz < b.z1)) continue;   // that's a building's own wall
+    ps.push({ x: px, y: 1.2, z: pz });
+  }
   for (const b of W.buildings) {
-    const hide = segHitsBox(p, q, b);
+    const hide = ps.some(p => segHitsBox(p, q, b));
     if (hide === b.faded) continue;
     b.faded = hide;
     // a cutaway, like a dollhouse: the building in front is cut down to a low
