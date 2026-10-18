@@ -18,6 +18,7 @@ import { simScene } from './sim.js';
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { cookBowl } from './kitchen3d.js';
 import { shopService } from './shop3d.js';
+import './taste.js';
 
 const $ = id => document.getElementById(id);
 
@@ -180,13 +181,20 @@ async function run() {
     return;
   }
   // dev shortcuts for single scenes: #opening, #sim, #live, #chilli
-  if (['opening', 'opening2', 'sim', 'live', 'chilli', 'kitchen'].includes(mode)) {
+  if (['opening', 'opening2', 'sim', 'live', 'chilli', 'kitchen', 'taste'].includes(mode)) {
     $('fade').classList.remove('on');
     if (mode === 'opening') await opening();
     if (mode === 'opening2') await opening({ dublinOnly: true });
     if (mode === 'sim') await simScene();
     if (mode === 'live') await promptPalLive();
     if (mode === 'chilli') await chilliBowl();
+    if (mode === 'taste') {                       // the three kinds of taste moment
+      setMode('foot'); teleport(-11.5, -5.6, 0); updateCamera(0, true);
+      const T = window.__taste;
+      await T({ title: 'Little Chilli’s Bowl', desc: 'Clear broth, a shine of oil, chives.', flavours: [{ k: 'savoury', word: 'clear broth' }, { k: 'rich', word: 'one drop of oil' }, { k: 'fresh', word: 'chives' }], lesson: 'Less. Every flavour needs room to be heard.' });
+      await T({ title: 'Supreme Mega Bowl™', mode: 'clash', flavours: ['rich', 'savoury', 'sweet', 'spicy', 'sour', 'smoky', 'floral'].map(k => ({ k, word: k.toUpperCase() })), lesson: 'Everything shouting at once. Nobody singing.' });
+      await T({ title: 'Almost Grandpa’s Bowl', mode: 'missing', flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of fat' }, { k: 'fresh', word: 'chives' }], lesson: 'Almost. One note is still missing…' });
+    }
     if (mode === 'kitchen') {
       for (const f of ['broth:hen', 'oil:fat', 'top:chives', 'oil:chilli', 'top:rose']) G.findings.add(f);
       G.flags.chilliBowl = await cookBowl();

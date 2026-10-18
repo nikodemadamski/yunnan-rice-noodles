@@ -6,9 +6,10 @@ import { G, until, esc } from './core.js';
 import { P, setMarker, setNight } from './world.js';
 import { player, setMode, teleport, updateCamera } from './player.js';
 import { N, SP, show, walkTo, face } from './npcs.js';
-import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, foodReveal, danmaku, cutscene, beat, shot } from './ui.js';
+import { talk, say, choose, emote, bark, toast, objective, card, fadeIn, fadeOut, danmaku, cutscene, beat, shot } from './ui.js';
 import { promptPalLive, chilliBowl } from './day1cook3d.js';
 import { shopService } from './shop3d.js';
+import { tasteMoment } from './taste.js';
 import { duckSignup, orderBoard, infoCard } from './phone.js';
 import { ORDERS, STORY_ORDERS, runOrder } from './deliveries.js';
 import { sfx, setMusic } from './audio.js';
@@ -85,6 +86,12 @@ export async function day1() {
 
   // --- PromptPal Live: you play this one
   await promptPalLive();
+  await tasteMoment({
+    title: 'Supreme Mega Bowl™', desc: 'Optimised by PromptPal for 2.3 million viewers. 30% off today.', mode: 'clash',
+    flavours: [{ k: 'rich', word: 'CHEESE' }, { k: 'savoury', word: 'MSG ×3' }, { k: 'sweet', word: 'syrup' }, { k: 'spicy', word: 'ghost pepper' },
+      { k: 'sour', word: 'trending vinegar' }, { k: 'smoky', word: 'liquid smoke' }, { k: 'floral', word: 'gold leaf' }],
+    lesson: 'Everything shouting at once. Nobody singing. Maximum flavour, zero spark.',
+  });
 
   await cutscene(async () => {
     shot({ x: -15, z: -4 });
@@ -135,6 +142,11 @@ export async function day1() {
   // --- Little Chilli's bowl: the same verbs, slowly
   const bowl = await chilliBowl();
   setMusic('night');
+  await tasteMoment({
+    title: 'Little Chilli’s Bowl', desc: 'Grandpa Zhao’s way. Clear broth, a shine of oil, chives.',
+    flavours: [{ k: 'savoury', word: 'clear broth' }, { k: 'rich', word: 'one drop of oil' }, { k: 'fresh', word: 'chives' }],
+    lesson: 'Less. Every flavour needs room to be heard.',
+  });
 
   await cutscene(async () => {
     await talk([
@@ -255,7 +267,11 @@ export async function evening() {
   const r = { greens: svc.avg >= 85 ? 3 : svc.avg >= 65 ? 2 : 1, perfect: svc.avg >= 85, extras: [], avg: svc.avg, tips: svc.tips };
   await cutscene(async () => {
     if (r.perfect) {
-      await foodReveal('🍜', 'Almost Grandpa’s Bowl', 'Old hen broth. A shining layer of fat. Chives. Nothing else.');
+      await tasteMoment({
+        title: 'Almost Grandpa’s Bowl', desc: 'Old hen broth. A shining layer of fat. Chives. Nothing else.', mode: 'missing',
+        flavours: [{ k: 'savoury', word: 'old hen broth' }, { k: 'rich', word: 'a shine of fat' }, { k: 'fresh', word: 'chives' }],
+        lesson: 'Almost. One note is still missing… and it isn’t in the pot.',
+      });
       await talk([
         [SP.grandma, '…This. This is almost his bowl.', { face: 'cry', emote: '💧' }],
         [SP.grandma, 'Almost. Something is still missing. Not in the pot… I wonder who it’s for?', { face: 'sad' }],
@@ -277,6 +293,7 @@ async function endCard(r) {
     <p>Thanks for riding, ${esc(G.name)}!</p>
     <p class="sub">💰 ¥${G.money} · ⭐ ${avg} average · 📒 ${G.findings.size} findings · 🍽️ Food Dex ${G.foodDex.size}
       · 💃 Auntie encounters ${G.auntieGags} · First night: ${r.avg ?? '—'} pts avg ${r.perfect ? '(perfect!)' : ''}</p>
+    ${G.soul?.length ? `<h3>✨ Soul notes</h3>${G.soul.map(s => `<p class="sub"><b>${esc(s.title)}</b>: <i>${esc(s.lesson)}</i></p>`).join('')}` : ''}
     <h3>What’s next in the full game</h3>
     <p class="sub">Days 3–22: the rest of Kunming, Little Chilli & Uncle Spud’s feud, more Plankton schemes, the plain-broth customer,
       Qingming, the trip to Mengzi, and the Supreme Mega Championship.</p>

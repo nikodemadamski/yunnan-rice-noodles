@@ -709,3 +709,18 @@ body.grade-sepia #scene { filter: sepia(0.75) saturate(0.85) brightness(1.06) co
 @media (max-width: 600px) { .svc-build { bottom: 150px; } .svc-help { font-size: 13px; } .svc-tabs button { padding: 8px 12px; font-size: 14px; } .svc-ticket { width: 116px; } .svc-rail { right: 84px; } }
 .svc-help { position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%); max-width: min(560px, 90vw); text-align: center; background: rgba(91,70,54,.82); color: #fffaf0; font-weight: 800; font-size: 15px; padding: 6px 14px; border-radius: 99px; pointer-events: none !important; }
 .k3.service .svc-title { bottom: auto; left: auto; top: 54px; right: 12px; font-size: 13px; opacity: .85; }
+
+/* ---------- taste moments (taste.js) ---------- */
+.taste { position: fixed; inset: 0; z-index: 900; opacity: 0; transition: opacity .7s ease; }
+.taste.on { opacity: 1; }
+.taste canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.taste-title { position: absolute; top: 7%; left: 0; right: 0; text-align: center; color: #fff6dc; pointer-events: none; }
+.taste-title b { display: block; font-size: clamp(22px, 4vw, 34px); letter-spacing: .5px; text-shadow: 0 0 18px rgba(255, 210, 120, .55); }
+.taste-title span { display: block; max-width: 520px; margin: 6px auto 0; padding: 0 16px; font-size: 14px; opacity: .7; }
+.taste-word { position: absolute; transform: translate(-50%, -50%); font-weight: 800; font-size: 20px; letter-spacing: 1px; text-shadow: 0 0 10px currentColor; opacity: 0; animation: tasteWord 3.2s ease forwards; pointer-events: none; white-space: nowrap; }
+@keyframes tasteWord { 15% { opacity: 1; } 70% { opacity: .9; } 100% { opacity: 0; transform: translate(-50%, -80%); } }
+.taste-note { position: absolute; left: 50%; bottom: 7%; transform: translate(-50%, 16px); width: min(440px, calc(100vw - 32px)); background: #fffaf0; color: #5b4636; border-radius: 6px 18px 6px 18px; padding: 12px 18px 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); opacity: 0; transition: all .6s ease; text-align: center; }
+.taste-note.on { opacity: 1; transform: translate(-50%, 0); }
+.taste-note small { font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #c98a0e; font-size: 11px; }
+.taste-note p { margin: 4px 0 6px; font-size: 18px; font-weight: 700; line-height: 1.35; font-style: italic; }
+.taste-note em { font-size: 11px; opacity: .5; }

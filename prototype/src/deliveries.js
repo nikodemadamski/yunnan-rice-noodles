@@ -5,11 +5,12 @@ import { G, until, clamp, esc } from './core.js';
 import { P, W, setMarker } from './world.js';
 import { player } from './player.js';
 import { N, SP, crowd, face } from './npcs.js';
-import { say, talk, choose, emote, bark, toast, objective, foodReveal, fadeOut, fadeIn, cutscene, beat, showResult } from './ui.js';
+import { say, talk, choose, emote, bark, toast, objective, fadeOut, fadeIn, cutscene, beat, showResult } from './ui.js';
 import { addInteract } from './interact.js';
 import { packBag } from './bag.js';
 import { peekScheme } from './peek.js';
 import { montage } from './phone.js';
+import { tasteMoment } from './taste.js';
 import { sfx, setMusic, blip } from './audio.js';
 
 // a few voice blips so bubble answers still "talk"
@@ -93,7 +94,11 @@ async function pickupJi(run) {
     [SP.you, 'Is it… a pot? That steams?', { face: 'blank' }],
     [SP.ji, "Come, look. Old men like me love an audience.", { face: 'happy', emote: '✨' }],
   ]);
-  await foodReveal('🍲', 'Steam-Pot Chicken!', 'A whole old hen in a clay pot with a chimney. No water at all. The broth is only steam, for hours and hours.');
+  await tasteMoment({
+    title: 'Steam-Pot Chicken', desc: 'A whole old hen in a clay pot with a chimney. No water. The broth is only steam, for hours.',
+    flavours: [{ k: 'savoury', word: 'old hen · six hours of steam' }],
+    lesson: 'One thing, given time, can fill the whole dark.',
+  });
   await talk([
     [SP.ji, "The secret? Time. And an *old* hen. Young hens have no opinions.", { face: 'smug' }],
     [SP.you, '(Old hen… hours… I should tell Grandma.)', { face: 'normal', emote: '💡' }],
@@ -109,7 +114,11 @@ async function pickupRose(run) {
     [SP.you, 'Why a watermelon?', { face: 'blank' }],
     [SP.rose, 'Why NOT a watermelon? Try a cake. Rose petals from Anning, sweetie. Everything’s better with roses!', { face: 'happy' }],
   ]);
-  await foodReveal('🌸', 'Flower Cake!', 'Flaky pastry, rose-petal jam inside. Kunming in one bite.');
+  await tasteMoment({
+    title: 'Flower Cake', desc: 'Flaky pastry, rose-petal jam inside. Kunming in one bite.',
+    flavours: [{ k: 'floral', word: 'Anning roses' }, { k: 'rich', word: 'flaky pastry' }],
+    lesson: 'Two things that love each other make a third thing neither could be alone.',
+  });
   run.found.push(addFinding('top:rose', '🌸', 'Rose petals', "Rose: everything's better with roses"));
   run.found.push(addFinding('broth:flower', '🌹', 'Rose petal broth', "Rose: 'You could put roses in SOUP!' (could you?)"));
   addDex('Flower cake 鲜花饼');
@@ -126,6 +135,11 @@ async function pickupFu(run) {
       await talk([
         [SP.fu, 'A rider who waits without whining? Here. Taste. Don’t tell anyone I’m nice.', { face: 'happy' }],
       ]);
+      await tasteMoment({
+        title: 'Small-Pot Rice Noodles', desc: 'Cooked one pot at a time, for one person at a time.',
+        flavours: [{ k: 'savoury', word: 'pork bone broth' }, { k: 'spicy', word: 'a little chilli' }, { k: 'fresh', word: 'garlic chives' }],
+        lesson: 'She only let me taste because I waited. Kindness is an ingredient too.',
+      });
       addDex('Small-pot rice noodles 小锅米线');
       G.flags.fuPolite = true;
     }
@@ -134,7 +148,11 @@ async function pickupFu(run) {
   const r = await peekScheme();
   await cutscene(async () => {
     if (r === 'success') {
-      await foodReveal('🫙', 'Secret Chilli Oil!', 'Dried chillies, Sichuan pepper and a spoon of sugar, fried slowly in rapeseed oil. She pours a shiny red layer on every pot.');
+      await tasteMoment({
+        title: 'Auntie Fu’s Chilli Oil', desc: 'Dried chillies, Sichuan pepper and a spoon of sugar, fried slowly in rapeseed oil.',
+        flavours: [{ k: 'spicy', word: 'dried chillies' }, { k: 'sweet', word: 'one spoon of sugar' }, { k: 'rich', word: 'slow-fried oil' }],
+        lesson: 'Heat needs something gentle underneath to hold it up.',
+      });
       run.found.push(addFinding('oil:chilli', '🌶️', 'Fried chilli oil', "Auntie Fu's secret jar (you sneaky duck)"));
       await say(SP.you, '(Like Plankton, but it WORKED.)', { face: 'happy', emote: '😏' });
     } else {
