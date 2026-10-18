@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": { "command": "npx", "args": ["@playwright/mcp@latest", "--headless", "--executable-path", "/opt/pw-browsers/chromium"] },
+    "pixellab": { "type": "http", "url": "https://api.pixellab.ai/mcp",
+      "headers": { "Authorization": "Bearer ${PIXELLAB_KEY}" } },
+    "elevenlabs": { "type": "http", "url": "https://api.elevenlabs.io/v1/mcp" }
+  }
+}

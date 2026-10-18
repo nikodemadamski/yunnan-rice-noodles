@@ -1,0 +1,10 @@
+{
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": { "source": { "source": "github", "repo": "anthropics/claude-plugins-official" } },
+    "awesome-gamedev-agent-skills": { "source": { "source": "github", "repo": "gamedev-skills/awesome-gamedev-agent-skills" } }
+  },
+  "enableAllProjectMcpServers": true
+}
