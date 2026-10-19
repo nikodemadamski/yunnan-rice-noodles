@@ -40,6 +40,42 @@ export const P = {
   plaza: { x: 25, z: 20 },
 };
 
+/**
+ * Split a mesh's triangles until no edge is longer than `maxEdge`. The
+ * rolling-log bend (below) moves each *vertex*, so a big flat surface made of
+ * a few huge triangles would tilt and sag between its corners, opening holes
+ * onto the sky that slide as the camera moves. Small triangles bend smoothly.
+ */
+export function densify(mesh, maxEdge = 6) {
+  const src = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+  const names = Object.keys(src.attributes);
+  const A = names.map(n => src.attributes[n]);
+  const out = names.map(() => []);
+  const P = src.attributes.position;
+  const vert = (attr, i) => { const v = []; for (let k = 0; k < attr.itemSize; k++) v.push(attr.array[i * attr.itemSize + k]); return v; };
+  const tris = [];
+  for (let i = 0; i < P.count; i += 3) tris.push([0, 1, 2].map(j => A.map(a => vert(a, i + j))));
+  const pos = names.indexOf('position');
+  const len2 = (a, b) => { const p = a[pos], q = b[pos]; return (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2; };
+  const mid = (a, b) => a.map((v, k) => v.map((x, j) => (x + b[k][j]) / 2));
+  const m2 = maxEdge * maxEdge;
+  let guard = 0;
+  while (tris.length && guard++ < 2e6) {
+    const t = tris.pop();
+    const e = [len2(t[0], t[1]), len2(t[1], t[2]), len2(t[2], t[0])];
+    const k = e.indexOf(Math.max(...e));
+    if (e[k] <= m2) { t.forEach(v => v.forEach((vals, a) => out[a].push(...vals))); continue; }
+    const a = t[k], b = t[(k + 1) % 3], c = t[(k + 2) % 3], m = mid(a, b);
+    tris.push([a, m, c], [m, b, c]);                 // keeps the winding
+  }
+  const g = new THREE.BufferGeometry();
+  names.forEach((n, i) => g.setAttribute(n, new THREE.Float32BufferAttribute(out[i], A[i].itemSize)));
+  if (src.groups.length > 1) { /* multi-material boxes: keep one group (we only densify single-material surfaces) */ }
+  mesh.geometry.dispose?.();
+  mesh.geometry = g;
+  return mesh;
+}
+
 // Animal Crossing's "rolling log": everything bends gently away from the camera,
 // so you see more ground and the horizon curves. Done in view space for every
 // material at once; shadow depth passes stay flat so shadows still line up.
@@ -280,6 +316,7 @@ function buildGround() {
   // at x 400, Grandpa's memory street at x 600), so no shot ever sees the void
   const grassT = grass(); grassT.repeat.set(1500 / 9, 700 / 9);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1500, 700), toon({ color: '#ffffff', map: grassT, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }));   // always loses depth ties to paving and water laid on top
+  densify(ground, 8);
   ground.rotation.x = -Math.PI / 2; ground.position.set(250, 0, 264);   // starts at the shore (z -86): no grass under the sea to flicker through
   W.scene.add(ground);
 
@@ -289,19 +326,21 @@ function buildGround() {
   const road = { x: roadMat(180, 10), z: roadMat(10, 180) };
   const line = mat('#fffaf0');
   for (const z of [-40, 0, 40]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(180, 0.1, 10), road.x);
+    const r = densify(new THREE.Mesh(new THREE.BoxGeometry(180, 0.1, 10), road.x), 5);
     r.position.set(0, 0.03, z); W.scene.add(r);
     for (let x = -86; x < 86; x += 6) box(2.5, 0.05, 0.3, line, x, 0.09, z);
   }
   for (const x of [-50, 0, 50]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 180), road.z);
-    r.position.set(x, 0.035, 0); W.scene.add(r);
-    for (let z = -86; z < 86; z += 6) box(0.3, 0.05, 2.5, line, x, 0.095, z);
+    // the roads that meet the lake stop at the shore instead of running into the water
+    const z0 = x === -50 ? -90 : -48.4, len = 90 - z0;
+    const r = densify(new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, len), road.z), 5);
+    r.position.set(x, 0.035, (z0 + 90) / 2); W.scene.add(r);
+    for (let z = z0 + 4; z < 86; z += 6) box(0.3, 0.05, 2.5, line, x, 0.095, z);
   }
   // Grandpa's street is an old pedestrian lane of bluestone flags (青石板),
   // like Kunming's old quarters, not asphalt
   const flags = flagstones(); flags.repeat.set(40 / 6, 10 / 6);
-  const lane = new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 10), toon({ color: '#ffffff', map: flags }));
+  const lane = densify(new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 10), toon({ color: '#ffffff', map: flags })), 5);
   lane.position.set(-25, 0.095, 0); W.scene.add(lane);
   // pavement slabs on every block
   const cob = cobbles();
@@ -309,7 +348,7 @@ function buildGround() {
     if (i >= 1 && j === 0) z0 = -48.4;          // lake blocks keep only a promenade strip
     const t = cob.clone(); t.repeat.set((x1 - x0) / 5, (z1 - z0) / 5);
     const pave = toon({ color: '#ffffff', map: t });
-    const s = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.16, z1 - z0), pave);
+    const s = densify(new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.16, z1 - z0), pave), 5);
     s.position.set((x0 + x1) / 2, 0.08, (z0 + z1) / 2);
     W.scene.add(s);
     // a granite kerb with a lit top edge around every block
@@ -318,7 +357,7 @@ function buildGround() {
       KERB.push(new THREE.BoxGeometry(kw, 0.2, kd).translate(kx, 0.1, kz));
     }
   }));
-  W.scene.add(new THREE.Mesh(mergeGeometries(KERB), toon({ color: '#d4cbc0' })));
+  W.scene.add(densify(new THREE.Mesh(mergeGeometries(KERB), toon({ color: '#d4cbc0' })), 5));
   KERB.length = 0;
 }
 
@@ -673,7 +712,7 @@ function buildHorizon() {
 
 function buildLake() {
   const wt = waterTex(); wt.repeat.set(130 / 14, 37 / 14);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(130, 37), new THREE.MeshBasicMaterial({ map: wt }));
+  const water = densify(new THREE.Mesh(new THREE.PlaneGeometry(130, 37), new THREE.MeshBasicMaterial({ map: wt })), 5);
   water.rotation.x = -Math.PI / 2;
   water.position.set(20, 0.12, -66.5);
   W.scene.add(water);

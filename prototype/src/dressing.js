@@ -5,7 +5,7 @@
 // waterfront, open water to the horizon with a sailboat and a lighthouse.
 
 import * as THREE from 'three';
-import { W, P, addCollider } from './world.js';
+import { W, P, addCollider, densify } from './world.js';
 import { mat, toon, outline } from './characters.js';
 import { rng } from './core.js';
 import { wood, water as waterTex } from './textures.js';
@@ -306,7 +306,7 @@ export function initDressing() {
   // the waterfront: rope fence, open water to the horizon, a sailboat, a lighthouse
   ropeFence(-44, 84, -48.9);
   const wt = waterTex(); wt.repeat.set(60, 30);
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(900, 420), new THREE.MeshBasicMaterial({ map: wt }));
+  const sea = densify(new THREE.Mesh(new THREE.PlaneGeometry(900, 420), new THREE.MeshBasicMaterial({ map: wt })), 10);
   sea.rotation.x = -Math.PI / 2; sea.position.set(20, 0.08, -295);
   W.scene.add(sea); W.sea = sea;
   sailboat(-10, -118, 1.6); sailboat(64, -170, 1.3);

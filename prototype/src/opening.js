@@ -10,7 +10,7 @@
 import { tasteMoment } from './taste.js';
 import * as THREE from 'three';
 import { G, addTicker } from './core.js';
-import { W, makeSign, setNight, building, flushPlinths, groundShadow } from './world.js';
+import { W, makeSign, setNight, building, flushPlinths, groundShadow, densify } from './world.js';
 import { plaster, carpet, cobbles, wood } from './textures.js';
 import { makeCharacter, mat, toon, outline } from './characters.js';
 import { player, teleport, updateCamera } from './player.js';
@@ -199,7 +199,7 @@ function buildOffice() {
 function buildMemory() {
   if (memory) return memory;
   const cb = cobbles(); cb.repeat.set(70 / 5, 50 / 5);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 50), toon({ color: '#ffffff', map: cb }));
+  const floor = densify(new THREE.Mesh(new THREE.PlaneGeometry(70, 50), toon({ color: '#ffffff', map: cb })), 5);
   floor.rotation.x = -Math.PI / 2; floor.position.set(MX, 0.02, MZ + 8);
   W.scene.add(floor);
   // the table and two stools
