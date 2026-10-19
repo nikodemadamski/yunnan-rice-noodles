@@ -18,6 +18,7 @@ import {
   createShop, takeOrder, startNoodles, liftNoodles, pour, addFat, addPart, resetBowl, serve, tick, dayOver, drainEvents, noodleRing,
 } from './shopcore.js';
 import { learn } from './lore.js';
+import { progress, owns, buy, useBowl, bowlRim, earn, pagesFound, ITEMS, PAGES, heartsFor } from './progress.js';
 import { ctx, use, C, FONT, LOOKS, P2, rr, inked, circle, ellipse, text, label, wrap, rng, checker, grain, patterns, hand, person, piece } from './draw2d.js';
 
 // one layout for a landscape tablet, one for a phone held upright
@@ -373,6 +374,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       ellipse(0, 112, 40, 46); inked('#e0473b', 4); rr(-22, 62, 44, 12, 4); inked(C.gold, 3); rr(-22, 150, 44, 12, 4); inked(C.gold, 3);
       ctx.restore();
     }
+    drawDeco(t);
     // tables (customers who are waiting sit here)
     const seated = p => p.table !== null && !p.react && !p.leaving && Math.abs(p.x - TABLES[p.table].x) <= 10;
     for (const tb of TABLES) { ellipse(tb.x, tb.y + 40, O.tableR, 26); inked('#e9c79b', 4); }
@@ -436,7 +438,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
         ellipse(bx, by, 112, 40); inked('#fbf6ee', 5);
         ellipse(bx, by - 4, 92 * (1 - eat * 0.55), 28 * (1 - eat * 0.55)); inked('#f2c46d', 3);
         rr(bx - 112, by - 2, 224, 30, 14); ctx.fillStyle = '#fbf6ee'; ctx.fill();
-        ctx.strokeStyle = '#3a6ea5'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(bx, by + 6, 108, 34, 0, 0.1, Math.PI - 0.1); ctx.stroke();
+        ctx.strokeStyle = bowlRim('#3a6ea5'); ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(bx, by + 6, 108, 34, 0, 0.1, Math.PI - 0.1); ctx.stroke();
         if (eat > 0 && eat < 1) {                     // chopsticks dipping, steam
           const dip = Math.abs(Math.sin(r.t * 9)) * 30;
           ctx.save(); ctx.translate(bx + 40, by - 70 + dip); ctx.rotate(0.35); rr(-4, -90, 8, 110, 4); inked('#c9935f', 3); rr(10, -90, 8, 110, 4); inked('#c9935f', 3); ctx.restore();
@@ -454,6 +456,28 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
           const lines = wrap(r.line, B.w - 80, 34).slice(0, 2); speech(lines, 50);
         }
       }
+    }
+  }
+
+  // what the shop has bought with its tips (progress.js): all on the back wall
+  function drawDeco(t) {
+    const ledge = O.wainY;                          // things stand on the wainscot ledge
+    const pot = (x, w, h, col) => { rr(x - w / 2, ledge - h, w, h, 10); inked(col, 4); };
+    if (owns('ivy')) for (const [x0, dir] of [[0, 1], [VW, -1]]) {
+      for (let i = 0; i < 9; i++) { const y = 10 + i * 34, x = x0 + dir * (24 + Math.sin(i * 1.7 + t * 0.8) * 8 + (i % 2) * 22); ellipse(x, y, 20, 13, dir * 0.6); inked(i % 3 ? C.green : '#5f9e4a', 3); }
+    }
+    if (owns('lanterns')) for (const [i, x] of [VW * 0.08, VW * 0.92].entries()) {
+      const sw = Math.sin(t * 1.4 + i) * 0.07; ctx.save(); ctx.translate(x, (O.lanternTop || 0) + 30); ctx.rotate(sw);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 50); ctx.stroke();
+      ellipse(0, 82, 30, 36); inked('#e0473b', 4); rr(-16, 44, 32, 10, 4); inked(C.gold, 3); ctx.restore();
+    }
+    if (owns('fern')) { const x = PORTRAIT ? 70 : 60; for (let i = 0; i < 9; i++) { ctx.save(); ctx.translate(x, ledge - 56); ctx.rotate(-1.3 + i * 0.32 + Math.sin(t + i) * 0.04); ellipse(0, -44, 13, 48); inked(i % 2 ? C.green : '#5f9e4a', 3); ctx.restore(); } pot(x, 78, 60, '#c9785a'); }
+    if (owns('bamboo')) { const x = VW - (PORTRAIT ? 70 : 60); for (const [dx, h] of [[-14, 220], [4, 260], [20, 190]]) { rr(x + dx - 7, ledge - 50 - h, 14, h, 6); inked('#7fbf6a', 3); for (let y = ledge - 50 - h + 40; y < ledge - 60; y += 50) { ctx.fillStyle = '#5f9e4a'; ctx.fillRect(x + dx - 8, y, 16, 4); } ellipse(x + dx + 18, ledge - 40 - h, 20, 8, -0.5); inked(C.green, 2); } pot(x, 74, 52, '#e8e2d6'); }
+    if (owns('camellia')) {
+      const x = PORTRAIT ? VW / 2 : O.win.x - 70;
+      for (let i = 0; i < 7; i++) { ellipse(x - 40 + (i % 4) * 26, ledge - 90 - Math.floor(i / 4) * 34, 24, 18); inked('#4f8f3e', 3); }
+      for (let i = 0; i < 5; i++) { const fx = x - 36 + i * 18, fy = ledge - 112 + (i % 2) * 26; circle(fx, fy, 13); inked('#e0475a', 3); circle(fx, fy, 4); ctx.fillStyle = '#ffd23f'; ctx.fill(); }
+      pot(x, 92, 58, '#b5654a');
     }
   }
 
@@ -526,7 +550,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     // the bowl, top-down: porcelain, blue rim, gold fill line
     circle(BOWL.x + 10, BOWL.y + 14, BOWL.r + 12); ctx.fillStyle = 'rgba(107,58,58,0.15)'; ctx.fill();
     circle(BOWL.x, BOWL.y, BOWL.r); inked('#fbf7f0', 6);
-    circle(BOWL.x, BOWL.y, BOWL.r - 14); ctx.lineWidth = 10; ctx.strokeStyle = C.blue; ctx.stroke();
+    circle(BOWL.x, BOWL.y, BOWL.r - 14); ctx.lineWidth = 10; ctx.strokeStyle = bowlRim(C.blue); ctx.stroke();
     circle(BOWL.x, BOWL.y, 70); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(107,58,58,0.2)'; ctx.stroke();
     const rad = f => 70 + Math.min(f, 1.15) * 120;
     if (tk && tk.fill > 0) {
@@ -694,18 +718,36 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
 
   // ---------- end of the night ----------
   const avg = S.results.length ? Math.round(S.results.reduce((a, r) => a + r.points, 0) / S.results.length) : 0;
+  const hearts = S.results.reduce((a, r) => a + heartsFor(r.points), 0);
+  const before = pagesFound().length;
+  earn(S.tips, hearts);
+  const newPages = pagesFound().slice(before);
   const card = document.createElement('div');
   card.className = 'k3-result';
-  card.innerHTML = `<div class="k-ticket">
-    <div class="row" style="justify-content:space-between"><b>🏮 ${esc(title)}</b><span class="k-total">${avg}%</span></div>
-    ${S.results.map(r => `<div class="meter"><span style="width:170px; font-size:13px">${GUESTS[r.who].ico} ${esc(GUESTS[r.who].name)}</span>
-      <div class="bar"><div class="fill" style="width:${r.points}%; background:${r.points >= 80 ? '#49b26a' : r.points >= 60 ? '#f0b429' : '#e2574c'}"></div></div><span class="val">¥${r.tip}</span></div>
-      <p class="sub" style="margin:0 0 6px 0">${r.judge.notes.map(n => `${n.ok ? '✓' : '✗'} ${esc(n.text)}`).join(' · ')}</p>`).join('')}
-    <p class="sub">Tips: ¥${S.tips} · ⭐ ${Object.values(S.stars).filter(n => n > 0).length} happy regulars</p>
-    <div class="row" style="justify-content:flex-end; margin-top:10px"><button class="btn-big" id="k-done">Close up</button></div>
-  </div>`;
+  const render = () => {
+    const pr = progress();
+    card.innerHTML = `<div class="k-ticket night-card">
+      <div class="row" style="justify-content:space-between"><b>🏮 ${esc(title)}</b><span class="k-total">💴 ${pr.coins}</span></div>
+      <div class="night-guests">${S.results.map(r => `<span title="${esc(GUESTS[r.who].name)}">${GUESTS[r.who].ico}<i>${'❤️'.repeat(heartsFor(r.points))}${'🤍'.repeat(3 - heartsFor(r.points))}</i><small>+¥${r.tip}</small></span>`).join('')}</div>
+      ${newPages.map(pg => `<div class="night-page">📜 <b>A page of Grandpa’s recipe book!</b><br>${esc(pg.text)}</div>`).join('')}
+      <div class="night-shop">${ITEMS.map(it => {
+        const own = owns(it.id), using = it.bowl && pr.bowl === it.id;
+        return `<button data-buy="${it.id}" class="${own ? 'own' : pr.coins >= it.price ? 'can' : ''}${using ? ' using' : ''}"><b>${it.ico}</b><small>${esc(it.name)}</small><em>${own ? (it.bowl ? (using ? 'in use' : 'use') : '✓') : `¥${it.price}`}</em></button>`;
+      }).join('')}</div>
+      <p class="sub">❤️ ${pr.hearts} hearts · recipe pages ${pagesFound().length}/${PAGES.length}</p>
+      <div class="row" style="justify-content:flex-end; margin-top:6px"><button class="btn-big" id="k-done">Close up</button></div>
+    </div>`;
+    card.querySelectorAll('[data-buy]').forEach(bt => bt.addEventListener('click', () => {
+      const id = bt.dataset.buy, it = ITEMS.find(i => i.id === id);
+      if (owns(id)) { if (it.bowl) { useBowl(progress().bowl === id ? null : id); sfx('pop'); render(); } return; }
+      if (buy(id)) { sfx('coin'); note(880, 0.15, 'triangle', 0.15); render(); } else sfx('bump');
+    }));
+    card.querySelector('#k-done').addEventListener('click', () => card.dispatchEvent(new Event('done')));
+  };
+  render();
   document.getElementById('ui').appendChild(card);
-  if (!G.skip) await new Promise(res => card.querySelector('#k-done').addEventListener('click', res));
+  if (newPages.length) sfx('reveal');
+  if (!G.skip) await new Promise(res => card.addEventListener('done', res));
   card.remove();
   cv.remove();
   removeEventListener('resize', resize); removeEventListener('pointermove', pm); removeEventListener('pointerup', pu);

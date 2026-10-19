@@ -778,3 +778,20 @@ body.cine #cine-auto { opacity: 1; pointer-events: auto; }
 /* colour comes back slowly (the daydream), and the 'life flip' on arrival in Kunming */
 #scene { transition: filter 2.2s ease; }
 body.grade-flip #scene { filter: saturate(1.7) brightness(1.12); transition: none; }
+
+/* end of a shop night: hearts per guest, the upgrade shop, recipe pages */
+.night-card { max-width: min(560px, 94vw); }
+.night-guests { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; justify-content: center; }
+.night-guests span { display: flex; flex-direction: column; align-items: center; font-size: 26px; background: #fff7ea; border-radius: 14px; padding: 6px 8px; min-width: 64px; }
+.night-guests i { font-style: normal; font-size: 12px; letter-spacing: -1px; }
+.night-guests small { font-size: 11px; font-weight: 800; color: #7a4a3a; }
+.night-page { background: #fff3c6; border: 2px dashed #c9a27a; border-radius: 12px; padding: 8px 12px; margin: 8px 0; font-size: 14px; }
+.night-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 8px 0; }
+.night-shop button { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 2px solid #e2cfb6; background: #fffaf2; border-radius: 14px; padding: 8px 4px; opacity: 0.55; cursor: pointer; font-family: inherit; }
+.night-shop button.can { opacity: 1; border-color: #f0b429; box-shadow: 0 3px 0 #e8a800; }
+.night-shop button.own { opacity: 1; background: #eef8ea; border-color: #7fbf6a; }
+.night-shop button.using { box-shadow: 0 0 0 3px #49b26a; }
+.night-shop b { font-size: 28px; }
+.night-shop small { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.15; }
+.night-shop em { font-style: normal; font-weight: 900; font-size: 13px; color: #8a3b3b; }
+.night-card { max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
