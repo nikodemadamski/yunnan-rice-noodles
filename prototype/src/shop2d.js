@@ -88,7 +88,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   const S = createShop(schedule, { baskets: 2 });
   const st = {
     view: 'order', camX: 0, t: 0, selected: null, ptr: { x: 0, y: 0, down: false, vx: 0, vy: 0 }, drag: null, pouring: false,
-    people: {}, pieces: {}, ripples: [], pops: [], caption: '', captionT: 0, bubble: null, money: 0, react: null, lifts: [],
+    people: {}, pieces: {}, ripples: [], pops: [], caption: '', captionT: 0, idleT: 0, bubble: null, money: 0, react: null, lifts: [],
   };
   let scale = 1, ox = 0, oy = 0;
   function resize() {
@@ -103,6 +103,73 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   const toW = v => ({ x: v.x + st.camX, y: v.y });
 
   const sel = () => S.tickets.find(t => t.uid === st.selected && !t.served);
+
+  // ---------- the guide: what to do next, shown not told (Good Pizza style) ----------
+  // One step at a time for the selected bowl. If it's on this panel: a glowing
+  // ring and a ghost glove acting it out; if not, that tab bounces.
+  const count = (xs, p) => xs.filter(x => x === p).length;
+  function nextStep() {
+    const ready = S.baskets.findIndex(b => b.ticket && noodleRing(b.t).zone !== 'firm');
+    if (ready >= 0) return { view: 'stove', kind: 'tap', at: BASKETS[ready], word: noodleRing(S.baskets[ready].t).zone === 'ready' ? 'Lift now!' : 'Lift! Going soft!' };
+    const t = sel();
+    const order = () => { const b = st.bubble.ok; return { view: 'order', kind: 'tap', at: { x: b.x + b.w / 2, y: b.y + b.h / 2 }, word: 'Take the order' }; };
+    // greet a waiting customer straight away (one tap), unless a finished bowl
+    // is ready to go out to someone
+    if (st.bubble) { const s = t && bowlStep(t); return s && s.serve ? s : order(); }
+    if (!t) return null;
+    return bowlStep(t);
+  }
+  function bowlStep(t) {
+    const inBasket = S.baskets.findIndex(b => b.ticket === t.uid);
+    if (t.noodles === null && inBasket < 0) {
+      const free = S.baskets.findIndex(b => !b.ticket);
+      if (free >= 0) return { view: 'stove', kind: 'drag', from: { x: COILS.x + COILS.w / 2, y: COILS.y }, at: BASKETS[free], word: 'Noodles in to cook', part: 'noodles' };
+    }
+    if (t.fill < FILL.lo) return { view: 'build', kind: 'hold', at: POT, word: t.fill > 0 ? 'Keep pouring to the line' : 'Hold to pour the broth' };
+    if (!t.fat) return { view: 'build', kind: 'tap', at: OIL, word: 'Seal it with oil' };
+    // saucers, in the order they cross the bridge: what the guest asked for first
+    const a = t.ask || {}, ban = a.ban || [], have = t.parts.filter(p => p !== 'noodles');
+    const top = Math.max(-1, ...t.parts.map(p => PARTS[p]?.rank ?? 0));
+    const want = Object.entries(a.need || {}).filter(([p, n]) => count(t.parts, p) < n).map(([p]) => p).sort((p, q) => PARTS[p].rank - PARTS[q].rank);
+    let part = want[0];
+    if (!part && a.min && have.length + 1 < a.min) part = ['pork', 'egg', 'ham', 'chrys', 'pea', 'tofu', 'jizong', 'chives'].find(p => !ban.includes(p) && PARTS[p].rank >= top && count(t.parts, p) < 2);
+    if (!part && !have.length) part = ['pork', 'egg', 'ham', 'chrys', 'pea'].find(p => !ban.includes(p));
+    if (part) { const r = binRect(part); return { view: 'build', kind: 'drag', from: { x: r.x + r.w / 2, y: r.y + r.h / 2 }, at: BOWL, word: PARTS[part].rank === 0 ? `${NAMES[part]}: raw goes first` : NAMES[part], part }; }
+    if (!t.parts.includes('noodles')) {
+      if (t.noodles === null) return inBasket >= 0 ? { view: 'stove', kind: 'wait', at: BASKETS[inBasket], word: 'Wait for the green…' } : null;
+      const r = binRect('noodles'); return { view: 'build', kind: 'drag', from: { x: r.x + r.w / 2, y: r.y + r.h / 2 }, at: BOWL, word: 'Noodles go in last', part: 'noodles' };
+    }
+    return { view: 'build', kind: 'tap', at: { x: SERVE.x + SERVE.w / 2, y: SERVE.y + SERVE.h / 2 }, word: 'Serve it!', serve: true };
+  }
+  function drawGuide(step, t) {
+    if (!step || step.view !== st.view || st.drag || st.pouring) return;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+    const ringAt = (p, r) => { circle(p.x, p.y, r + pulse * 14); ctx.strokeStyle = `rgba(255,214,90,${0.55 + pulse * 0.45})`; ctx.lineWidth = 10; ctx.stroke(); circle(p.x, p.y, r + pulse * 14); ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.stroke(); };
+    const R = step.at === BOWL ? BOWL.r + 10 : step.at === POT ? POT.r + 8 : step.at === OIL ? OIL.r + 10 : 110;
+    if (step.kind !== 'drag') ringAt(step.at, step.kind === 'tap' && !BASKETS.includes(step.at) && step.at !== OIL ? 70 : R);
+    else { ringAt(step.from, 80); }
+    // the ghost glove only after a moment of hesitation, so it never nags
+    if (st.idleT > 1.1) {
+      ctx.globalAlpha = 0.85;
+      if (step.kind === 'drag') {
+        const k = (t * 0.7) % 1, e = k < 0.15 ? 0 : k > 0.8 ? 1 : (k - 0.15) / 0.65, ee = e * e * (3 - 2 * e);
+        const x = step.from.x + (step.at.x - step.from.x) * ee, y = step.from.y + (step.at.y - step.from.y) * ee;
+        if (k > 0.1 && k < 0.85) piece(step.part, x, y - 30, 0, step.part === 'egg' ? -1 : 1, 0.9, 7);
+        hand(x + 18, y + 40, k > 0.1 && k < 0.85);
+        if (k > 0.8) { circle(step.at.x, step.at.y, 40 + (k - 0.8) * 600); ctx.strokeStyle = '#fff6d8'; ctx.lineWidth = 5; ctx.stroke(); }
+      } else if (step.kind === 'hold') {
+        const k = (t * 0.6) % 1;
+        hand(step.at.x + 18, step.at.y + 40 + (k < 0.7 ? 6 : 0), k < 0.7);
+        if (k < 0.7) { circle(step.at.x, step.at.y, 30 + k * 80); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 6; ctx.stroke(); }
+      } else if (step.kind === 'tap') {
+        const k = (t * 1.6) % 1;
+        hand(step.at.x + 18, step.at.y + 40 + (k < 0.3 ? 10 : 0), k < 0.3);
+      }
+      ctx.globalAlpha = 1;
+    }
+    const lx = step.kind === 'drag' ? step.from.x : step.at.x, ly = (step.kind === 'drag' ? step.from.y - 110 : step.at.y - R - 46);
+    label(step.word, Math.max(160, Math.min(PANEL[st.view] * VW + VW - 160, lx)), Math.max(130, ly), 40);
+  }
   const go = view => { if (st.view !== view) { st.view = view; sfx('whoosh'); } };
   const say = (s, sec = 3.5) => { st.caption = s; st.captionT = sec; };
   const pop = (s, x, y, col = C.ink) => st.pops.push({ s, x, y, col, t: 0 });
@@ -114,14 +181,11 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       const el = document.createElement('div');
       el.className = 'k3-result svc-rules';
       el.innerHTML = `<div class="k-ticket svc-rules-card">
-        <b>📜 Grandma’s rules · 过桥米线</b>
-        <ol>
-          <li><b>The broth.</b> Old hen and pork bones, four hours, never a drop of water added. Hold the pot to ladle it in, up to the gold line.</li>
-          <li><b>The seal.</b> A spoon of chicken oil on top. No steam shows, but underneath it stays hotter than 95°C.</li>
-          <li><b>Raw first.</b> Pork loin, black fish, quail egg, while it’s scalding. Watch them cook in seconds. In cold broth, they don’t.</li>
-          <li><b>Then ham, flowers, greens.</b> And the <b>noodles last</b>. Always.</li>
-        </ol>
-        <p class="sub">Listen to the customers. Not sure what they mean? Ask “What?”.</p>
+        <b>📜 Grandpa’s way · 过桥米线</b>
+        <div class="svc-steps">
+          <span>🍲<small>hot broth</small></span><i>→</i><span>✨<small>oil seal</small></span><i>→</i><span>🥩<small>raw first</small></span><i>→</i><span>🌼🌱<small>then the rest</small></span><i>→</i><span>🍜<small>noodles last</small></span>
+        </div>
+        <p class="sub">The glowing ring shows what’s next. Not sure what a customer means? Tap “What?”.</p>
         <div class="row" style="justify-content:flex-end"><button class="btn-big" data-go>Open the hatch 🏮</button></div></div>`;
       document.getElementById('ui').appendChild(el);
       el.querySelector('[data-go]').addEventListener('click', () => { el.remove(); res(); });
@@ -160,7 +224,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   }
   function down(v) {
     const w = toW(v);
-    st.ptr.down = true; st.ptr.sx = v.x; st.ptr.sy = v.y; st.drag = null;
+    st.ptr.down = true; st.ptr.sx = v.x; st.ptr.sy = v.y; st.drag = null; st.idleT = 0;
     const tab = tabsAt(v); if (tab) { go(tab.id); return; }
     const tk = ticketAt(v); if (tk) { st.selected = tk.uid; sfx('pop'); return; }
     if (st.view === 'order' && st.bubble) {
@@ -494,7 +558,10 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     // view tabs
     for (const [i, [id, s]] of [['order', '🛎️ Order'], ['stove', '♨️ Stove'], ['build', '🍜 Build']].entries()) {
       const x = H.tabs.x + i * H.tabs.gap, on = st.view === id;
-      rr(x, H.tabs.y, 160, 56, 16); inked(on ? '#ffd98a' : C.paper, 5); text(s, x + 80, H.tabs.y + 29, 32);
+      const call = st.step && st.step.view === id && !on && !st.react;            // the next step is over there
+      const bob = call ? Math.abs(Math.sin(t * 6)) * 10 : 0;
+      rr(x, H.tabs.y + bob * 0.4, 160, 56, 16); inked(on ? '#ffd98a' : call ? '#fff0a8' : C.paper, call ? 7 : 5); text(s, x + 80, H.tabs.y + 29 + bob * 0.4, 32);
+      if (call) { ctx.save(); ctx.translate(x + 80, H.tabs.y + 84 + bob); ctx.beginPath(); ctx.moveTo(-22, 22); ctx.lineTo(0, 0); ctx.lineTo(22, 22); ctx.closePath(); inked('#ffd65a', 4); ctx.restore(); }
       const n = id === 'order' ? S.guests.filter(g => g.state === 'line').length : id === 'stove' ? S.baskets.filter(b => b.ticket && noodleRing(b.t).zone !== 'firm').length : S.tickets.filter(q => !q.served && q.noodles !== null).length;
       if (n) { circle(x + 152, H.tabs.y + 4, 18); inked(id === 'build' ? '#7fb8f0' : C.red, 3); text(String(n), x + 152, H.tabs.y + 5, 24, '#fff'); }
     }
@@ -520,6 +587,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     // caption bar: Good Pizza's cream strip that talks to you
     const tk = sel();
     let cap = st.captionT > 0 ? st.caption : '';
+    if (!cap && st.step && !st.react) cap = st.step.view === st.view ? `Next: ${st.step.word}` : `Next: ${st.step.word} → ${{ order: '🛎️ Order', stove: '♨️ Stove', build: '🍜 Build' }[st.step.view]}`;
     if (!cap) {
       if (st.view === 'order') cap = st.bubble ? 'Listen to what they want. Not sure? Ask “What?”.' : S.guests.some(g => g.state === 'line') ? 'Next customer’s coming to the counter…' : 'Bowls to make! Off to the stove and the counter ♨️';
       if (st.view === 'stove') cap = S.baskets.some(b => b.ticket && noodleRing(b.t).zone === 'ready') ? 'Green! Tap the basket to lift the noodles.' : 'Drag fresh noodles into an empty basket. Lift on the green.';
@@ -554,6 +622,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       for (const [uid, p] of Object.entries(st.people)) if (p.leaving && p.x >= VW + 190) delete st.people[uid];
       if (!st.selected) st.selected = S.tickets.find(q => !q.served)?.uid || null;
       st.captionT -= dt;
+      if (!st.ptr.down) st.idleT += dt;
+      st.step = nextStep();
       st.camX += (PANEL[st.view] * VW - st.camX) * Math.min(1, dt * 9);
 
       // draw
@@ -571,6 +641,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       st.ripples = st.ripples.filter(r => r.t < 0.7);
       for (const q of st.pops) { q.t += dt; ctx.globalAlpha = Math.max(0, 1 - q.t / 1.6); label(q.s, q.x, q.y - q.t * 50, 38); ctx.globalAlpha = 1; }
       st.pops = st.pops.filter(q => q.t < 1.6);
+      if (!st.react) drawGuide(st.step, st.t);
       // the dragged saucer, in the glove
       const w = toW({ x: st.ptr.vx, y: st.ptr.vy });
       if (st.drag?.kind === 'part') piece(st.drag.part, w.x, w.y - 30, 0, st.drag.part === 'egg' ? -1 : 0, 1.1, st.drag.seed);

@@ -283,6 +283,12 @@ const camFocus = new THREE.Vector3(), camRig = new THREE.Vector3(0, 11.5, 15), c
 let camBlend = 1;
 let camYaw = 0;
 
+// how far to pull a wide-screen shot back on a tall screen (1 = landscape)
+function portraitDolly() {
+  const a = W.camera.aspect;
+  return a >= 1.2 ? 1 : Math.min(2, 1 + (1.78 / a - 1.48) * 0.42);
+}
+
 export function updateCamera(dt, snap = false) {
   const f = player.camFocus || player.pos;
   const bike = player.mode === 'bike';
@@ -300,7 +306,8 @@ export function updateCamera(dt, snap = false) {
   // cutscenes: lower, closer, slightly from the side, like a film camera
   // on a phone held upright, look down more steeply (more street, fewer walls in the way)
   const tall = W.camera.aspect < 0.8 && !cine;
-  const h = cine ? 5.5 : bike ? (tall ? 21 : 16) : tall ? 16 : 11.5, back = cine ? 10.5 : bike ? (tall ? 15 : 19.5) : tall ? 11 : 15, side = cine ? 3 : 0;
+  const kd = cine ? portraitDolly() : 1;
+  const h = cine ? 5.5 * kd : bike ? (tall ? 21 : 16) : tall ? 16 : 11.5, back = cine ? 10.5 * kd : bike ? (tall ? 15 : 19.5) : tall ? 11 : 15, side = cine ? 3 : 0;
   const k = snap ? 1 : 1 - Math.exp(-dt * (cine ? 2.2 : bike ? 4 : 6));
   camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
   const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;
@@ -325,13 +332,17 @@ export function updateCamera(dt, snap = false) {
   if (player.camShot) {
     const s = player.camShot;
     const ks = snap ? 1 : 1 - Math.exp(-dt * (s.speed ?? 3));
-    camPos.lerp(new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), ks);
+    // staged shots are framed for a wide screen; on a phone held upright,
+    // pull the camera back along its line of sight so faces stay whole
+    const kd = portraitDolly();
+    const want = new THREE.Vector3(s.look.x + (s.pos.x - s.look.x) * kd, s.look.y + (s.pos.y - s.look.y) * kd, s.look.z + (s.pos.z - s.look.z) * kd);
+    camPos.lerp(want, ks);
     camLook.lerp(new THREE.Vector3(s.look.x, s.look.y, s.look.z), ks);
   }
   const sh = shakeOffset(performance.now() / 1000);
   W.camera.position.set(camPos.x + sh.x, camPos.y + sh.y, camPos.z);
   W.camera.lookAt(camLook.x + sh.x * 0.5, camLook.y + sh.y * 0.5, camLook.z);
   // a little FOV kick at speed on the bike
-  const fov = player.fovShot || (W.baseFov || 38) + (bike && !cine ? 4 * player.speed / BIKE_MAX : 0);   // fovShot: staged lens
+  const fov = player.fovShot ? player.fovShot * (W.camera.aspect < 0.8 ? 1.22 : 1) : (W.baseFov || 38) + (bike && !cine ? 4 * player.speed / BIKE_MAX : 0);   // fovShot: staged lens (a touch wider upright)
   if (Math.abs(W.camera.fov - fov) > 0.05) { W.camera.fov += (fov - W.camera.fov) * k; W.camera.updateProjectionMatrix(); }
 }
