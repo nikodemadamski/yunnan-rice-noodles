@@ -225,6 +225,7 @@ async function run() {
     await simScene();
     await day1();
   }
+  if (mode === 'day1') { G.name = params.get('name') || 'Duck'; await day1(); }   // dev: Day 1 on its own
   if (mode === 'full' || mode === 'day2') {
     if (mode === 'day2') {
       G.name = params.get('name') || 'Duck';

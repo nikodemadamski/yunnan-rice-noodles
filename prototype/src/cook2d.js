@@ -62,6 +62,7 @@ function stage({ night = false } = {}) {
     const d = cv.width / innerWidth;
     ctx.setTransform(S.scale * d, 0, 0, S.scale * d, S.ox * d, S.oy * d);
     ctx.fillStyle = checker; ctx.fillRect(-S.ox / S.scale, -S.oy / S.scale, innerWidth / S.scale, innerHeight / S.scale);   // no dead bands on tall phones
+    if (S.bleed) S.bleed(-S.ox / S.scale, -S.oy / S.scale, innerWidth / S.scale, innerHeight / S.scale);              // or let the scene's set run past its frame
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, S.VW, S.VH); ctx.clip();
     ctx.fillStyle = checker; ctx.fillRect(0, 0, S.VW, S.VH);
     S.draw(dt, S.t);
@@ -133,15 +134,22 @@ export async function promptPalLive() {
     broth: '#cfe8f0', cubes: 0, laps: 0, shreds: [], noodles: 0, leaves: [], stuck: false, sparklers: [], lit: false, splat: [], stamp: null,
     alarm: false, smoke: [], closeUp: null, viral: false, dragging: null,
   };
+  // what's on the table, in the order the AI asks for it
+  const ITEMS = ['cube', 'spoon', 'cheese', 'noodles', 'gold', 'spark'];
   const L = () => {
     const P = S.portrait, VW = S.VW, VH = S.VH;
-    const pot = P ? { x: VW * 0.5, y: VH * 0.48, r: 250 } : { x: VW * 0.4, y: VH * 0.57, r: 225 };
+    const pot = P ? { x: VW * 0.5, y: 760, r: 215 } : { x: VW * 0.43, y: 560, r: 200 };
+    const slots = ITEMS.map((id, i) => P
+      ? { id, x: 85 + i * 146, y: 1052 }
+      : { id, x: 95 + (i % 2) * 130, y: 455 + Math.floor(i / 2) * 120 });
+    const cur = slots[Math.max(0, st.step)] || slots[0];
     return {
-      pot,
-      gran: P ? { x: 150, y: 330, s: 0.62 } : { x: 120, y: 330, s: 0.7 },
-      wang: P ? { x: VW - 150, y: 330, s: 0.62 } : { x: VW - 330, y: 300, s: 0.7 },
-      card: P ? { x: 40, y: VH - 470, w: VW - 80, h: 290 } : { x: VW - 600, y: VH - 430, w: 570, h: 300 },
-      spot: P ? { x: VW * 0.5, y: pot.y - pot.r - 130 } : { x: pot.x - pot.r - 150, y: pot.y + 130 },
+      pot, slots,
+      gran: P ? { x: 170, y: 250, s: 0.82 } : { x: 210, y: 150, s: 0.78 },
+      wang: P ? { x: VW - 170, y: 250, s: 0.82 } : { x: VW - 360, y: 140, s: 0.82 },
+      card: P ? { x: 40, y: VH - 470, w: VW - 80, h: 290 } : { x: VW - 590, y: VH - 470, w: 560, h: 330 },
+      spot: { x: cur.x, y: cur.y },
+      tableY: P ? 470 : 330,
       chatY: P ? 120 : 110,
     };
   };
@@ -150,49 +158,139 @@ export async function promptPalLive() {
   const comment = (s, big = false) => st.chat.length < 12 && st.chat.push({ s, x: S.VW + 20, y: L().chatY + (lane = (lane + 1) % 4) * 40, v: 160 + Math.random() * 120, big });
   const heart = () => st.hearts.push({ x: S.VW - 60, y: S.VH * 0.6, t: 0, col: ['#ff6b8a', '#ffb347', '#ff8fd1'][Math.floor(Math.random() * 3)] });
   const setAi = s => { st.ai = s; sfx('send'); };
+  let idle = 0;
 
+  // ---- the set: Old Zhao's shuttered shop at dusk, Wang's neon next door
+  function backdrop(t, tableY) {
+    const VW = S.VW;
+    const sky = ctx.createLinearGradient(0, 0, 0, tableY);
+    sky.addColorStop(0, '#f6b38f'); sky.addColorStop(1, '#fbd9b0');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, tableY);
+    // the shopfront: cream wall, green sign, the shutter that says it all
+    const sw = Math.min(760, VW * 0.62), sx = (VW - sw) / 2 - (S.portrait ? 0 : 120);
+    rr(sx, 20, sw, tableY, 0); inked('#f1e3c8', 5);
+    rr(sx + 30, 34, sw - 60, 70, 12); inked('#2f5d50', 5);
+    text('老赵过桥米线', sx + sw / 2, 62, 40, '#fff6ea'); text("OLD ZHAO'S CROSS-BRIDGE NOODLES", sx + sw / 2, 92, 18, '#d8e8d2');
+    rr(sx + 50, 120, sw - 100, tableY - 110, 6); inked('#a9adb3', 5);
+    ctx.strokeStyle = '#8f949b'; ctx.lineWidth = 3; for (let y = 134; y < tableY; y += 14) { ctx.beginPath(); ctx.moveTo(sx + 52, y); ctx.lineTo(sx + sw - 52, y); ctx.stroke(); }
+    text('转让 · FOR LEASE', sx + sw / 2, 120 + (tableY - 110) * 0.45, 40, '#c0392b');
+    // Wang's next door: hot pink, gold, blinking
+    const on = Math.sin(t * 6) > -0.6;
+    rr(sx + sw + 10, 10, VW - sx - sw, tableY, 0); inked('#ffe1ee', 5);
+    rr(sx + sw + 24, 30, VW - sx - sw - 40, 80, 14); inked(on ? '#ff2d8a' : '#b8226a', 5);
+    text('超级至尊', sx + sw + 24 + (VW - sx - sw - 40) / 2, 70, 40, on ? '#fff35c' : '#d9c25a');
+    rr(-10, 10, sx + 10, tableY, 0); inked('#f6d9de', 5);
+    for (let i = 0; i < 2; i++) { rr(sx - 150 + i * 70, 150, 50, 70, 6); inked('#8fc6e8', 4); }
+    // a string of lanterns across the top, swaying
+    ctx.strokeStyle = '#6b4a32'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 30); ctx.quadraticCurveTo(VW / 2, 90, VW, 30); ctx.stroke();
+    for (let i = 1; i < 8; i++) {
+      const x = VW * i / 8, y = 30 + Math.sin(i / 8 * Math.PI) * 30 + 10;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 1.3 + i) * 0.08);
+      ellipse(0, 22, 18, 22); inked('#e0473b', 3); rr(-10, 0, 20, 6, 2); inked('#f2c14e', 2); ctx.restore();
+    }
+  }
+  // ---- the folding table, the burner, the pot
+  function table(tableY) {
+    const VW = S.VW, VH = S.VH;
+    ctx.beginPath(); ctx.moveTo(-20, tableY); ctx.lineTo(VW + 20, tableY); ctx.lineTo(VW + 20, VH); ctx.lineTo(-20, VH); ctx.closePath(); inked('#d9a873', 6);
+    ctx.strokeStyle = 'rgba(122,74,42,0.35)'; ctx.lineWidth = 3;
+    for (let y = tableY + 70; y < VH; y += 90) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,240,215,0.35)'; ctx.fillRect(0, tableY + 4, VW, 8);
+  }
+  function burner(p, t) {
+    rr(p.x - p.r - 30, p.y + p.r * 0.55, (p.r + 30) * 2, 56, 18); inked('#4a4a52', 5);
+    for (let k = 0; k < 14; k++) {             // a ring of little flames under the pot
+      const a = k / 14 * P2, fx = p.x + Math.cos(a) * (p.r - 20), fy = p.y + Math.sin(a) * (p.r - 20) * 0.35 + p.r * 0.6;
+      const h = 16 + Math.sin(t * 18 + k * 2) * 6;
+      ctx.beginPath(); ctx.moveTo(fx - 7, fy); ctx.quadraticCurveTo(fx, fy - h * 1.6, fx + 7, fy); ctx.fillStyle = k % 2 ? '#5aa9ff' : '#ff9f3a'; ctx.fill();
+    }
+    for (const sx of [-1, 1]) { rr(p.x + sx * (p.r + 8) - (sx < 0 ? 40 : 0), p.y - 14, 40, 26, 12); inked(C.steelL, 4); }   // handles
+  }
+  // ---- the ingredients, as you'd buy them
+  function item(id, x, y, s = 1, t = 0) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    if (id === 'cube') { rr(-46, -34, 92, 68, 10); inked('#e2453b', 4); rr(-40, -10, 80, 26, 6); inked('#ffd23f', 3); text('鸡精 STOCK', 0, 3, 18, '#7a1e16'); text('🧊', 0, -22, 22); }
+    else if (id === 'spoon') { ctx.rotate(-0.5); rr(-8, -60, 16, 100, 8); inked('#c98f5c', 3); ellipse(0, 50, 22, 16); inked('#c98f5c', 3); }
+    else if (id === 'cheese') { ctx.beginPath(); ctx.moveTo(-50, 20); ctx.lineTo(40, 20); ctx.lineTo(40, -22); ctx.lineTo(-50, 0); ctx.closePath(); inked('#ffcc3d', 4); for (const [hx, hy] of [[-20, 5], [10, -5], [25, 10]]) { circle(hx, hy, 5); ctx.fillStyle = '#e8a91e'; ctx.fill(); } text('CHEDDAR', -2, 34, 16, C.ink); }
+    else if (id === 'noodles') { rr(-48, -40, 96, 80, 14); inked('#eaf3f7', 4); piece('noodles', 0, -2, 0, 1, 0.9, 2); text('米线', 0, 30, 18, '#3a6ea5'); }
+    else if (id === 'gold') { rr(-40, -44, 80, 88, 8); inked('#f2c14e', 4); rr(-28, -32, 56, 64, 4); inked('#ffe27a', 2); text('金箔', 0, 2, 22, '#8a5a12'); }
+    else if (id === 'spark') { for (const dx of [-16, 0, 16]) { rr(dx - 4, -58, 8, 104, 4); inked('#9aa0a8', 2); } rr(-34, 10, 68, 40, 8); inked('#e2453b', 3); text('🎆', 0, 30, 20); }
+    ctx.restore();
+  }
+  function ring(x, y, r, t) {
+    const k = 0.5 + 0.5 * Math.sin(t * 5);
+    circle(x, y, r + k * 10); ctx.strokeStyle = `rgba(255,214,90,${0.6 + k * 0.4})`; ctx.lineWidth = 9; ctx.stroke();
+    circle(x, y, r + k * 10); ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  // on a tall phone the set continues past the frame: sky above, table below
+  S.bleed = (x, y, w, h) => {
+    const sky = ctx.createLinearGradient(0, y, 0, 0); sky.addColorStop(0, '#f4a27e'); sky.addColorStop(1, '#f6b38f');
+    ctx.fillStyle = sky; ctx.fillRect(x, y, w, -y + 1);
+    ctx.fillStyle = '#d9a873'; ctx.fillRect(x, S.VH - 1, w, h);
+  };
   S.draw = (dt, t) => {
     const l = L();
-    // the counter and the stove, top-down
-    rr(40, 210, S.VW - 80, S.VH - 360, 30); inked(C.cream, 6);
-    // Grandma and Old Wang peek over the back edge
+    idle = S.ptr.down ? 0 : idle + dt;
+    backdrop(t, l.tableY);
+    // Grandma and Old Wang stand behind the table
     person(LOOKS.gran, l.gran.x, l.gran.y, l.gran.s, st.grannyMood, t, Math.sin(t * 1.3) > 0.97);
     person(LOOKS.wang, l.wang.x, l.wang.y, l.wang.s, st.wangMood, t);
-    // his selfie stick and phone
-    ctx.save(); ctx.translate(l.wang.x - 40, l.wang.y - 40); ctx.rotate(-0.5); rr(-6, -170, 12, 170, 6); inked('#444', 3); rr(-34, -230, 68, 110, 12); inked('#1d1d22', 4); circle(0, -175, 10); ctx.fillStyle = '#ff4a4a'; ctx.fill(); ctx.restore();
-    // the pot
+    ctx.save(); ctx.translate(l.wang.x - 60 * l.wang.s, l.wang.y - 20); ctx.rotate(-0.45); rr(-6, -170, 12, 170, 6); inked('#444', 3); rr(-34, -230, 68, 110, 12); inked('#1d1d22', 4); circle(0, -175, 10); ctx.fillStyle = '#ff4a4a'; ctx.fill(); ctx.restore();
+    table(l.tableY);
+    // the pot on its burner
     const p = l.pot;
+    burner(p, t);
     pot(p.x, p.y, p.r, st.broth, t);
-    const R = rng(11);
     for (const s of st.shreds) { ctx.save(); ctx.translate(p.x + s.x, p.y + s.y); ctx.rotate(s.r); rr(-12, -3, 24, 6, 3); ctx.fillStyle = s.melt ? '#f7b53b' : '#ffd84d'; ctx.fill(); ctx.restore(); }
-    if (st.noodles) piece('noodles', p.x, p.y, t * 0.2, 1, 2.2, 5);
+    if (st.noodles) piece('noodles', p.x, p.y, t * 0.2, 1, 2.0, 5);
     for (const lf of st.leaves) if (lf.in) { ctx.save(); ctx.translate(p.x + lf.x, p.y + lf.y); ctx.rotate(lf.r); rr(-16, -16, 32, 32, 4); inked('#f2c14e', 2); ctx.restore(); }
     for (const sp of st.sparklers) {
       rr(p.x + sp.x - 5, p.y + sp.y - 90, 10, 100, 5); inked('#9aa0a8', 3);
       if (st.lit) for (let k = 0; k < 8; k++) { const a = Math.random() * P2, d = 10 + Math.random() * 50; ctx.strokeStyle = '#fff2a8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(p.x + sp.x, p.y + sp.y - 90); ctx.lineTo(p.x + sp.x + Math.cos(a) * d, p.y + sp.y - 90 + Math.sin(a) * d); ctx.stroke(); }
     }
     for (const s of st.smoke) { s.t += dt; circle(s.x, s.y - s.t * 60, 30 + s.t * 40); ctx.fillStyle = s.foam ? `rgba(255,253,245,${Math.max(0, 1 - s.t / 3)})` : `rgba(120,120,135,${Math.max(0, 0.6 - s.t / 4)})`; ctx.fill(); }
-    // the step's prop, waiting beside the pot
-    const sp = l.spot;
-    if (st.step === 0 && st.cubes < st.need && st.dragging !== 'cube') { rr(sp.x - 50, sp.y - 50, 100, 100, 14); inked('#e2a43a', 5); text('🧊', sp.x, sp.y, 50); label('Stock cube', sp.x, sp.y + 80, 28); }
-    if (st.step === 3 && st.noodles < st.need && st.dragging !== 'bundle') { piece('noodles', sp.x, sp.y, 0, 1, 1.8, 2); label('Noodles', sp.x, sp.y + 90, 28); }
-    if (st.step === 5 && st.sparklers.length < st.need && st.dragging !== 'spark') { rr(sp.x - 6, sp.y - 70, 12, 140, 6); inked('#9aa0a8', 3); label('Sparkler', sp.x, sp.y + 100, 28); }
+    // the ingredients laid out on the table: this step's one glows and bobs
+    l.slots.forEach((sl, i) => {
+      const cur = i === st.step, used = i < st.step, held = cur && st.dragging;
+      if (held) return;
+      ctx.globalAlpha = used ? 0.35 : cur ? 1 : 0.8;
+      item(sl.id, sl.x, sl.y + (cur ? -Math.abs(Math.sin(t * 4)) * 8 : 0), cur ? 1.12 : 0.9, t);
+      ctx.globalAlpha = 1;
+      if (used) text('✓', sl.x + 40, sl.y - 40, 34, C.greenD);
+      if (cur) ring(sl.x, sl.y, 62, t);
+    });
     for (const lf of st.leaves) if (!lf.in) { lf.a += dt; const x = p.x + lf.x + Math.sin(lf.a * 1.4) * 20, y = p.y + lf.y + Math.cos(lf.a) * 14; lf.sx = x; lf.sy = y; ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(lf.a) * 0.6); rr(-24, -24, 48, 48, 6); inked('#f7d256', 3); ctx.restore(); }
     // tools that follow your hand
     if (st.step === 1 && S.ptr.down) { ctx.save(); ctx.translate(S.ptr.x, S.ptr.y); ctx.rotate(0.6); rr(-10, -150, 20, 150, 10); inked('#c98f5c', 3); ellipse(0, 4, 26, 18); inked('#c98f5c', 3); ctx.restore(); }
     if (st.step === 2 && S.ptr.down) { rr(S.ptr.x - 60, S.ptr.y - 90, 120, 150, 14); inked('#cfd3da', 4); for (let k = 0; k < 12; k++) { circle(S.ptr.x - 36 + (k % 4) * 24, S.ptr.y - 60 + Math.floor(k / 4) * 34, 4); ctx.fillStyle = '#6b6f7a'; ctx.fill(); } rr(S.ptr.x - 40, S.ptr.y - 160, 80, 60, 10); inked('#ffd84d', 4); }
-    if (st.dragging === 'cube') { rr(S.ptr.x - 45, S.ptr.y - 80, 90, 90, 14); inked('#e2a43a', 5); }
-    if (st.dragging === 'bundle') piece('noodles', S.ptr.x, S.ptr.y - 40, 0, 1, 1.8, 2);
-    if (st.dragging === 'spark') { rr(S.ptr.x - 6, S.ptr.y - 140, 12, 140, 6); inked('#9aa0a8', 3); }
-    // the AI's chat card
+    if (st.dragging === 'cube') item('cube', S.ptr.x, S.ptr.y - 50, 1.1);
+    if (st.dragging === 'bundle') item('noodles', S.ptr.x, S.ptr.y - 50, 1.1);
+    if (st.dragging === 'spark') item('spark', S.ptr.x, S.ptr.y - 60, 1.1);
+    // the ghost glove shows the gesture after a moment's hesitation
+    if (idle > 1.2 && st.step >= 0 && !st.alarm && !st.closeUp) {
+      const k = (t * 0.7) % 1, e = Math.min(1, Math.max(0, (k - 0.15) / 0.65)), ee = e * e * (3 - 2 * e);
+      ctx.globalAlpha = 0.85;
+      if ([0, 3, 5].includes(st.step) && !(st.step === 5 && st.sparklers.length >= st.need)) {
+        const a = l.spot; hand(a.x + (p.x - a.x) * ee + 16, a.y + (p.y - a.y) * ee + 36, k > 0.12 && k < 0.85);
+      } else if (st.step === 5) { hand(p.x - 160 + ee * 320 + 16, p.y - 40 + 36, true); }
+      else if (st.step === 1) { const a = t * 3; ring(p.x, p.y, p.r * 0.55, t); hand(p.x + Math.cos(a) * p.r * 0.55 + 16, p.y + Math.sin(a) * p.r * 0.55 + 36, true); }
+      else if (st.step === 2) { hand(p.x + Math.sin(t * 6) * p.r * 0.5 + 16, p.y + 36, true); }
+      else if (st.step === 4) { const lf = st.leaves.find(q => !q.in && q.sx !== undefined); if (lf) { ring(lf.sx, lf.sy, 36, t); hand(lf.sx + 16, lf.sy + 36 + (k < 0.3 ? 8 : 0), k < 0.3); } }
+      ctx.globalAlpha = 1;
+    }
+    // PromptPal, on your phone: chat bubble and a quick-reply chip
     const c = l.card;
-    rr(c.x, c.y, c.w, c.h, 26); inked('#f2efff', 6);
-    circle(c.x + 44, c.y + 44, 24); inked('#6a4cc9', 3); text('P', c.x + 44, c.y + 45, 30, '#fff');
-    text('PromptPal', c.x + 82, c.y + 44, 34, C.ink, 'left'); text('● online', c.x + c.w - 24, c.y + 44, 26, '#49b26a', 'right');
-    wrap(st.ai, c.w - 60, 30).slice(0, 4).forEach((ln, i) => text(ln, c.x + 30, c.y + 96 + i * 36, 30, '#3b2d6b', 'left'));
-    st.sureBtn = { x: c.x + 30, y: c.y + c.h - 76, w: c.w - 60, h: 58 };
-    rr(st.sureBtn.x, st.sureBtn.y, st.sureBtn.w, st.sureBtn.h, 22); inked(st.sureUsed ? '#e7e3f4' : '#ffffff', 4);
-    text(st.sureUsed ? '🙂 …okay' : '🤔 Are you sure?', st.sureBtn.x + st.sureBtn.w / 2, st.sureBtn.y + 30, 32, '#6a4cc9');
+    rr(c.x, c.y, c.w, c.h, 34); inked('#1e1e26', 6);
+    rr(c.x + 12, c.y + 12, c.w - 24, c.h - 24, 24); ctx.fillStyle = '#f4f1ff'; ctx.fill();
+    circle(c.x + 50, c.y + 50, 22); inked('#6a4cc9', 3); text('P', c.x + 50, c.y + 51, 28, '#fff');
+    text('PromptPal', c.x + 84, c.y + 50, 30, C.ink, 'left'); text('● online', c.x + c.w - 30, c.y + 50, 22, '#49b26a', 'right');
+    const lines = wrap(st.ai, c.w - 100, 28).slice(0, 4);
+    rr(c.x + 30, c.y + 80, c.w - 60, 24 + lines.length * 34, 18); inked('#ffffff', 3);
+    lines.forEach((ln, i) => text(ln, c.x + 48, c.y + 104 + i * 34, 28, '#3b2d6b', 'left'));
+    st.sureBtn = { x: c.x + c.w - 300, y: c.y + c.h - 70, w: 270, h: 50 };
+    rr(st.sureBtn.x, st.sureBtn.y, st.sureBtn.w, st.sureBtn.h, 25); inked(st.sureUsed ? '#e7e3f4' : '#ede7ff', 3);
+    text(st.sureUsed ? '🙂 …okay' : '🤔 Are you sure?', st.sureBtn.x + st.sureBtn.w / 2, st.sureBtn.y + 26, 28, '#6a4cc9');
     // the livestream: badge, viewers, danmaku, hearts
     rr(30, 24, 120, 50, 12); inked('#e2453b', 3); text('● LIVE', 90, 50, 30, '#fff');
     rr(166, 24, 230, 50, 12); inked('rgba(30,30,40,0.6)', 2); text(`👁 ${st.viewers.toLocaleString()}`, 280, 50, 30, '#fff');
@@ -206,7 +304,7 @@ export async function promptPalLive() {
     if (st.stuck) { ctx.save(); ctx.translate(S.VW - 220, 240); ctx.rotate(0.3); rr(-60, -60, 120, 120, 10); inked('#f7d256', 4); ctx.restore(); }
     if (st.stamp) { st.stamp.t += dt; const k = Math.min(1, st.stamp.t * 6); ctx.save(); ctx.translate(S.VW / 2, S.VH * 0.42); ctx.rotate(-0.12); ctx.scale(2 - k, 2 - k); ctx.globalAlpha = Math.min(1, 2.2 - st.stamp.t); label(st.stamp.s, 0, 0, 90); ctx.restore(); ctx.globalAlpha = 1; }
     if (st.alarm && Math.floor(t * 4) % 2 === 0) { ctx.lineWidth = 30; ctx.strokeStyle = 'rgba(230,40,30,0.55)'; ctx.strokeRect(0, 0, S.VW, S.VH); }
-    if (st.closeUp) { ctx.fillStyle = 'rgba(40,24,24,0.55)'; ctx.fillRect(0, 0, S.VW, S.VH); person(LOOKS.gran, S.VW / 2, S.VH * 0.5, S.portrait ? 2.6 : 2.2, st.closeUp, t); }
+    if (st.closeUp) { ctx.fillStyle = 'rgba(40,24,24,0.55)'; ctx.fillRect(0, 0, S.VW, S.VH); person(LOOKS.gran, S.VW / 2, S.VH * 0.42, S.portrait ? 2.4 : 2.0, st.closeUp, t); }
     if (st.viral) { ctx.save(); ctx.translate(S.VW / 2, S.VH * 0.25); ctx.rotate(-0.1); rr(-300, -80, 600, 160, 30); inked('#e2453b', 8); text('VIRAL', 0, 4, 120, '#fff'); ctx.restore(); }
   };
 
@@ -377,7 +475,7 @@ export async function chilliBowl() {
     const P = S.portrait, VW = S.VW, VH = S.VH;
     const bowl = P ? { x: VW * 0.5, y: VH * 0.56, r: 200 } : { x: VW * 0.52, y: VH * 0.58, r: 190 };
     return {
-      bowl, chilli: P ? { x: 170, y: 330, s: 0.7 } : { x: 200, y: 330, s: 0.8 },
+      bowl, chilli: P ? { x: 190, y: 250, s: 0.86 } : { x: 230, y: 150, s: 0.8 },
       pot: P ? { x: 190, y: bowl.y + 330, r: 120 } : { x: bowl.x - 430, y: bowl.y + 20, r: 140 },
       jar: P ? { x: VW - 170, y: bowl.y - 260 } : { x: bowl.x + 330, y: bowl.y - 120 },
       phone: P ? { x: VW - 170, y: bowl.y + 330 } : { x: bowl.x + 360, y: bowl.y + 140 },
@@ -386,13 +484,42 @@ export async function chilliBowl() {
   window.__cook = { S, st, L, rec };
   const say = (line, cap = '') => { st.line = line; st.lineT = 3; if (cap !== null) S.caption = cap; sfx('pop'); };
 
+  // the set: Little Chilli's erkuai stall at night, string lights, the grill glowing
+  const tableY = () => S.portrait ? 470 : 300;
+  S.bleed = (x, y, w, h) => { ctx.fillStyle = '#1c2147'; ctx.fillRect(x, y, w, -y + 1); ctx.fillStyle = '#b98352'; ctx.fillRect(x, S.VH - 1, w, h); };
+  function stallSet(t, ty) {
+    const VW = S.VW;
+    const sky = ctx.createLinearGradient(0, 0, 0, ty); sky.addColorStop(0, '#1c2147'); sky.addColorStop(1, '#3a3266');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, ty);
+    const R = rng(9); for (let i = 0; i < 40; i++) { circle(R() * VW, R() * ty * 0.5, 1.5 + R() * 1.5); ctx.fillStyle = `rgba(255,250,220,${0.4 + 0.5 * Math.abs(Math.sin(t * 1.5 + i))})`; ctx.fill(); }
+    // houses across the street, windows lit
+    for (let i = 0; i < 6; i++) { const x = i * VW / 5 - 40, h = ty * (0.55 + (i % 3) * 0.12); rr(x, ty - h, VW / 5 - 10, h, 0); inked(['#4a3f6e', '#54467a', '#463a66'][i % 3], 4); for (let w = 0; w < 2; w++) { rr(x + 30 + w * 80, ty - h + 40, 44, 54, 6); inked('#ffcf6b', 3); } }
+    // the stall: red striped awning on poles
+    const ax = S.portrait ? 40 : VW * 0.12, aw = S.portrait ? VW - 80 : VW * 0.76;
+    for (const px of [ax + 10, ax + aw - 10]) { rr(px - 6, 60, 12, ty, 4); inked('#6b4a32', 3); }
+    for (let i = 0; i < 10; i++) { rr(ax + i * aw / 10, 50, aw / 10, 56, 0); inked(i % 2 ? '#fff4e2' : '#d63c2f', 3); }
+    for (let i = 0; i < 10; i++) { ctx.beginPath(); ctx.arc(ax + (i + 0.5) * aw / 10, 106, aw / 20, 0, Math.PI); inked(i % 2 ? '#fff4e2' : '#d63c2f', 3); }
+    // string lights
+    ctx.strokeStyle = '#2a2420'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax, 140); ctx.quadraticCurveTo(ax + aw / 2, 190, ax + aw, 140); ctx.stroke();
+    for (let i = 1; i < 12; i++) { const k = i / 12, x = ax + aw * k, y = 140 + Math.sin(k * Math.PI) * 25 + 8; const on = 0.7 + 0.3 * Math.sin(t * 3 + i); circle(x, y, 18); ctx.fillStyle = `rgba(255,214,120,${0.25 * on})`; ctx.fill(); circle(x, y, 7); ctx.fillStyle = '#ffe9a6'; ctx.fill(); }
+    // the sign that's falling apart
+    ctx.save(); ctx.translate(ax + aw * 0.68, 230); ctx.rotate(0.12); rr(-150, -36, 300, 72, 10); inked('#d63c2f', 4); text('小辣烧饵块', 0, -4, 34, '#fff4e2'); text("LITTLE CHILLI'S ERKUAI", 0, 24, 14, '#ffd9cf'); ctx.restore();
+    // the grill behind her, coals breathing
+    const gx = S.portrait ? VW - 200 : VW * 0.72, gy = ty - 70;
+    rr(gx - 110, gy, 220, 70, 10); inked('#3b3b42', 4);
+    for (let i = 0; i < 9; i++) { circle(gx - 90 + i * 22, gy + 20, 9); ctx.fillStyle = `rgb(${200 + 55 * Math.abs(Math.sin(t * 2 + i))},${80 + 40 * Math.sin(t * 3 + i)},40)`; ctx.fill(); }
+    for (let k = 0; k < 3; k++) { const q = (t * 0.5 + k / 3) % 1; circle(gx - 30 + k * 30, gy - q * 120, 14 + q * 20); ctx.fillStyle = `rgba(230,230,240,${0.35 * (1 - q)})`; ctx.fill(); }
+    // the table top
+    ctx.beginPath(); ctx.moveTo(-20, ty); ctx.lineTo(VW + 20, ty); ctx.lineTo(VW + 20, S.VH); ctx.lineTo(-20, S.VH); ctx.closePath(); inked('#b98352', 6);
+    ctx.strokeStyle = 'rgba(90,50,25,0.4)'; ctx.lineWidth = 3; for (let y = ty + 80; y < S.VH; y += 90) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke(); }
+  }
   S.draw = (dt, t) => {
     const l = L();
-    // a warm lamp over the stall in the dark
+    stallSet(t, tableY());
+    // a warm lamp over the bowl in the dark
     const g = ctx.createRadialGradient(l.bowl.x, l.bowl.y - 120, 60, l.bowl.x, l.bowl.y, S.VW * 0.75);
-    g.addColorStop(0, 'rgba(255,214,150,0.55)'); g.addColorStop(1, 'rgba(255,214,150,0)');
+    g.addColorStop(0, 'rgba(255,214,150,0.45)'); g.addColorStop(1, 'rgba(255,214,150,0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, S.VW, S.VH);
-    rr(40, 210, S.VW - 80, S.VH - 360, 30); inked('#e6c08f', 6);
     person(LOOKS.chilli, l.chilli.x, l.chilli.y, l.chilli.s, st.mood, t, Math.sin(t * 1.1) > 0.97);
     if (st.lineT > 0) { st.lineT -= dt; bubble(l.chilli.x + 90, 70, Math.min(560, S.VW - l.chilli.x - 130), wrap(st.line, Math.min(520, S.VW - l.chilli.x - 170), 34), 34); }
     // pot of clear broth

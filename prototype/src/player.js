@@ -325,13 +325,16 @@ export function updateCamera(dt, snap = false) {
   // cutscenes: lower, closer, slightly from the side, like a film camera
   // on a phone held upright, look down more steeply (more street, fewer walls in the way)
   const tall = W.camera.aspect < 0.8 && !cine;
-  const kd = cine ? portraitDolly() : 1;
+  const kd = cine ? Math.min(1.3, portraitDolly()) : 1;   // dialogue: only a little further back on a phone
   // a lower, storybook angle (world board): the street runs away to the
   // horizon and the sea; the hero stands in the lower third
   const h = cine ? 5.5 * kd : bike ? (tall ? 15 : 13) : tall ? 11.5 : 10, back = cine ? 10.5 * kd : bike ? (tall ? 17 : 18) : tall ? 13.5 : 14, side = cine ? 3 : 0;
   const lift = cine ? 0 : tall ? 2.6 : 1.4;           // look past the hero, up the street
+  // a big change of angle in a cutscene is a cut, not an orbit through the walls
+  const yawTo = cine ? player.camYaw : 0, bigTurn = Math.abs(angleDiff(camYaw, yawTo)) > 1.0;
+  if (cine && bigTurn) snap = true;
   const k = snap ? 1 : 1 - Math.exp(-dt * (cine ? 2.2 : bike ? 4 : 6));
-  camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
+  camYaw += angleDiff(camYaw, yawTo) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
   const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;
   const oz = Math.cos(camYaw) * back - Math.sin(camYaw) * side;
   camFocus.lerp(new THREE.Vector3(tx - Math.sin(camYaw) * lift, cine ? 2.3 : 1.5, tz - Math.cos(camYaw) * lift), k);

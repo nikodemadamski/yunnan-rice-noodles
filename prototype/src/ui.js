@@ -123,8 +123,13 @@ function frame(char) {
   if (!other) return;
   const p = other.root.position;
   const dx = p.x - player.pos.x, dz = p.z - player.pos.z, d = Math.hypot(dx, dz);
+  const tall = W.camera.aspect < 0.8;
   if (d < 9) {
-    player.camFocus = { x: (p.x + player.pos.x) / 2, z: (p.z + player.pos.z) / 2 };
+    // on a phone held upright there's no room for a wide two-shot: lean the
+    // frame towards whoever is talking (an over-the-shoulder)
+    const sp = char.root.position, k = tall ? 0.72 : 0.5;
+    const ls = char === player.char ? p : player.pos;
+    player.camFocus = { x: ls.x + (sp.x - ls.x) * k, z: ls.z + (sp.z - ls.z) * k };
     // the two perpendiculars to the speaker line; prefer the more southern
     // one, unless a wall is in the way on that side
     const cx = (p.x + player.pos.x) / 2, cz = (p.z + player.pos.z) / 2;
@@ -133,13 +138,26 @@ function frame(char) {
     player.camYaw = score(a) >= score(b) ? a : b;
     if (player.mode === 'foot') player.heading = Math.atan2(dx, dz);
   } else {
+    // far apart: film the other one from the open side, turned a little so
+    // the hero isn't standing in the lens
     player.camFocus = { x: p.x, z: p.z };
-    player.camYaw = other.root.rotation.y;
+    player.camYaw = openSide(p.x, p.z, other.root.rotation.y + 0.45);
   }
 }
 
+/** The best camera direction for looking at (x, z): close to `prefer`, never through a wall. */
+export function openSide(x, z, prefer = 0) {
+  let best = prefer, score = -1e9;
+  for (let i = 0; i < 16; i++) {
+    const yaw = prefer + i * Math.PI / 8;
+    const sc = Math.cos(yaw - prefer) - (blocked(x, z, yaw) ? 4 : 0);
+    if (sc > score) { score = sc; best = yaw; }
+  }
+  return best;
+}
+
 function blocked(x, z, yaw) {
-  for (const r of [3, 6, 9]) {
+  for (const r of [3, 6, 9, 12]) {
     const px = x + Math.sin(yaw) * r, pz = z + Math.cos(yaw) * r;
     if (W.colliders.some(c => c.tag !== 'lake' && px > c.x0 - 0.5 && px < c.x1 + 0.5 && pz > c.z0 - 0.5 && pz < c.z1 + 0.5)) return true;
   }
@@ -157,9 +175,10 @@ export function cheatFacing(facing, x, z) {
   return facing + d * 0.55;
 }
 
-export function shot(pos, yaw = 0) {
+export function shot(pos, yaw = null) {
   player.camFocus = pos ? { x: pos.x, z: pos.z } : null;
-  player.camYaw = yaw;
+  // no direction given: from the south if that's open, otherwise the nearest open side
+  player.camYaw = yaw ?? (pos ? openSide(pos.x, pos.z, 0) : 0);
 }
 
 /** Run a story moment as a cutscene: black bars, no HUD, auto-playing, skippable. */
