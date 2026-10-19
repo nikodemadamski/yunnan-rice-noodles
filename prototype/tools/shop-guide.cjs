@@ -22,7 +22,12 @@ const OUT = process.argv[2], LAND = process.argv[3] === 'landscape';
     if (s.over) break;
     const dbg = await ev(() => { const { S, st } = window.__shop2d; const t = S.tickets.find(t => t.uid === st.selected); return `${st.view} sel=${st.selected} ${t ? `fill=${t.fill.toFixed(2)} fat=${t.fat} noodles=${t.noodles} parts=${t.parts.join(',')}` : ''} baskets=${S.baskets.map(b => b.ticket ? b.ticket + ':' + b.t.toFixed(1) : '-').join('/')} step=${st.step ? st.step.kind + ':' + st.step.word : '-'}`; });
     if (dbg !== globalThis.lastDbg) { console.log(((Date.now() - t0) / 1000).toFixed(0) + 's', dbg); globalThis.lastDbg = dbg; }
-    if (!s.step || s.react) { await W(400); continue; }
+    if (s.react) {
+      const rt = await ev(() => window.__shop2d.st.react?.t || 0);
+      for (const [at, nm] of [[0.25, 'react-slide'], [1.0, 'react-eat'], [2.1, 'react-verdict']]) if (rt >= at && !shots.has(nm) && rt < at + 0.9) { shots.add(nm); if (s.view !== 'order') await ev(() => window.__shop2d.go('order')); await p.screenshot({ path: `${OUT}/${nm}.png` }); }
+      await W(150); continue;
+    }
+    if (!s.step) { await W(400); continue; }
     if (s.step.view !== s.view) { await ev(v => window.__shop2d.go(v), s.step.view); await W(1200); continue; }
     const key = s.step.kind + ':' + s.step.word;
     if (!shots.has(key) && shots.size < 14) {               // let the ghost glove appear, then photograph the hint

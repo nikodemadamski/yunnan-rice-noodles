@@ -42,6 +42,9 @@ export async function day1() {
   teleport(P.start.x, P.start.z, Math.PI / 2);
   updateCamera(0, true);
   $('hud').classList.remove('hidden');
+  // the life flip: after grey Dublin, Kunming arrives over-bright and settles
+  document.body.classList.add('grade-flip');
+  setTimeout(() => document.body.classList.remove('grade-flip'), 120);
   await fadeIn();
 
   objective("Find Old Zhao's shop");
@@ -56,6 +59,7 @@ export async function day1() {
     player.heading = Math.PI;
     shot({ x: -15, z: -8 });
     emote(player.char, '❗');
+    setMusic(null);                                  // the street goes quiet
     await beat(1.2);
     await say(SP.you, "Old Zhao's… the shutters are down. “FOR LEASE”?!", { face: 'shock' });
     face('grandma', player);

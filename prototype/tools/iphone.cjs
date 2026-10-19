@@ -11,7 +11,7 @@ const [OUT, MODE, SECS = '240'] = process.argv.slice(2);
   p.on('console', m => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errs.push(m.text()); });
   const shot = n => p.screenshot({ path: `${OUT}/${n}.png` });
   if (MODE === 'intro') {
-    await p.goto('http://localhost:8765/');
+    await p.goto('http://localhost:8765/?auto=1');
     await p.waitForSelector('#t-start'); await p.tap('#t-start');
     const t0 = Date.now(); let i = 0, lastTxt = '';
     while (Date.now() - t0 < +SECS * 1000) {
@@ -23,7 +23,7 @@ const [OUT, MODE, SECS = '240'] = process.argv.slice(2);
       await p.evaluate(() => { const c = document.querySelector('#choices:not(.hidden) button, #panel:not(.hidden) .btn-big, #panel:not(.hidden) button'); if (c) c.click(); });
     }
   } else {
-    await p.goto('http://localhost:8765/');
+    await p.goto('http://localhost:8765/?auto=1');
     await p.waitForSelector('.title-card'); await p.waitForTimeout(1000);
     await p.evaluate(() => { document.querySelectorAll('#panel').forEach(e => e.classList.add('hidden')); const g = window.__game; g.G.busy = 0; g.teleport(-20, -2, Math.PI); });
     await p.waitForTimeout(1500);

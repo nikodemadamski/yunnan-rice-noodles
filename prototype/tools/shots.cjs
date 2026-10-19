@@ -10,7 +10,7 @@ const OUT = process.argv[2], PHONE = process.argv[3] === 'phone', P = PHONE ? 'p
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(`[${hash}] ${e.message}`));
     page.on('console', m => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errs.push(`[${hash}] ${m.text()}`); });
-    await page.goto('http://localhost:8765/' + hash);
+    await page.goto('http://localhost:8765/?auto=1' + hash);
     return page;
   };
   const shot = (page, n) => page.screenshot({ path: `${OUT}/${P}${n}.png` });  // convert to .jpg afterwards (tools/README)

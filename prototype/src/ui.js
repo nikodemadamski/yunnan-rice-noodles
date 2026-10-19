@@ -14,6 +14,19 @@ const $ = id => document.getElementById(id);
 const dlg = $('dialogue');
 dlg.addEventListener('pointerdown', () => queueAction());
 
+// Story controls: tap / Enter = next line, A = autoplay on/off, Esc = skip.
+// Lines wait at a visible hold point (▼) unless autoplay is on.
+export const AUTO = { on: false };
+try { AUTO.on = new URLSearchParams(location.search).has('auto') || localStorage.getItem('autoplay') === '1'; } catch {}
+function setAuto(on) {
+  AUTO.on = on;
+  try { localStorage.setItem('autoplay', on ? '1' : '0'); } catch {}
+  $('cine-auto').textContent = on ? 'Auto ▶ on' : 'Auto ▶';
+  $('cine-auto').classList.toggle('on', on);
+}
+// in a cutscene, a tap anywhere (not on a button) is "next"
+addEventListener('pointerdown', e => { if (G.flags.cine && !e.target.closest('button, input, textarea, .panel, #panel, #choices')) queueAction(); });
+
 // *word* → highlighted
 function segments(text) {
   const out = [];
@@ -92,8 +105,9 @@ export function say(sp, text, o = {}) {
       }
       if (sp.char) sp.char.head.position.y = sp.char.headY;
       held += dt;
-      timer.style.width = `${Math.min(100, (held / hold) * 100)}%`;
-      if (held >= hold || takeAction()) return finish();
+      timer.style.width = AUTO.on ? `${Math.min(100, (held / hold) * 100)}%` : '0%';
+      dlg.classList.toggle('wait', !AUTO.on);                    // the ▼ hold point
+      if ((AUTO.on && held >= hold) || takeAction()) { dlg.classList.remove('wait'); return finish(); }
     });
   });
 }
@@ -179,7 +193,12 @@ export function beat(sec) {
 }
 
 $('cine-skip').addEventListener('click', e => { e.stopPropagation(); G.skip = true; sfx('beep'); });
-addEventListener('keydown', e => { if (e.code === 'Escape' && G.flags.cine) G.skip = true; });
+$('cine-auto').addEventListener('click', e => { e.stopPropagation(); setAuto(!AUTO.on); sfx('pop'); });
+setAuto(AUTO.on);
+addEventListener('keydown', e => {
+  if (e.code === 'Escape' && G.flags.cine) G.skip = true;
+  if (e.code === 'KeyA' && (G.flags.cine || !dlg.classList.contains('hidden'))) { setAuto(!AUTO.on); sfx('pop'); }
+});
 
 export function hideDialogue() { dlg.classList.add('hidden'); }
 

@@ -13,7 +13,7 @@ export const C = {
 export const FONT = '"Patrick Hand", "Nunito", system-ui, sans-serif';
 
 export const LOOKS = {
-  gran: { skin: '#f3d6bd', shirt: '#9b5a8a', hair: '#dcd8d2', style: 'bun', glasses: true },
+  gran: { skin: '#f3d6bd', shirt: '#9b5a8a', hair: '#dcd8d2', style: 'bun', glasses: true, skirt: true, pants: '#6b4a6a' },
   chilli: { skin: '#f2cba7', shirt: '#d63c2f', hair: '#1a1a1a', style: 'pony' },
   wang: { skin: '#f0c8a0', shirt: '#ffd23f', hair: '#1a1a1a', style: 'short' },
   li: { skin: '#f0cfae', shirt: '#7d8fa6', hair: '#eeeeee', style: 'bald', glasses: true },
@@ -22,6 +22,8 @@ export const LOOKS = {
   auntie: { skin: '#f2d0ae', shirt: '#ff6fa8', hair: '#2a2a2a', style: 'bun' },
   lan: { skin: '#f4d6b8', shirt: '#4a7bd8', hair: '#1a1a1a', style: 'cap', cap: '#4a7bd8' },
 };
+
+import { charSprite, SPRITE } from './sprites.js';
 
 // ------------------------------------------------------------ drawing kit
 export let ctx;
@@ -80,50 +82,25 @@ export function hand(x, y, pinch = false) {
 }
 
 // ------------------------------------------------------------ people (drawn, baby-schema)
+// A person in the drawn scenes: a sprite of the real 3D character (see
+// sprites.js), and the body acts the mood: happy hops, sad slumps, angry
+// stomps and shakes, shock jumps, thinking sways. Origin and size match the
+// old drawn people (head ≈ y−40, feet ≈ y+190, ×s).
 export function person(look, x, y, s, mood = 'normal', t = 0, blink = false) {
   s *= look.scale || 1;
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-  // body
-  rr(-78, 40, 156, 150, 60); inked(look.shirt, 5);
-  for (const sx of [-1, 1]) { rr(sx * 70 - 22, 70, 44, 90, 22); inked(look.shirt, 5); }
-  // head
-  const hy = -40;
-  circle(0, hy, 92); inked(look.skin, 5);
-  // hair
-  ctx.fillStyle = look.hair; ctx.strokeStyle = C.ink; ctx.lineWidth = 5;
-  if (look.style !== 'bald') {
-    ctx.beginPath(); ctx.arc(0, hy, 94, Math.PI * 1.02, Math.PI * 1.98); ctx.quadraticCurveTo(40, hy - 40, 0, hy - 30); ctx.quadraticCurveTo(-40, hy - 46, -92, hy - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
-  } else {
-    for (const sx of [-1, 1]) { ellipse(sx * 84, hy + 4, 18, 26); ctx.fill(); ctx.stroke(); }
-  }
-  if (look.style === 'bun') { circle(0, hy - 104, 34); ctx.fill(); ctx.stroke(); }
-  if (look.style === 'pony') { ellipse(96, hy - 10, 26, 46, 0.5); ctx.fill(); ctx.stroke(); }
-  if (look.style === 'spiky') for (const [dx, r] of [[-40, 26], [0, 30], [40, 26]]) { circle(dx, hy - 86, r); ctx.fill(); ctx.stroke(); }
-  if (look.style === 'cap') {
-    ctx.fillStyle = look.cap; ctx.beginPath(); ctx.arc(0, hy - 10, 96, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
-    rr(-10, hy - 22, 130, 24, 12); inked(look.cap, 5);
-  }
-  // face: wide-set big eyes, tiny mouth, blush (Glocker's baby schema)
-  ctx.fillStyle = '#ffadb0'; ctx.globalAlpha = 0.6;
-  ellipse(-52, hy + 30, 18, 11); ctx.fill(); ellipse(52, hy + 30, 18, 11); ctx.fill(); ctx.globalAlpha = 1;
-  const ey = hy + 8;
-  for (const sx of [-1, 1]) {
-    if (mood === 'blank') { circle(sx * 34, ey, 6); ctx.fillStyle = '#3a2420'; ctx.fill(); }
-    else if (blink || mood === 'happy') {
-      ctx.beginPath(); ctx.arc(sx * 34, ey + 6, 14, Math.PI * 1.1, Math.PI * 1.9); ctx.lineWidth = 6; ctx.strokeStyle = '#3a2420'; ctx.stroke();
-    } else {
-      ellipse(sx * 34, ey, 13, 18); ctx.fillStyle = '#3a2420'; ctx.fill();
-      circle(sx * 34 - 4, ey - 7, 5); ctx.fillStyle = '#fff'; ctx.fill();
-    }
-    if (mood === 'angry') { ctx.beginPath(); ctx.moveTo(sx * 18, ey - 26); ctx.lineTo(sx * 50, ey - 34); ctx.lineWidth = 6; ctx.strokeStyle = '#3a2420'; ctx.stroke(); }
-  }
-  if (look.glasses) { ctx.lineWidth = 4; ctx.strokeStyle = '#4a3a3a'; for (const sx of [-1, 1]) { circle(sx * 34, ey + 2, 24); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(-10, ey); ctx.lineTo(10, ey); ctx.stroke(); }
-  ctx.lineWidth = 5; ctx.strokeStyle = '#3a2420'; ctx.beginPath();
-  if (mood === 'sad' || mood === 'angry') ctx.arc(0, hy + 52, 12, Math.PI * 1.15, Math.PI * 1.85);
-  else if (mood === 'shock') { circle(0, hy + 44, 8); }
-  else if (mood === 'blank') { ctx.moveTo(-12, hy + 44); ctx.lineTo(12, hy + 44); }
-  else ctx.arc(0, hy + 36, 12, Math.PI * 0.15, Math.PI * 0.85);
-  ctx.stroke();
+  const img = charSprite(look, mood);
+  const ph = (x * 0.013) % 6.28;                 // people don't all move in sync
+  let dy = 0, sx = 1, sy = 1, rot = 0, dx = 0;
+  if (mood === 'happy') { const k = Math.abs(Math.sin(t * 6 + ph)); dy = -k * 26; sy = 1 + (k < 0.15 ? -0.06 : 0.03); sx = 2 - sy; }   // a happy hop, squash on landing
+  else if (mood === 'sad' || mood === 'cry') { sy = 0.95 + Math.sin(t * 1.5 + ph) * 0.01; dy = 8; }                                      // slumped, barely breathing
+  else if (mood === 'angry') { const k = Math.sin(t * 9 + ph); dx = Math.sign(k) * Math.abs(k) ** 4 * 5; dy = Math.max(0, k) * -8; }   // stomp-stomp, a shake
+  else if (mood === 'shock') { dy = -18 - Math.abs(Math.sin(t * 12)) * 6; sy = 1.04; }                                                    // jumped out of their skin
+  else if (mood === 'think') { rot = Math.sin(t * 1.4 + ph) * 0.05; }
+  else { sy = 1 + Math.sin(t * 2.2 + ph) * 0.012; }                                                                                         // idle breathing
+  ctx.save();
+  ctx.translate(x + dx * s, y + (190 + dy) * s);  // pivot at the feet
+  ctx.rotate(rot); ctx.scale(s * sx, s * sy);
+  ctx.drawImage(img, -SPRITE.w / 2, -SPRITE.h, SPRITE.w, SPRITE.h);
   ctx.restore();
 }
 

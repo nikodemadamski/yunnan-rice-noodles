@@ -174,6 +174,42 @@ function lighthouse(x, z) {
   W.scene.add(tower);
 }
 
+// ---------------------------------------------------------------- Old Zhao's, closed
+// one wilted plant by the shutter, dry leaves blown against it, dust in the light
+const motes = [];
+function closedShop() {
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.6, 12), mat('#b5654a'));
+  pot.position.set(-11.6, 0.42, -8.4); W.scene.add(pot);
+  addCollider(-12, -11.2, -8.8, -8);
+  const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.05, 12), mat('#5a3d2b'));
+  soil.position.set(-11.6, 0.7, -8.4); W.scene.add(soil);
+  const stem = mat('#8a8a4a'), dead = ['#a08a4a', '#8f7a45', '#b39a5a'].map(c => mat(c));
+  for (let i = 0; i < 6; i++) {                  // drooping stalks, leaves hanging over the rim
+    const a = i / 6 * Math.PI * 2, g = new THREE.Group();
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.7, 5), stem);
+    st.position.y = 0.35; g.add(st);
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), dead[i % 3]);
+    leaf.scale.set(0.5, 1, 0.25); leaf.position.set(0, 0.72, 0.08); leaf.rotation.x = 2.4; g.add(leaf);
+    g.position.set(-11.6, 0.7, -8.4); g.rotation.set(0.9 + (i % 2) * 0.3, a, 0);
+    W.scene.add(g);
+  }
+  outline(pot, 1.05);
+  const leafGeo = new THREE.CircleGeometry(0.13, 6);
+  for (let i = 0; i < 26; i++) {                 // leaves drifted against the shutter
+    const l = new THREE.Mesh(leafGeo, dead[i % 3]);
+    l.rotation.set(-Math.PI / 2, 0, R() * 6); l.scale.set(1, 0.6, 1);
+    l.position.set(-19.5 + R() * 9, 0.175, -8.85 + Math.pow(R(), 2) * 0.9);
+    W.scene.add(l);
+  }
+  const moteMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, opacity: 0.5, color: '#fff2d6' });
+  for (let i = 0; i < 18; i++) {
+    const m = new THREE.Sprite(moteMat); m.scale.setScalar(0.07 + R() * 0.06);
+    m.userData.noShadow = true;
+    motes.push({ m, x: -19.5 + R() * 9, y: 0.4 + R() * 3, z: -8.6 + R() * 0.8, ph: R() * 6 });
+    W.scene.add(m);
+  }
+}
+
 // ---------------------------------------------------------------- entry
 export function initDressing() {
   // street lamps on Grandpa's street, the plaza and the lake promenade
@@ -192,6 +228,7 @@ export function initDressing() {
   // a chalkboard outside Old Zhao's, and a signpost at the crossroads
   chalkboard(-9.6, -7.6, 0.3, ['Good Food', 'Good Days']);
   signpost(-46.6, -7.2, [['Market', 1], ['Shops', -1], ['Lake', 1]]);
+  closedShop();
   // the waterfront: rope fence, open water to the horizon, a sailboat, a lighthouse
   ropeFence(-44, 84, -48.9);
   const wt = waterTex(); wt.repeat.set(60, 30);
@@ -207,4 +244,5 @@ export function updateDressing(dt, t) {
   for (const l of lamps) { l.glass.emissiveIntensity = glow; l.halo.material.opacity = W.night ? 0.9 : 0.5; }
   for (const b of boats) { b.g.position.x = b.x0 + Math.sin(t * 0.05 + b.ph) * 14; b.g.position.y = 0.05 + Math.sin(t * 1.3 + b.ph) * 0.12; b.g.rotation.z = Math.sin(t * 1.1 + b.ph) * 0.05; }
   if (W.sea) { const m = W.sea.material.map; m.offset.x += dt * 0.004; }
+  for (const d of motes) d.m.position.set(d.x + Math.sin(t * 0.3 + d.ph) * 0.4, d.y + Math.sin(t * 0.2 + d.ph * 2) * 0.3, d.z);   // dust, hanging in the air
 }

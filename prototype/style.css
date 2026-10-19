@@ -597,7 +597,7 @@ body.cine #result-pop { display: none; }
 
 /* opening: colour grades and a quiet lower-third caption */
 body.grade-memory #scene { filter: sepia(0.22) saturate(1.3) brightness(1.05) contrast(1.02); transition: filter .4s; }
-body.grade-dublin #scene { filter: saturate(0.6) brightness(0.92) contrast(0.97) hue-rotate(-6deg); transition: filter .4s; }
+body.grade-dublin #scene { filter: saturate(0.12) brightness(0.9) contrast(0.92) hue-rotate(-8deg); transition: filter .4s; }   /* the grey office: colour drained */
 body.grade-memory #ui::before, body.grade-dublin #ui::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 55%, rgba(60, 30, 10, .35) 100%);
@@ -760,3 +760,21 @@ canvas.shop2d { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .svc-steps span { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
 .svc-steps small { font-size: 12px; font-weight: 800; color: #7a4a3a; margin-top: 2px; }
 .svc-steps i { font-style: normal; color: #c9a27a; font-size: 20px; }
+
+/* story controls: autoplay toggle beside Skip, and the ▼ hold point */
+#cine-auto {
+  position: absolute; right: calc(max(14px, env(safe-area-inset-right, 0px)) + 96px); bottom: 10px;
+  background: rgba(255, 250, 240, 0.16); color: var(--cream); border: none; border-radius: 999px;
+  padding: 6px 14px; font-weight: 800; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.4s;
+}
+#cine-auto.on { background: var(--duck, #ffd23f); color: #3a2418; }
+body.cine #cine-auto { opacity: 1; pointer-events: auto; }
+#dialogue.wait::after {
+  content: '▼'; position: absolute; right: 30px; bottom: 10px; font-size: 16px; color: #e0602c;
+  animation: holdpoint 0.8s ease-in-out infinite;
+}
+@keyframes holdpoint { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+
+/* colour comes back slowly (the daydream), and the 'life flip' on arrival in Kunming */
+#scene { transition: filter 2.2s ease; }
+body.grade-flip #scene { filter: saturate(1.7) brightness(1.12); transition: none; }

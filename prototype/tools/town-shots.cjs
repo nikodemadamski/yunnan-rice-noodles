@@ -4,7 +4,7 @@ const OUT = process.argv[2];
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const errs = []; page.on('pageerror', e => errs.push(e.message));
-  await page.goto('http://localhost:8765/');
+  await page.goto('http://localhost:8765/?auto=1');
   await page.waitForFunction(() => window.__game && window.__life);
   await page.waitForTimeout(1500);
   await page.evaluate(() => document.querySelectorAll('#panel, .panel').forEach(e => e.classList.add('hidden')));

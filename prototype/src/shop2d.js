@@ -168,7 +168,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       ctx.globalAlpha = 1;
     }
     const lx = step.kind === 'drag' ? step.from.x : step.at.x, ly = (step.kind === 'drag' ? step.from.y - 110 : step.at.y - R - 46);
-    label(step.word, Math.max(160, Math.min(PANEL[st.view] * VW + VW - 160, lx)), Math.max(130, ly), 40);
+    if (st.view !== 'order') label(step.word, Math.max(160, Math.min(PANEL[st.view] * VW + VW - 160, lx)), Math.max(130, ly), 40);   // (the order bubble has words of its own)
   }
   const go = view => { if (st.view !== view) { st.view = view; sfx('whoosh'); } };
   const say = (s, sec = 3.5) => { st.caption = s; st.captionT = sec; };
@@ -329,12 +329,11 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     const p = st.people[t.guest];
     const bad = res.judge.notes.find(n => !n.ok), good = res.judge.notes.filter(n => n.ok);
     if (res.judge.notes.some(n => n.ok && /in order/.test(n.text))) learn('order');
-    p.mood = res.points >= 80 ? 'happy' : res.points >= 60 ? 'normal' : 'sad';
-    st.react = { uid: t.guest, t: 0, res, line: bad ? bad.text : good.length ? `Mm! ${good.slice(0, 2).map(n => n.text).join(' · ')}` : 'Mm!' };
+    p.mood = 'normal';
+    st.react = { uid: t.guest, t: 0, res, mood: res.points >= 80 ? 'happy' : res.points >= 60 ? 'normal' : res.points >= 45 ? 'sad' : 'angry', line: bad ? bad.text : good.length ? `Mm! ${good[0].text}` : 'Mm!' };
     p.tx = O.cx; p.react = true;
     layout();
     go('order');
-    sfx(res.points >= 80 ? 'reveal' : res.points >= 60 ? 'ding' : 'fail');
     st.selected = S.tickets.find(q => !q.served)?.uid || null;
   }
 
@@ -427,10 +426,33 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     if (st.react) {
       const r = st.react, p = st.people[r.uid];
       if (Math.abs(p.x - O.cx) < 10) {
-        r.t += 1 / 60;
-        const lines = wrap(r.line, B.w - 80, 36), h = speech(lines, 50);
-        const pts = r.res.points;
-        text(`${pts >= 90 ? '😍' : pts >= 80 ? '😋' : pts >= 60 ? '🙂' : '😕'}  ${pts}%   +¥${r.res.tip}`, B.x + 30, B.y + h - 34, 36, pts >= 80 ? C.greenD : C.ink, 'left');
+        // 1) the bowl slides along the counter  2) they eat  3) the verdict:
+        // hearts and coins, the body acts it, one short line
+        const pts = r.res.points, hearts = pts >= 85 ? 3 : pts >= 65 ? 2 : 1;
+        const by = COUNTER_Y - 18, slide = Math.min(1, r.t / 0.55), ease = 1 - (1 - slide) ** 3;
+        const bx = O.cx + (1 - ease) * (VW * 0.55);
+        const eat = Math.max(0, Math.min(1, (r.t - 0.6) / 1.0));
+        ellipse(bx, by + 14, 120, 26); ctx.fillStyle = 'rgba(80,40,30,.18)'; ctx.fill();
+        ellipse(bx, by, 112, 40); inked('#fbf6ee', 5);
+        ellipse(bx, by - 4, 92 * (1 - eat * 0.55), 28 * (1 - eat * 0.55)); inked('#f2c46d', 3);
+        rr(bx - 112, by - 2, 224, 30, 14); ctx.fillStyle = '#fbf6ee'; ctx.fill();
+        ctx.strokeStyle = '#3a6ea5'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(bx, by + 6, 108, 34, 0, 0.1, Math.PI - 0.1); ctx.stroke();
+        if (eat > 0 && eat < 1) {                     // chopsticks dipping, steam
+          const dip = Math.abs(Math.sin(r.t * 9)) * 30;
+          ctx.save(); ctx.translate(bx + 40, by - 70 + dip); ctx.rotate(0.35); rr(-4, -90, 8, 110, 4); inked('#c9935f', 3); rr(10, -90, 8, 110, 4); inked('#c9935f', 3); ctx.restore();
+          for (let k = 0; k < 3; k++) { const q = (r.t * 0.9 + k / 3) % 1; ctx.globalAlpha = 0.5 * (1 - q); circle(bx - 30 + k * 30, by - 40 - q * 90, 14 + q * 16); ctx.fillStyle = '#fff'; ctx.fill(); ctx.globalAlpha = 1; }
+        }
+        if (r.t >= 1.6) {
+          const k = Math.min(1, (r.t - 1.6) / 0.25);
+          for (let i = 0; i < 3; i++) {
+            const on = i < hearts, pop = Math.min(1, Math.max(0, (r.t - 1.6 - i * 0.18) / 0.22));
+            const sc = pop < 1 ? pop * 1.3 : 1.3 - Math.min(0.3, (r.t - 1.8 - i * 0.18) * 1.5);
+            ctx.save(); ctx.translate(O.cx - 90 + i * 90, O.guestY - 330 * O.guestS * 0.7); ctx.scale(sc, sc);
+            text(on ? '❤️' : '🤍', 0, 0, 64); ctx.restore();
+          }
+          label(`+¥${r.res.tip}`, O.cx + 200, O.guestY - 330 * O.guestS * 0.7 - (r.t - 1.6) * 30, 44 * k);
+          const lines = wrap(r.line, B.w - 80, 34).slice(0, 2); speech(lines, 50);
+        }
       }
     }
   }
@@ -616,8 +638,18 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
         if (g && g.state !== 'served' && !p.react) p.mood = g.patience / g.maxPatience < 0.25 ? 'angry' : 'happy';
       }
       if (st.react) {
-        const p = st.people[st.react.uid];
-        if (st.react.t > 3.2) { st.money += st.react.res.tip; sfx('coin'); p.react = false; p.leaving = true; p.tx = VW + 200; st.react = null; layout(); }
+        const r = st.react, p = st.people[r.uid];
+        if (Math.abs(p.x - O.cx) < 10) {
+          const t0 = r.t; r.t += dt;
+          const cross = at => t0 < at && r.t >= at;
+          if (cross(0.01)) sfx('whoosh');
+          if (cross(0.6)) { p.mood = 'think'; note(392, 0.08, 'sine', 0.08); }
+          for (const at of [0.8, 1.05, 1.3]) if (cross(at)) sfx('splash');      // slurp
+          if (cross(1.6)) { p.mood = r.mood; sfx(r.res.points >= 85 ? 'reveal' : r.res.points >= 65 ? 'ding' : 'fail'); }
+          const hearts = r.res.points >= 85 ? 3 : r.res.points >= 65 ? 2 : 1;
+          for (let i = 0; i < hearts; i++) if (cross(1.6 + i * 0.18)) note(660 + i * 220, 0.12, 'triangle', 0.14);
+        }
+        if (r.t > 3.4) { st.money += st.react.res.tip; sfx('coin'); p.react = false; p.leaving = true; p.tx = VW + 200; st.react = null; layout(); }
       }
       for (const [uid, p] of Object.entries(st.people)) if (p.leaving && p.x >= VW + 190) delete st.people[uid];
       if (!st.selected) st.selected = S.tickets.find(q => !q.served)?.uid || null;
