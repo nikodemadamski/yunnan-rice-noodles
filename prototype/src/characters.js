@@ -52,14 +52,18 @@ function faceTexture(expr, o) {
   const ink = '#3a2418';
   const L = 37, Rx = 91, Y = 56, MY = 74;       // wide-set eyes, low on the face; mouth close under them
 
-  const eye = (x, h = 1) => {                    // big glossy oval with two catch-lights
-    g.fillStyle = ink;
-    g.beginPath(); g.ellipse(x, Y, 9.5, 12.5 * h, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#5a3a28';
-    g.beginPath(); g.ellipse(x, Y + 5 * h, 6.5, 5 * h, 0, 0, Math.PI * 2); g.fill();
+  const eye = (x, h = 1) => {                    // big glossy brown eyes (character sheets): dark rim, warm iris, two catch-lights
+    g.fillStyle = '#2a1810';
+    g.beginPath(); g.ellipse(x, Y, 10.5, 13 * h, 0, 0, Math.PI * 2); g.fill();
+    const ir = g.createLinearGradient(0, Y - 10 * h, 0, Y + 12 * h);
+    ir.addColorStop(0, '#3b2214'); ir.addColorStop(1, '#8a5232');
+    g.fillStyle = ir;
+    g.beginPath(); g.ellipse(x, Y + 1.5 * h, 8.2, 10.6 * h, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#1e110b';
+    g.beginPath(); g.ellipse(x, Y + 1 * h, 4.2, 5.4 * h, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#fff';
-    g.beginPath(); g.ellipse(x + 3, Y - 5 * h, 3.6, 4.2 * h, 0, 0, Math.PI * 2); g.fill();
-    g.beginPath(); g.arc(x - 3.5, Y + 5 * h, 1.7, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(x + 3.2, Y - 4.8 * h, 3.8, 4.4 * h, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x - 3.6, Y + 5.5 * h, 1.9, 0, Math.PI * 2); g.fill();
   };
   const closed = (x, up = true) => {             // ^ ^ happy arcs, or u u
     g.strokeStyle = ink; g.lineWidth = 4.5;
@@ -118,6 +122,8 @@ function faceTexture(expr, o) {
       eye(L); eye(Rx); mouth('smile');
   }
   if (o.brows && expr === 'normal') brows(1);
+  // a tiny nose, just a warm dot between the eyes and the mouth
+  g.fillStyle = 'rgba(200,110,90,0.55)'; g.beginPath(); g.ellipse(64, MY - 9, 2.6, 1.8, 0, 0, Math.PI * 2); g.fill();
   if (o.blush) {
     g.fillStyle = 'rgba(255,130,150,0.5)';
     g.beginPath(); g.ellipse(L - 6, MY + 1, 9, 5, 0, 0, Math.PI * 2); g.fill();
@@ -240,6 +246,14 @@ export function makeCharacter(opts = {}) {
     const collar = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 20).rotateX(Math.PI / 2), shirtMat);
     collar.position.y = 1.42; body.add(collar);
   }
+  if (o.hoodie) {                                  // a hoodie: the hood bunched behind the neck, a pocket, drawstrings
+    const hood = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.13, 10, 22), shirtMat);
+    hood.rotation.x = Math.PI / 2 - 0.5; hood.position.set(0, 1.42, -0.12); hood.scale.set(1.1, 1, 0.9); body.add(hood);
+    const pocket = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.3, 4, 10).rotateZ(Math.PI / 2), shirtMat);
+    pocket.scale.set(1, 1, 0.45); pocket.position.set(0, 0.86, 0.43); body.add(pocket);
+    for (const sx of [-1, 1]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.26, 5), mat('#fbf6ee')); st.position.set(sx * 0.1, 1.3, 0.44); body.add(st); }
+  }
+  if (o.brooch) { const d = daisy(0.08); d.position.set(0.18, 1.18, 0.46); body.add(d); }   // Grandma's daisy button
   if (o.backpack) {                                // a brown leather backpack with a daisy patch
     const pack = new THREE.Group();
     const bag = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.22, 6, 12), mat(o.backpack));
@@ -282,7 +296,22 @@ export function makeCharacter(opts = {}) {
     b.position.set(x, y, z); b.scale.set(sx, sy, sz);
     head.add(b); return b;
   };
-  if (o.hairStyle !== 'bald') {
+  if (o.hairStyle === 'bowl') {
+    // a thick round bowl cut: a dome down to the brows, full sides over the
+    // ears, rounded bangs, tousled top, one cowlick
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.88, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.43), hairMat);
+    dome.position.y = 0.02; head.add(dome);
+    const back = new THREE.Mesh(new THREE.SphereGeometry(0.86, 32, 16, Math.PI * 1.08, Math.PI * 0.84, 0, Math.PI * 0.8), hairMat);
+    head.add(back);
+    for (let i = -4; i <= 4; i++) {                  // a soft continuous fringe, longest in the middle
+      const a = i * 0.2;
+      blob(0.2, 0.86 * Math.sin(a), 0.28 - Math.abs(i) * 0.015, 0.86 * Math.cos(a) - 0.1, 1.45, 0.8 + (4 - Math.abs(i)) * 0.03, 0.55);
+    }
+    for (const sx of [-1, 1]) { blob(0.3, sx * 0.74, 0.08, 0.02, 0.75, 1.1, 1.05); blob(0.28, sx * 0.68, -0.08, -0.32, 0.8, 1.05, 1); }   // full sides over the ears
+    const cow = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.035, 6, 12, Math.PI * 1.3), hairMat);
+    cow.position.set(0.05, 1.02, 0.02); cow.rotation.set(0, 0.4, 0.6); head.add(cow); tufts.push(cow);
+  }
+  if (o.hairStyle !== 'bald' && o.hairStyle !== 'bowl') {
     const cap = new THREE.Mesh(new THREE.SphereGeometry(0.82, 32, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat);
     cap.rotation.x = -0.3;                          // rim rises at the front: a high forehead
     head.add(cap);

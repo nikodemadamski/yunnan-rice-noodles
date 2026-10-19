@@ -26,7 +26,7 @@ const OUT = process.argv[2], PHONE = process.argv[3] === 'phone', P = PHONE ? 'p
   // street + dialogue on Day 2
   p = await open('#day2');
   const dlg = () => p.evaluate(() => !document.getElementById('dialogue').classList.contains('hidden'));
-  await p.waitForFunction(() => !document.getElementById('dialogue').classList.contains('hidden'), null, { timeout: 90000 });
+  await p.waitForFunction(() => !document.getElementById('dialogue').classList.contains('hidden'), null, { timeout: 200000 });
   await p.waitForTimeout(2500); await shot(p, '09-dialogue-day2');
   for (let i = 0; i < 60; i++) { if (!await dlg()) { await p.waitForTimeout(1500); if (!await dlg()) break; } await p.keyboard.press('Enter'); await p.waitForTimeout(500); }
   await p.waitForTimeout(4000); await shot(p, '10-street-day2');
@@ -41,7 +41,7 @@ const OUT = process.argv[2], PHONE = process.argv[3] === 'phone', P = PHONE ? 'p
   }
   await p.close();
   // evening at grandma's (bowl lab)
-  p = await open('#evening'); await p.waitForFunction(() => !document.getElementById('dialogue').classList.contains('hidden'), null, { timeout: 90000 }); await p.waitForTimeout(2500); await shot(p, '14-evening'); await p.close();
+  p = await open('#evening'); await p.waitForFunction(() => !document.getElementById('dialogue').classList.contains('hidden'), null, { timeout: 200000 }); await p.waitForTimeout(2500); await shot(p, '14-evening'); await p.close();
   // kitchen + cooking: the drawn shop
   p = await open('#shop');
   await p.waitForSelector('.svc-rules [data-go]'); await shot(p, '15-shop-rules');

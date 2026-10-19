@@ -117,17 +117,36 @@ function makeBike() {
   return g;
 }
 
-export function initPlayer() {
-  player.char = makeCharacter({
-    // the main character (character sheet): a curly messy bun with a daisy clip,
-    // a cream knit jumper, rolled-up jeans, white sneakers, a brown backpack
+// the two heroes from the character sheets: same backpack, same sneakers
+export const HEROES = {
+  girl: {   // a curly messy bun with a daisy clip, a cream knit jumper, rolled-up jeans
     skin: '#ffe3cf', shirt: '#fcf5ea', knit: true, pants: '#7ea6d4', cuffs: '#9cbde3', hair: '#3f271b', hairStyle: 'messybun',
     flower: true, backpack: '#8f5a34', shoes: '#fbf7f0', sneakers: true, blush: true,
-  });
+  },
+  boy: {    // a round bowl cut with a cowlick, a butter-yellow hoodie, rolled-up jeans
+    skin: '#ffe3cf', shirt: '#f7dc8f', hoodie: true, pants: '#7ea6d4', cuffs: '#9cbde3', hair: '#3f271b', hairStyle: 'bowl',
+    backpack: '#8f5a34', shoes: '#fbf7f0', sneakers: true, blush: true,
+  },
+};
+export function heroKind() { try { return localStorage.getItem('hero') === 'boy' ? 'boy' : 'girl'; } catch { return 'girl'; } }
+
+export function initPlayer() {
+  player.char = makeCharacter(HEROES[heroKind()]);
   W.scene.add(player.char.root);
   player.bike = makeBike();
   player.bike.visible = false;
   W.scene.add(player.bike);
+}
+
+/** Swap the hero (title screen choice); keeps position and mode. */
+export function setHero(kind) {
+  try { localStorage.setItem('hero', kind); } catch {}
+  const old = player.char, parent = old.root.parent;
+  const c = makeCharacter(HEROES[kind]);
+  c.root.position.copy(old.root.position); c.root.rotation.copy(old.root.rotation);
+  parent.remove(old.root); parent.add(c.root);
+  player.char = c;
+  return c;
 }
 
 export function setMode(mode) {
@@ -307,12 +326,15 @@ export function updateCamera(dt, snap = false) {
   // on a phone held upright, look down more steeply (more street, fewer walls in the way)
   const tall = W.camera.aspect < 0.8 && !cine;
   const kd = cine ? portraitDolly() : 1;
-  const h = cine ? 5.5 * kd : bike ? (tall ? 21 : 16) : tall ? 16 : 11.5, back = cine ? 10.5 * kd : bike ? (tall ? 15 : 19.5) : tall ? 11 : 15, side = cine ? 3 : 0;
+  // a lower, storybook angle (world board): the street runs away to the
+  // horizon and the sea; the hero stands in the lower third
+  const h = cine ? 5.5 * kd : bike ? (tall ? 15 : 13) : tall ? 11.5 : 10, back = cine ? 10.5 * kd : bike ? (tall ? 17 : 18) : tall ? 13.5 : 14, side = cine ? 3 : 0;
+  const lift = cine ? 0 : tall ? 2.6 : 1.4;           // look past the hero, up the street
   const k = snap ? 1 : 1 - Math.exp(-dt * (cine ? 2.2 : bike ? 4 : 6));
   camYaw += angleDiff(camYaw, cine ? player.camYaw : 0) * (snap ? 1 : 1 - Math.exp(-dt * 2.5));
   const ox = Math.sin(camYaw) * back + Math.cos(camYaw) * side;
   const oz = Math.cos(camYaw) * back - Math.sin(camYaw) * side;
-  camFocus.lerp(new THREE.Vector3(tx, cine ? 2.3 : 1.5, tz), k);
+  camFocus.lerp(new THREE.Vector3(tx - Math.sin(camYaw) * lift, cine ? 2.3 : 1.5, tz - Math.cos(camYaw) * lift), k);
   camRig.x += (ox - camRig.x) * k; camRig.y += (h - camRig.y) * k; camRig.z += (oz - camRig.z) * k;
   if (player.camShot || snap) camBlend = snap ? 1 : 0;
   if (!player.camShot) {

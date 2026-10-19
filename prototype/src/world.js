@@ -198,6 +198,15 @@ const ROOFS = ['#e8735a', '#5fa8d3', '#79b86e', '#c7697f', '#8f74c4'];
 
 // a soft dark pool where things meet the ground, so nothing floats
 let contactMat = null, lidMat = null;
+// lawn with flowers, for the top of a cut-away building (inside its brick walls)
+function gardenTex() {
+  const t = grass(), c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'); g.drawImage(t.image, 0, 0, 256, 256);
+  const cols = ['#ffffff', '#ffb7c9', '#ffd84d', '#f27a8a', '#c9a6ff'];
+  for (let i = 0; i < 140; i++) { const x = R() * 256, y = R() * 256, col = cols[i % cols.length]; g.fillStyle = col; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(x + Math.cos(k * 1.26) * 3, y + Math.sin(k * 1.26) * 3, 2.4, 0, 7); g.fill(); } g.fillStyle = '#ffcf3a'; g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.fill(); }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 2);
+  return tex;
+}
 const PLINTH = [], LEDGE = [], KERB = [];
 // all plinths in two draw calls
 export function flushPlinths() {
@@ -247,7 +256,7 @@ export function building(x, z, w, d, h, opts = {}) {
   addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2);
   // the lid of a cut-away building: a solid top at the cut, so it reads as a
   // low wall, never a hollow box you can see through
-  lidMat ||= (() => { const t = woodTex('#c9935f'); t.repeat.set(2, 2); return toon({ color: '#ffffff', map: t }); })();   // a dollhouse floor
+  lidMat ||= toon({ color: '#ffffff', map: gardenTex() });   // a cut-away building becomes a walled flower garden
   const lid = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), lidMat);
   lid.position.set(x, 1.5, z); lid.visible = false; lid.userData.noShadow = true;
   W.scene.add(lid);
@@ -638,7 +647,7 @@ function buildBumps() {
 // and a few fat clouds: the world never ends in a beige void.
 function buildHorizon() {
   const R2 = rng(77);
-  const hillMat = toon({ color: '#9fb3d6' }), farMat = toon({ color: '#b9c3e3' });
+  const hillMat = toon({ color: '#93c38e' }), farMat = toon({ color: '#c7bfe0' });   // green near hills, lavender far ones (world board)
   for (let i = 0; i < 46; i++) {
     const a = i / 46 * Math.PI * 2 + R2() * 0.08;
     for (const [rad, m, hMul] of [[215, farMat, 1.25], [175, hillMat, 1]]) {

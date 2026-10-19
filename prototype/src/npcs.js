@@ -47,7 +47,7 @@ const SKINS = ['#f6d2b0', '#eec3a0', '#f9dcc4', '#e5b893', '#f2cfae'];
 const SHIRTS = ['#7fb3e6', '#e9a1a1', '#9bd19b', '#f4d06f', '#c9a6e8', '#f2a65a', '#8fd3d3', '#e7e1d5'];
 
 export function initNPCs() {
-  spawn('grandma', { skin: '#f3d0b5', shirt: '#9b5a8a', pants: '#4a3a5a', hair: '#d8d4d0', hairStyle: 'bun', skirt: true, scale: 0.82, blush: true },
+  spawn('grandma', { skin: '#f3d0b5', shirt: '#6e3b6e', pants: '#6e3b6e', hair: '#d9d5cf', hairStyle: 'bun', skirt: true, glasses: true, brooch: true, sneakers: true, shoes: '#fbf7f0', scale: 0.82, blush: true },   // cast sheet: purple dress, daisy button, white sneakers
     { x: -17.5, z: -7.2 }, { type: 'idle' });
   spawn('wang', { skin: '#f0c8a0', shirt: '#ffd700', pants: '#e0418a', hair: '#1a1a1a', hairStyle: 'short', wide: 1.35, prop: 'selfie', glasses: true },
     { x: -15, z: 7.5 }, { type: 'idle' }, Math.PI);
@@ -84,7 +84,7 @@ export function initNPCs() {
   const m = P.market;
   hats.forEach(([hat, hc], i) => {
     const pos = { x: m.x - m.w / 2 + 2 + R() * (m.w - 4), z: m.z - m.d / 2 + 2 + R() * (m.d - 4) };
-    const n = spawn(`crowd${i}`, { skin: SKINS[i % 5], shirt: SHIRTS[i % SHIRTS.length], pants: '#4a4f5a', hair: '#2a2a2a', hairStyle: ['short', 'bun', 'long', 'bald'][i % 4], hat, hatColor: hc, scale: 0.9 + R() * 0.15 },
+    const n = spawn(`crowd${i}`, { skin: SKINS[i % 5], shirt: SHIRTS[i % SHIRTS.length], pants: '#2f3a56', hair: i % 5 === 3 ? '#cfcac4' : '#3f271b', hairStyle: hat === 'cap' ? 'short' : ['bowl', 'bun', 'long', 'bowl'][i % 4], glasses: i % 5 === 3, sneakers: true, shoes: '#fbf7f0', hat, hatColor: hc, scale: 0.9 + R() * 0.15 },
       pos, { type: 'wander', rect: m, wait: R() * 2 });
     crowd.push(n);
   });
@@ -94,7 +94,7 @@ export function initNPCs() {
 
   // a few passers-by on grandpa's street
   for (let i = 0; i < 4; i++) {
-    spawn(`walker${i}`, { skin: SKINS[(i + 2) % 5], shirt: SHIRTS[(i + 3) % SHIRTS.length], pants: '#4a4f5a', hair: '#2a2a2a', hairStyle: ['short', 'long'][i % 2], scale: 0.95 },
+    spawn(`walker${i}`, { skin: SKINS[(i + 2) % 5], shirt: ['#e0453a', '#f2c230', '#3f6fc4', '#f08fb0'][i], pants: '#2f3a56', hair: '#3f271b', hairStyle: ['bowl', 'bun', 'bowl', 'messybun'][i], glasses: i === 2, sneakers: true, shoes: '#fbf7f0', scale: 0.95 },
       { x: -30 + i * 12, z: i % 2 ? 5.9 : -5.9 }, { type: 'wander', rect: { x: 0, z: i % 2 ? 5.9 : -5.9, w: 70, d: 0.4 }, wait: 1 });   // the lane in front of the planters
   }
 }

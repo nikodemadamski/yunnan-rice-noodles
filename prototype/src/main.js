@@ -8,8 +8,9 @@ import { initDecor, updateDecor } from './decor.js';
 import { initLife, updateLife } from './life.js';
 import { initDressing, updateDressing } from './dressing.js';
 import { paperOverlay } from './textures.js';
-import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode } from './player.js';
-import { N, initNPCs, updateNPCs } from './npcs.js';
+import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode, setHero, heroKind, HEROES } from './player.js';
+import { spriteOf } from './sprites.js';
+import { N, SP, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
 import { initAudio, setMusic, toggleMute, sfx, setEngine, speak, tapStream } from './audio.js';
 import { updateFloating, bark, toast, openPanel, closePanel, fadeOut, emote, cutscene } from './ui.js';
@@ -26,6 +27,7 @@ const $ = id => document.getElementById(id);
 
 initWorld($('scene'));
 initPlayer();
+SP.you.char = player.char;                      // the hero's face acts their lines
 initNPCs();
 initInput();
 applyShadows();
@@ -162,13 +164,23 @@ function title() {
       <div class="big">过桥</div>
       <div class="en">Crossing the Bridge</div>
       <p class="sub">A vibe coder from Ireland. 22 days of leave. One missing grandpa.<br>And a very yellow delivery bike.</p>
-      <div class="row" style="justify-content:center; margin-top:14px">
+      <div class="hero-pick">${['girl', 'boy'].map(k => `<button data-hero="${k}" class="${heroKind() === k ? 'on' : ''}"><canvas width="120" height="165"></canvas></button>`).join('')}</div>
+      <div class="row" style="justify-content:center; margin-top:10px">
         <button class="btn-big" id="t-start">▶ Start</button>
         <button class="btn-soft" id="t-skip">Skip to Day 2 (deliveries)</button>
         <button class="btn-soft" id="t-shop">🍜 Noodle shop (new)</button>
       </div>
-      <p class="sub" style="margin-top:14px">Prototype · Day 1–2 · Keyboard: WASD/arrows + E · Phone: joystick + yellow button · Story scenes play by themselves (Skip ⏭ any time)</p>
+      <p class="sub" style="margin-top:14px">Pick your hero · Move: WASD / joystick · Talk: E / yellow button · Story: tap or Enter for the next line, A autoplay, Esc skip</p>
     </div>`);
+    // the hero picker: little portraits rendered from the real 3D heroes
+    p.querySelectorAll('[data-hero]').forEach(b => {
+      const g = b.querySelector('canvas').getContext('2d');
+      g.drawImage(spriteOf(HEROES[b.dataset.hero], 'happy'), 0, 0, 120, 165);
+      b.addEventListener('click', () => {
+        p.querySelectorAll('[data-hero]').forEach(x => x.classList.toggle('on', x === b));
+        SP.you.char = setHero(b.dataset.hero); sfx('pop');
+      });
+    });
     p.querySelector('#t-start').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('full'); });
     p.querySelector('#t-skip').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('day2'); });
     p.querySelector('#t-shop').addEventListener('click', () => { initAudio(); setMusic('day'); closePanel(); res('shop'); });

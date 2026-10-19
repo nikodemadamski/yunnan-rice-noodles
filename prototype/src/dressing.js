@@ -210,6 +210,79 @@ function closedShop() {
   }
 }
 
+// ---------------------------------------------------------------- world board extras
+// white picket fences around little front gardens, bistro tables under yellow
+// umbrellas, round flower beds, bracket signs, flowers everywhere
+const FLOWERS = ['#ffffff', '#ffb7c9', '#ffd84d', '#f27a8a', '#c9a6ff', '#ff9f6b'];
+function flowerPatch(x0, x1, z0, z1, n) {
+  const stem = new THREE.SphereGeometry(0.16, 6, 5), bloom = new THREE.SphereGeometry(0.11, 6, 5);
+  const leaf = mat('#5f9e4a'), blooms = FLOWERS.map(c => mat(c));
+  for (let i = 0; i < n; i++) {
+    const x = x0 + R() * (x1 - x0), z = z0 + R() * (z1 - z0);
+    const l = new THREE.Mesh(stem, leaf); l.position.set(x, 0.3, z); l.scale.set(1.2, 0.8, 1.2); W.scene.add(l);
+    const b = new THREE.Mesh(bloom, blooms[i % blooms.length]); b.position.set(x + 0.05, 0.48, z + 0.05); W.scene.add(b);
+  }
+}
+function picketFence(pts) {                       // a polyline of white pickets with two rails
+  const white = mat('#fbf8f2'), picket = new THREE.BoxGeometry(0.12, 0.8, 0.06), tip = new THREE.ConeGeometry(0.085, 0.14, 4);
+  for (let k = 0; k < pts.length - 1; k++) {
+    const [ax, az] = pts[k], [bx, bz] = pts[k + 1], len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
+    for (let d = 0; d <= len; d += 0.32) {
+      const x = ax + (bx - ax) * d / len, z = az + (bz - az) * d / len;
+      const p = new THREE.Mesh(picket, white); p.position.set(x, 0.56, z); p.rotation.y = ang + Math.PI / 2; W.scene.add(p);
+      const t = new THREE.Mesh(tip, white); t.position.set(x, 1.02, z); t.rotation.y = Math.PI / 4; W.scene.add(t);
+    }
+    for (const y of [0.4, 0.78]) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, len), white); r.position.set((ax + bx) / 2, y, (az + bz) / 2); r.rotation.y = ang; W.scene.add(r); }
+    addCollider(Math.min(ax, bx) - 0.1, Math.max(ax, bx) + 0.1, Math.min(az, bz) - 0.1, Math.max(az, bz) + 0.1);
+  }
+}
+function frontGarden(x, w, zWall, depth) {        // in front of a house on the north side of a street
+  const z1 = zWall + depth;
+  picketFence([[x - w / 2, zWall], [x - w / 2, z1], [x - 0.6, z1]]);
+  picketFence([[x + 0.6, z1], [x + w / 2, z1], [x + w / 2, zWall]]);   // a gap for the gate
+  flowerPatch(x - w / 2 + 0.3, x - 0.9, zWall + 0.3, z1 - 0.3, 18);
+  flowerPatch(x + 0.9, x + w / 2 - 0.3, zWall + 0.3, z1 - 0.3, 18);
+}
+function bistro(x, z) {
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.08, 18), mat('#f3d36b')); top.position.y = 1.05; g.add(top);
+  const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.82, 0.18, 18, 1, true), toon({ color: '#ffffff', map: stripes('#f3d36b', '#fff8e6'), side: THREE.DoubleSide })); cloth.position.y = 0.98; g.add(cloth);
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 1.05, 8), mat('#6b4a32')); leg.position.y = 0.52; g.add(leg);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), mat('#f5f0e6')); pole.position.y = 2.1; g.add(pole);
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.7, 12, 1, true), toon({ color: '#ffd84d', side: THREE.DoubleSide })); shade.position.y = 3.25; g.add(shade);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), mat('#f5f0e6')); knob.position.y = 3.65; g.add(knob);
+  for (const sx of [-1, 1]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.6, 12), mat('#c98f5c')); st.position.set(sx * 1.15, 0.3, 0); g.add(st); }
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.16, 10), mat('#ffffff')); cup.position.set(0.2, 1.17, 0.1); g.add(cup);
+  outline(g, 1.04);
+  g.position.set(x, 0.12, z); W.scene.add(g);
+  addCollider(x - 1.5, x + 1.5, z - 0.8, z + 0.8);
+}
+function roundBed(x, z, r) {
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.18, 8, 28).rotateX(Math.PI / 2), mat('#b5654a')); rim.position.set(x, 0.3, z); W.scene.add(rim);
+  const soil = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.3, 28), mat('#6b8f45')); soil.position.set(x, 0.2, z); W.scene.add(soil);
+  flowerPatch(x - r * 0.7, x + r * 0.7, z - r * 0.7, z + r * 0.7, Math.round(r * r * 7));
+  addCollider(x - r * 0.75, x + r * 0.75, z - r * 0.75, z + r * 0.75);
+}
+function bracketSign(x, y, z, ry, text, bg) {
+  const g = new THREE.Group();
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.1), mat('#2d2a2e')); arm.position.set(0, 0, 0.55); g.add(arm);
+  const t = canvasTex(160, 160, c => { c.fillStyle = bg; c.beginPath(); c.arc(80, 80, 76, 0, 7); c.fill(); c.lineWidth = 8; c.strokeStyle = '#6b4a32'; c.stroke(); c.font = '64px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, 80, 86); });
+  const board = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.06, 20).rotateZ(Math.PI / 2), [mat('#6b4a32'), toon({ map: t }), toon({ map: t })]);
+  board.position.set(0, -0.5, 0.75); board.rotation.y = Math.PI / 2; g.add(board);
+  outline(g, 1.05);
+  g.position.set(x, y, z); g.rotation.y = ry; W.scene.add(g);
+}
+function worldBoard() {
+  for (const [x, w] of [[-38, 6], [26, 7], [38, 7]]) frontGarden(x, w, -12, 2.2);
+  bistro(21.6, -7.4); bistro(9, 12.4); bistro(32, 27);
+  roundBed(19, 14.5, 1.6); roundBed(31, 25.5, 1.4);
+  bracketSign(-11.2, 4.2, -9, 0, '🍜', '#fff4e2');
+  bracketSign(18.6, 3.8, -10, 0, '🥢', '#ffe9ef');
+  bracketSign(-58.9, 4, -16, Math.PI / 2, '🌸', '#fff0f5');
+  // planters full of flowers along the lake promenade
+  for (let x = -40; x <= 80; x += 8) { if ((x > 6 && x < 18) || (x > 25 && x < 35)) continue; flowerPatch(x - 0.9, x + 0.9, -45.6, -45.2, 8); }
+}
+
 // ---------------------------------------------------------------- entry
 export function initDressing() {
   // street lamps on Grandpa's street, the plaza and the lake promenade
@@ -229,6 +302,7 @@ export function initDressing() {
   chalkboard(-9.6, -7.6, 0.3, ['Good Food', 'Good Days']);
   signpost(-46.6, -7.2, [['Market', 1], ['Shops', -1], ['Lake', 1]]);
   closedShop();
+  worldBoard();
   // the waterfront: rope fence, open water to the horizon, a sailboat, a lighthouse
   ropeFence(-44, 84, -48.9);
   const wt = waterTex(); wt.repeat.set(60, 30);

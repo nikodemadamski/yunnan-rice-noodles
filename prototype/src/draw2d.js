@@ -12,15 +12,15 @@ export const C = {
 };
 export const FONT = '"Patrick Hand", "Nunito", system-ui, sans-serif';
 
-export const LOOKS = {
-  gran: { skin: '#f3d6bd', shirt: '#9b5a8a', hair: '#dcd8d2', style: 'bun', glasses: true, skirt: true, pants: '#6b4a6a' },
+export const LOOKS = {   // the cast sheet: big round hair, navy jeans, white sneakers
+  gran: { skin: '#f3d6bd', shirt: '#6e3b6e', hair: '#d9d5cf', style: 'bun', glasses: true, skirt: true, pants: '#6e3b6e', brooch: true },
   chilli: { skin: '#f2cba7', shirt: '#d63c2f', hair: '#1a1a1a', style: 'pony' },
-  wang: { skin: '#f0c8a0', shirt: '#ffd23f', hair: '#1a1a1a', style: 'short' },
-  li: { skin: '#f0cfae', shirt: '#7d8fa6', hair: '#eeeeee', style: 'bald', glasses: true },
-  student: { skin: '#f4d6b8', shirt: '#4a7bd8', hair: '#3a2a20', style: 'spiky', glasses: true },
-  kid: { skin: '#f8dcc0', shirt: '#ffb3c8', hair: '#3a2a20', style: 'pony', scale: 0.78 },
+  wang: { skin: '#f0c8a0', shirt: '#ffd23f', hair: '#1a1a1a', style: 'short', wide: 1.3 },
+  li: { skin: '#f0cfae', shirt: '#8a919c', hair: '#cfcac4', style: 'bowl', glasses: true },
+  student: { skin: '#f4d6b8', shirt: '#3f6fc4', hair: '#3f271b', style: 'bowl', glasses: true },
+  kid: { skin: '#f8dcc0', shirt: '#f08fb0', hair: '#3f271b', style: 'messybun', scale: 0.78 },
   auntie: { skin: '#f2d0ae', shirt: '#ff6fa8', hair: '#2a2a2a', style: 'bun' },
-  lan: { skin: '#f4d6b8', shirt: '#4a7bd8', hair: '#1a1a1a', style: 'cap', cap: '#4a7bd8' },
+  lan: { skin: '#f4d6b8', shirt: '#3f6fc4', hair: '#3f271b', style: 'cap', cap: '#3f6fc4' },
 };
 
 import { charSprite, SPRITE } from './sprites.js';

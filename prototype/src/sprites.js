@@ -30,9 +30,10 @@ function setup() {
 function opts(look) {
   const st = look.style;
   return {
-    skin: look.skin, shirt: look.shirt, hair: look.hair, pants: look.pants || '#4a4f5a',
+    skin: look.skin, shirt: look.shirt, hair: look.hair,
     hairStyle: st === 'cap' ? 'short' : st, hat: st === 'cap' ? 'cap' : 'none', hatColor: look.cap,
     glasses: !!look.glasses, skirt: !!look.skirt, blush: true, wide: look.wide || 1,
+    pants: look.pants || '#2f3a56', sneakers: true, shoes: '#fbf7f0', brooch: !!look.brooch,
   };
 }
 
@@ -51,11 +52,14 @@ const POSES = {
 const FACE = { normal: 'normal', happy: 'happy', sad: 'sad', cry: 'cry', angry: 'angry', shock: 'shock', smug: 'smug', think: 'normal', blank: 'blank' };
 
 /** A cached sprite canvas (PX_W × PX_H, feet at the bottom centre). */
-export function charSprite(look, mood = 'normal') {
-  const key = JSON.stringify(look) + '|' + mood;
+export function charSprite(look, mood = 'normal') { return spriteOf(opts(look), mood); }
+
+/** Same, from 3D character options directly (e.g. the heroes). */
+export function spriteOf(o3, mood = 'normal') {
+  const key = JSON.stringify(o3) + '|' + mood;
   if (cache.has(key)) return cache.get(key);
   if (!R) setup();
-  const ch = makeCharacter(opts(look));
+  const ch = makeCharacter(o3);
   ch.setFace(FACE[mood] || 'normal');
   (POSES[mood] || POSES.normal)(ch);
   ch.root.rotation.y = 0.18;                    // a touch of three-quarter
