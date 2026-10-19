@@ -18,6 +18,7 @@ import {
   createShop, takeOrder, startNoodles, liftNoodles, pour, addFat, addPart, resetBowl, serve, tick, dayOver, drainEvents, noodleRing,
 } from './shopcore.js';
 import { learn } from './lore.js';
+import { drawFood, drawBowl, drawDish, drawSplash, splashAt } from './food.js';
 import { progress, owns, buy, useBowl, bowlRim, earn, pagesFound, ITEMS, PAGES, heartsFor } from './progress.js';
 import { ctx, use, C, FONT, LOOKS, P2, rr, inked, circle, ellipse, text, label, wrap, rng, checker, grain, patterns, hand, person, piece } from './draw2d.js';
 
@@ -30,7 +31,7 @@ function relayout(portrait) {
   PORTRAIT = portrait; VW = portrait ? 900 : 1600; VH = portrait ? 1600 : 900; BUILD = 2 * VW; STOVE = VW;
   const set = (o, v) => Object.assign(o, v);
   if (!portrait) {
-    set(BOWL, { x: BUILD + 720, y: 612, r: 192 }); set(POT, { x: BUILD + 205, y: 600, r: 130 }); set(OIL, { x: BUILD + 205, y: 360, r: 62 });
+    set(BOWL, { x: BUILD + 720, y: 600, r: 218 }); set(POT, { x: BUILD + 205, y: 600, r: 130 }); set(OIL, { x: BUILD + 205, y: 360, r: 62 });
     set(TRASH, { x: BUILD + 1450, y: 640, w: 120, h: 150 }); set(SERVE, { x: BUILD + 1080, y: 705, w: 230, h: 84 }); set(THERMO, { x: BUILD + 980, y: 430, h: 260 });
     ROWS = [['pork', 'fish', 'egg', 'ham', 'chrys', 'chilli'], ['pea', 'chives', 'tofu', 'jizong', 'noodles']];
     set(BIN, { w: 150, h: 112, gap: 18, x0: BUILD + 345, y0: 92, rowGap: 52, shift: 40 });
@@ -43,7 +44,7 @@ function relayout(portrait) {
       queue: i => 1320 + i * 110, bubble: { x: 800, y: 120, w: 600 }, tableR: 95, teapot: 1260, jar: 1420, plant: 170, seatS: 0.42 });
     set(H, { tabs: { x: 560, y: 14, w: 160, gap: 170 }, chips: [{ x: 20, y: 14 }, { x: 220, y: 14 }], money: { x: 1360, y: 14 }, tk: { x: 20, y: 96, gap: 118 }, cap: 92 });
   } else {
-    set(BOWL, { x: BUILD + 450, y: 960, r: 190 }); set(POT, { x: BUILD + 175, y: 1330, r: 115 }); set(OIL, { x: BUILD + 400, y: 1340, r: 60 });
+    set(BOWL, { x: BUILD + 450, y: 955, r: 238 }); set(POT, { x: BUILD + 175, y: 1330, r: 115 }); set(OIL, { x: BUILD + 400, y: 1340, r: 60 });
     set(TRASH, { x: BUILD + 760, y: 800, w: 110, h: 140 }); set(SERVE, { x: BUILD + 540, y: 1290, w: 320, h: 96 }); set(THERMO, { x: BUILD + 50, y: 800, h: 260 });
     ROWS = [['pork', 'fish', 'egg', 'ham'], ['chrys', 'chilli', 'pea', 'chives'], ['tofu', 'jizong', 'noodles']];
     set(BIN, { w: 172, h: 106, gap: 30, x0: BUILD + 50, y0: 300, rowGap: 46, shift: 0 });
@@ -89,7 +90,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   const S = createShop(schedule, { baskets: 2 });
   const st = {
     view: 'order', camX: 0, t: 0, selected: null, ptr: { x: 0, y: 0, down: false, vx: 0, vy: 0 }, drag: null, pouring: false,
-    people: {}, pieces: {}, ripples: [], pops: [], caption: '', captionT: 0, idleT: 0, bubble: null, money: 0, react: null, lifts: [],
+    people: {}, pieces: {}, ripples: [], pops: [], caption: '', captionT: 0, idleT: 0, drops: [], waves: [], fatT: {}, held: { x: 0, y: 0, rot: 0 }, shake: 0, bubble: null, money: 0, react: null, lifts: [],
   };
   let scale = 1, ox = 0, oy = 0;
   function resize() {
@@ -151,11 +152,11 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     else { ringAt(step.from, 80); }
     // the ghost glove only after a moment of hesitation, so it never nags
     if (st.idleT > 1.1) {
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.6;
       if (step.kind === 'drag') {
         const k = (t * 0.7) % 1, e = k < 0.15 ? 0 : k > 0.8 ? 1 : (k - 0.15) / 0.65, ee = e * e * (3 - 2 * e);
         const x = step.from.x + (step.at.x - step.from.x) * ee, y = step.from.y + (step.at.y - step.from.y) * ee;
-        if (k > 0.1 && k < 0.85) piece(step.part, x, y - 30, 0, step.part === 'egg' ? -1 : 1, 0.9, 7);
+        if (k > 0.1 && k < 0.85) drawFood(ctx, step.part, x, y - 30, { cook: step.part === 'egg' ? 'shell' : PARTS[step.part]?.rank === 0 ? 0 : 1, s: 1, alpha: 0.8 });
         hand(x + 18, y + 40, k > 0.1 && k < 0.85);
         if (k > 0.8) { circle(step.at.x, step.at.y, 40 + (k - 0.8) * 600); ctx.strokeStyle = '#fff6d8'; ctx.lineWidth = 5; ctx.stroke(); }
       } else if (step.kind === 'hold') {
@@ -246,7 +247,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (part) {
         if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; }
         if (part === 'noodles' && t.noodles === null) { say('The noodles for this bowl aren’t cooked yet. To the stove! ♨️'); sfx('bump'); return; }
-        st.drag = { kind: 'part', part, seed: Math.floor(Math.random() * 999) }; sfx('pop'); return;
+        st.drag = { kind: 'part', part, seed: Math.floor(Math.random() * 999) }; st.held.x = w.x; st.held.y = w.y - 40; st.held.rot = 0; sfx('pop'); return;
       }
       if (near(w, POT, POT.r)) { if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; } st.pouring = true; sfx('splash'); return; }
       if (near(w, OIL, OIL.r)) { oil(); return; }
@@ -290,9 +291,21 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (!t.fill && PARTS[d.part].rank === 0) say('Raw slices into an empty bowl? They need scalding broth to cook!');
       if (!addPart(S, t.uid, d.part)) { sfx('bump'); return; }
       const hot = t.fill > 0 && t.heat >= COOK_HEAT;
-      (st.pieces[t.uid] ||= []).push({ p: d.part, x: w.x - BOWL.x, y: w.y - BOWL.y, rot: Math.random() * 6, born: st.t, hot, seed: d.seed });
-      st.ripples.push({ x: w.x, y: w.y, t: 0, col: '#fff6d8' }, { x: w.x, y: w.y, t: -0.12, col: '#fff6d8' });
-      sfx('splash'); note(520 + t.parts.length * 60, 0.12, 'sine', 0.1);
+      // a composed bowl: noodles in the middle, everything else finds its own space round the rim
+      const list = (st.pieces[t.uid] ||= []);
+      let px = w.x - BOWL.x, py = w.y - BOWL.y;
+      if (d.part === 'noodles') { px = 0; py = 0; }
+      else {
+        const ring = BOWL.r * 0.5, gap = BOWL.r * 0.3;
+        const free = (x, y) => list.every(q => q.p === 'noodles' || Math.hypot(q.x - x, q.y - y) > gap);
+        if (Math.hypot(px, py) > ring * 1.25 || !free(px, py)) {
+          let best = null;
+          for (let k = 0; k < 24 && !best; k++) { const a = Math.atan2(py, px) + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.42, rr2 = ring * (k < 12 ? 1 : 0.62); const x = Math.cos(a) * rr2, y = Math.sin(a) * rr2; if (free(x, y)) best = [x, y]; }
+          [px, py] = best || [px * 0.7, py * 0.7];
+        }
+      }
+      list.push({ p: d.part, x: px, y: py, rot: Math.random() * 6, born: st.t, hot, seed: d.seed });
+      sfx('pop');                                    // let go: the plop comes when it lands
       if (PARTS[d.part].rank === 0) { learn('raw'); pop(hot ? 'Tssss… cooked in seconds' : '…it won’t cook. Too cold!', w.x, w.y - 70, hot ? C.greenD : C.red); }
       if (d.part === 'chrys') learn('chrys');
     }
@@ -302,6 +315,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; }
     if (!t.broth) { say('Broth first, then the oil on top.'); sfx('bump'); return; }
     if (!addFat(S, t.uid)) return;
+    st.fatT[t.uid] = st.t;
     sfx('sizzle'); note(880, 0.2, 'sine', 0.08);
     pop('✨ Sealed: a coin-thick layer of oil', BOWL.x, BOWL.y - BOWL.r - 50, C.woodD);
     learn('seal');
@@ -331,7 +345,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     const bad = res.judge.notes.find(n => !n.ok), good = res.judge.notes.filter(n => n.ok);
     if (res.judge.notes.some(n => n.ok && /in order/.test(n.text))) learn('order');
     p.mood = 'normal';
-    st.react = { uid: t.guest, t: 0, res, mood: res.points >= 80 ? 'happy' : res.points >= 60 ? 'normal' : res.points >= 45 ? 'sad' : 'angry', line: bad ? bad.text : good.length ? `Mm! ${good[0].text}` : 'Mm!' };
+    st.react = { uid: t.guest, tk: t.uid, t: 0, res, mood: res.points >= 80 ? 'happy' : res.points >= 60 ? 'normal' : res.points >= 45 ? 'sad' : 'angry', line: bad ? bad.text : good.length ? `Mm! ${good[0].text}` : 'Mm!' };
     p.tx = O.cx; p.react = true;
     layout();
     go('order');
@@ -434,11 +448,14 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
         const by = COUNTER_Y - 18, slide = Math.min(1, r.t / 0.55), ease = 1 - (1 - slide) ** 3;
         const bx = O.cx + (1 - ease) * (VW * 0.55);
         const eat = Math.max(0, Math.min(1, (r.t - 0.6) / 1.0));
-        ellipse(bx, by + 14, 120, 26); ctx.fillStyle = 'rgba(80,40,30,.18)'; ctx.fill();
-        ellipse(bx, by, 112, 40); inked('#fbf6ee', 5);
-        ellipse(bx, by - 4, 92 * (1 - eat * 0.55), 28 * (1 - eat * 0.55)); inked('#f2c46d', 3);
-        rr(bx - 112, by - 2, 224, 30, 14); ctx.fillStyle = '#fbf6ee'; ctx.fill();
-        ctx.strokeStyle = bowlRim('#3a6ea5'); ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(bx, by + 6, 108, 34, 0, 0.1, Math.PI - 0.1); ctx.stroke();
+        // the real bowl, seen across the counter: what you made, going down as they eat
+        ctx.save(); ctx.translate(bx, by); ctx.scale(1, 0.42);
+        drawBowl(ctx, 0, 0, 118, { fill: 0.85 * (1 - eat * 0.5), fat: 1, rimCol: bowlRim('#3a6ea5'), t });
+        const ps = (st.pieces[r.tk] || []).filter((_, i, a) => i >= a.length - 6);
+        ps.forEach((pc, i) => { if (i / ps.length < 1 - eat) drawFood(ctx, pc.p, pc.x * 0.55, pc.y * 0.55, { rot: pc.rot, cook: 1, s: pc.p === 'noodles' ? 0.95 : 0.7, variant: pc.seed }); });
+        ctx.restore();
+        rr(bx - 118, by, 236, 34, 16); ctx.fillStyle = '#efe8dc'; ctx.fill();   // the bowl's front wall
+        ctx.strokeStyle = bowlRim('#3a6ea5'); ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(bx, by + 10, 112, 30, 0, 0.15, Math.PI - 0.15); ctx.stroke();
         if (eat > 0 && eat < 1) {                     // chopsticks dipping, steam
           const dip = Math.abs(Math.sin(r.t * 9)) * 30;
           ctx.save(); ctx.translate(bx + 40, by - 70 + dip); ctx.rotate(0.35); rr(-4, -90, 8, 110, 4); inked('#c9935f', 3); rr(10, -90, 8, 110, 4); inked('#c9935f', 3); ctx.restore();
@@ -483,24 +500,36 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
 
   function drawStove(t) {
     const X = STOVE;
-    ctx.fillStyle = checker; ctx.fillRect(X, 0, VW, VH);
-    // stovetop slab
-    rr(SLAB.x, SLAB.y, SLAB.w, SLAB.h, 30); inked(C.cream, 6);
-    rr(SLAB2.x, SLAB2.y, SLAB2.w, SLAB2.h, 40); inked('#5a5466', 6);
-    // big pot of boiling water
-    circle(STOVE_POT.x, STOVE_POT.y, STOVE_POT.r); inked(C.steelL, 8);
-    circle(STOVE_POT.x, STOVE_POT.y, STOVE_POT.r - 26); inked('#cfe8f0', 5);
+    counter(X);
+    // the stove: dark enamel, a ring of blue flame peeking out under the pot
+    let gr = ctx.createLinearGradient(0, SLAB2.y, 0, SLAB2.y + SLAB2.h); gr.addColorStop(0, '#4d4858'); gr.addColorStop(1, '#2f2b38');
+    rr(SLAB2.x, SLAB2.y, SLAB2.w, SLAB2.h, 40); ctx.fillStyle = gr; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; rr(SLAB2.x + 6, SLAB2.y + 6, SLAB2.w - 12, SLAB2.h - 12, 34); ctx.stroke();
+    const P = STOVE_POT;
+    for (let k = 0; k < 24; k++) { const a = k / 24 * P2, fx = P.x + Math.cos(a) * (P.r + 14), fy = P.y + Math.sin(a) * (P.r + 14), h = 14 + Math.sin(t * 20 + k * 2) * 5; ctx.save(); ctx.translate(fx, fy); ctx.rotate(a + Math.PI / 2); ctx.beginPath(); ctx.moveTo(-6, 0); ctx.quadraticCurveTo(0, -h * 1.4, 6, 0); ctx.fillStyle = k % 2 ? '#5aa9ff' : '#8ad0ff'; ctx.fill(); ctx.restore(); }
+    // the big pot of boiling water: steel walls, a rolling boil, steam
+    gr = ctx.createRadialGradient(P.x - P.r * 0.4, P.y - P.r * 0.4, P.r * 0.1, P.x, P.y, P.r); gr.addColorStop(0, '#f4f6f8'); gr.addColorStop(0.75, '#b5bec9'); gr.addColorStop(1, '#6f7a88');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(P.x, P.y, P.r, 0, P2); ctx.fill();
+    const wr = P.r * 0.9;
+    gr = ctx.createRadialGradient(P.x - wr * 0.3, P.y - wr * 0.3, 10, P.x, P.y, wr); gr.addColorStop(0, '#eef8fb'); gr.addColorStop(0.7, '#cbe5ec'); gr.addColorStop(1, '#9cc4cf');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(P.x, P.y, wr, 0, P2); ctx.fill();
     const R = rng(3);
-    for (let i = 0; i < 26; i++) { const a = R() * P2, d = R() * (STOVE_POT.r - 60), k = (t * (0.6 + R()) + R()) % 1; circle(STOVE_POT.x + Math.cos(a) * d, STOVE_POT.y + Math.sin(a) * d * 0.9, 4 + k * 10); ctx.strokeStyle = `rgba(255,255,255,${1 - k})`; ctx.lineWidth = 3; ctx.stroke(); }
+    for (let i = 0; i < 40; i++) { const a = R() * P2, d = R() * (wr - 20), k = (t * (0.8 + R()) + R()) % 1; circle(P.x + Math.cos(a) * d, P.y + Math.sin(a) * d * 0.95, 3 + k * 12); ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - k)})`; ctx.lineWidth = 2.5; ctx.stroke(); }
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(P.x, P.y, P.r - 4, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
+    for (let i = 0; i < 5; i++) { const k = (t * 0.45 + i / 5) % 1; ctx.strokeStyle = `rgba(255,255,255,${0.4 * (1 - k)})`; ctx.lineWidth = 14 * (1 - k * 0.5); ctx.lineCap = 'round'; const sx = P.x - 120 + i * 60; ctx.beginPath(); ctx.moveTo(sx, P.y - 40 - k * 220); ctx.quadraticCurveTo(sx + 26, P.y - 90 - k * 220, sx, P.y - 140 - k * 220); ctx.stroke(); }
     // two baskets with a segmented timer each (Papa's ring, Good Pizza's oven bar)
     BASKETS.forEach((b, i) => {
       const bk = S.baskets[i];
-      circle(b.x, b.y, 100); inked('rgba(160,155,175,0.35)', 5);
-      ctx.strokeStyle = 'rgba(107,58,58,0.25)'; ctx.lineWidth = 2;
-      for (let k = -90; k <= 90; k += 18) { ctx.beginPath(); ctx.moveTo(b.x + k, b.y - Math.sqrt(Math.max(0, 9000 - k * k))); ctx.lineTo(b.x + k, b.y + Math.sqrt(Math.max(0, 9000 - k * k))); ctx.stroke(); }
+      // a wire noodle basket, sunk in the boil
+      let bg = ctx.createRadialGradient(b.x, b.y, 20, b.x, b.y, 100); bg.addColorStop(0, 'rgba(120,160,175,0.25)'); bg.addColorStop(1, 'rgba(80,110,125,0.45)');
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(b.x, b.y, 100, 0, P2); ctx.fill();
+      ctx.strokeStyle = 'rgba(70,80,95,0.45)'; ctx.lineWidth = 1.6;
+      for (let k = -90; k <= 90; k += 15) { const h = Math.sqrt(Math.max(0, 10000 - k * k)); ctx.beginPath(); ctx.moveTo(b.x + k, b.y - h); ctx.lineTo(b.x + k, b.y + h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(b.x - h, b.y + k); ctx.lineTo(b.x + h, b.y + k); ctx.stroke(); }
+      ctx.lineWidth = 7; ctx.strokeStyle = '#a9b2bd'; ctx.beginPath(); ctx.arc(b.x, b.y, 100, 0, P2); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(b.x, b.y, 100, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
       rr(b.x - 10, b.y - 230, 20, 130, 10); inked(C.woodD, 4);      // handle
       if (bk.ticket) {
-        piece('noodles', b.x, b.y, t * 0.3, 1, 1.6, i + 7);
+        drawFood(ctx, 'noodles', b.x, b.y, { rot: t * 0.3, s: 1.35, variant: i + 7 });
         const r = noodleRing(bk.t), segs = 10;
         const bw = PORTRAIT ? 210 : 240, sw = (bw - 16) / segs;
         rr(b.x - bw / 2, b.y + 130, bw, 44, 12); inked('#e8e4ee', 4);
@@ -516,69 +545,146 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     // fresh rice noodle coils
     rr(COILS.x, COILS.y - COILS.h / 2, COILS.w, COILS.h, 18); inked(C.steelL, 6);
     rr(COILS.x + 16, COILS.y - COILS.h / 2 + 16, COILS.w - 32, COILS.h - 32, 12); inked('#8f8aa0', 4);
-    for (let i = 0; i < 6; i++) { const c = i % COILS.cols, rw = Math.floor(i / COILS.cols), rows = 6 / COILS.cols; piece('noodles', COILS.x + (c + 0.5) * COILS.w / COILS.cols, COILS.y - COILS.h / 2 + (rw + 0.5) * COILS.h / rows, i, 1, 0.95, i + 2); }
+    for (let i = 0; i < 6; i++) { const c = i % COILS.cols, rw = Math.floor(i / COILS.cols), rows = 6 / COILS.cols; drawFood(ctx, 'noodles', COILS.x + (c + 0.5) * COILS.w / COILS.cols, COILS.y - COILS.h / 2 + (rw + 0.5) * COILS.h / rows, { rot: i, s: 0.85, variant: i + 2 }); }
     label('Fresh rice noodles', COILS.x + COILS.w / 2, COILS.y + COILS.h / 2 + 40, 34);
     // noodles flying out of a basket
-    for (const l of st.lifts) { l.t += 1 / 60; piece('noodles', l.x + l.t * 500, l.y - Math.sin(l.t * 3) * 260, l.t * 4, 1, 1.4 - l.t * 0.4, 3); }
+    for (const l of st.lifts) { l.t += 1 / 60; drawFood(ctx, 'noodles', l.x + l.t * 500, l.y - Math.sin(l.t * 3) * 260, { rot: l.t * 4, s: 1.2 - l.t * 0.35, variant: 3 }); }
     st.lifts = st.lifts.filter(l => l.t < 1);
+  }
+
+  // a warm wooden counter, lit from the top left (cached: it never changes)
+  let counterCache = null;
+  function counter(X) {
+    const key = `${VW}x${VH}`;
+    if (!counterCache || counterCache.key !== key) {
+      const c = document.createElement('canvas'); c.width = VW * 1.25; c.height = VH * 1.25;
+      const g = c.getContext('2d'); g.scale(1.25, 1.25);
+      const base = g.createLinearGradient(0, 0, 0, VH); base.addColorStop(0, '#d8a46c'); base.addColorStop(1, '#c08a55');
+      g.fillStyle = base; g.fillRect(0, 0, VW, VH);
+      const R = rng(4);
+      for (let y = 0; y < VH; y += 120) {                       // planks with grain
+        g.fillStyle = `rgba(${R() < 0.5 ? '255,235,205' : '120,70,35'},${0.06 + R() * 0.05})`; g.fillRect(0, y, VW, 120);
+        g.strokeStyle = 'rgba(100,58,30,0.35)'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, y); g.lineTo(VW, y); g.stroke();
+        g.strokeStyle = 'rgba(120,72,38,0.18)'; g.lineWidth = 1.5;
+        for (let k = 0; k < 7; k++) { const yy = y + 12 + R() * 96; g.beginPath(); g.moveTo(0, yy); for (let x = 0; x <= VW; x += 80) g.lineTo(x, yy + Math.sin(x * 0.01 + k) * 4); g.stroke(); }
+      }
+      const light = g.createRadialGradient(VW * 0.3, VH * 0.2, 40, VW * 0.4, VH * 0.4, Math.max(VW, VH) * 0.85);   // the lamp over the counter
+      light.addColorStop(0, 'rgba(255,236,190,0.45)'); light.addColorStop(0.5, 'rgba(255,220,170,0.1)'); light.addColorStop(1, 'rgba(60,30,20,0.35)');
+      g.fillStyle = light; g.fillRect(0, 0, VW, VH);
+      counterCache = { key, c };
+    }
+    ctx.drawImage(counterCache.c, X, 0, VW, VH);
+  }
+  // the stockpot of old-hen broth: steel, a rolling simmer, steam
+  function stockpot(t) {
+    const { x, y, r } = POT;
+    let gr = ctx.createRadialGradient(x + 10, y + 18, r * 0.8, x + 10, y + 18, r * 1.25); gr.addColorStop(0, 'rgba(70,40,25,0.4)'); gr.addColorStop(1, 'rgba(70,40,25,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x + 10, y + 18, r * 1.25, 0, P2); ctx.fill();
+    for (const sx of [-1, 1]) { rr(x + sx * (r + 6) - (sx < 0 ? 34 : 0), y - 14, 34, 28, 12); ctx.fillStyle = '#8f97a3'; ctx.fill(); }
+    gr = ctx.createRadialGradient(x - r * 0.4, y - r * 0.4, r * 0.1, x, y, r); gr.addColorStop(0, '#f4f6f8'); gr.addColorStop(0.7, '#b9c1cb'); gr.addColorStop(1, '#7d8794');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, P2); ctx.fill();
+    const br = r * 0.84;
+    gr = ctx.createRadialGradient(x - br * 0.3, y - br * 0.3, 4, x, y, br); gr.addColorStop(0, '#ffe7a8'); gr.addColorStop(0.6, '#f0be62'); gr.addColorStop(1, '#c98a30');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, br, 0, P2); ctx.fill();
+    const R = rng(8);
+    for (let i = 0; i < 14; i++) {                               // the simmer: bubbles rise and pop
+      const k = (t * (0.5 + R() * 0.6) + R()) % 1, a = R() * P2, d = R() * br * 0.85;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, 2 + k * 7, 0, P2);
+      ctx.strokeStyle = `rgba(255,250,225,${0.75 * (1 - k)})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+    for (let i = 0; i < 26; i++) { const a = R() * P2, d = Math.sqrt(R()) * br * 0.9, rr2 = 1.5 + R() * 4; ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, rr2, 0, P2); ctx.fillStyle = 'rgba(255,210,80,0.55)'; ctx.fill(); }
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(x, y, r - 3, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
+    for (let i = 0; i < 3; i++) {                                // steam
+      const k = (t * 0.4 + i / 3) % 1;
+      ctx.strokeStyle = `rgba(255,255,255,${0.45 * (1 - k)})`; ctx.lineWidth = 10 * (1 - k * 0.5); ctx.lineCap = 'round';
+      const sx = x - 40 + i * 40; ctx.beginPath(); ctx.moveTo(sx, y - 20 - k * 160); ctx.quadraticCurveTo(sx + 22, y - 60 - k * 160, sx, y - 100 - k * 160); ctx.stroke();
+    }
+  }
+  // the chicken-oil jar: glass, golden, a spoon in it
+  function oilJar() {
+    const { x, y, r } = OIL;
+    let gr = ctx.createRadialGradient(x + 6, y + 10, r * 0.6, x + 6, y + 10, r * 1.2); gr.addColorStop(0, 'rgba(70,40,25,0.35)'); gr.addColorStop(1, 'rgba(70,40,25,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x + 6, y + 10, r * 1.2, 0, P2); ctx.fill();
+    gr = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 2, x, y, r); gr.addColorStop(0, '#fff6d0'); gr.addColorStop(0.5, '#ffd760'); gr.addColorStop(1, '#d99a20');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, P2); ctx.fill();
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.beginPath(); ctx.arc(x, y, r - 3, 0, P2); ctx.stroke();
+    ctx.save(); ctx.translate(x + 8, y - 6); ctx.rotate(0.5); rr(-6, -r - 50, 12, r + 40, 6); ctx.fillStyle = '#c9ced6'; ctx.fill(); ctx.beginPath(); ctx.ellipse(0, -4, 16, 11, 0, 0, P2); ctx.fill(); ctx.restore();
   }
 
   function drawBuild(t) {
     const X = BUILD, tk = sel();
-    ctx.fillStyle = checker; ctx.fillRect(X, 0, VW, VH);
-    rr(BSLAB.x, BSLAB.y, BSLAB.w, BSLAB.h, 28); inked(C.cream, 6);           // the counter
-    // saucer trays (Good Pizza's bins), two rows in crossing order
+    counter(X);
+    // the saucers, each a porcelain dish with a little pile of the real thing
+    const want = st.step && st.step.view === 'build' && st.step.part;
     for (const p of ROWS.flat()) {
       const r = binRect(p);
-      rr(r.x - 6, r.y - 6, r.w + 12, r.h + 12, 12); inked(C.steelL, 4);
-      rr(r.x + 6, r.y + 6, r.w - 12, r.h - 12, 8); inked('#fbf6ef', 3);
       const locked = p === 'noodles' && (!tk || tk.noodles === null);
-      for (let k = 0; k < 6; k++) piece(p, r.x + r.w * 0.22 + (k % 3) * r.w * 0.28, r.y + 32 + Math.floor(k / 3) * 46, k * 1.7, p === 'egg' ? -1 : 0.0, 0.66, k + p.length);
-      if (locked) { rr(r.x + 6, r.y + 6, r.w - 12, r.h - 12, 8); ctx.fillStyle = 'rgba(90,80,100,0.55)'; ctx.fill(); text('♨️ cooking', r.x + r.w / 2, r.y + r.h / 2, 28, '#fff6ea'); }
+      const glow = want === p && !st.drag ? 0.55 + 0.45 * Math.sin(t * 5) : 0;
+      drawDish(ctx, r.x, r.y, r.w, r.h, p, { t, glow, locked, shell: p === 'egg', count: p === 'noodles' ? 1 : 5 });
+      if (locked) text('♨️ cooking', r.x + r.w / 2, r.y + r.h / 2, 28, '#fff6ea');
       label(NAMES[p], r.x + r.w / 2, r.y + r.h + 22, 26);
     }
-    // broth pot (hold to ladle) and the chicken-oil jar
-    circle(POT.x, POT.y, POT.r); inked(C.steelL, 7); circle(POT.x, POT.y, POT.r - 22); inked(C.broth, 4);
-    ctx.fillStyle = 'rgba(255,240,200,0.6)'; ellipse(POT.x - 30, POT.y - 30, 40, 14, -0.5); ctx.fill();
+    stockpot(t);
     label('Old hen broth', POT.x, POT.y + POT.r + 34, 30);
-    circle(OIL.x, OIL.y, OIL.r); inked('#fff2c2', 5); circle(OIL.x, OIL.y, OIL.r - 16); inked('#ffd76a', 3);
-    rr(OIL.x + 10, OIL.y - 90, 14, 80, 7); inked(C.steel, 3);
+    oilJar();
     label('Chicken oil', OIL.x, OIL.y + OIL.r + 30, 28);
-    // trash
+    // the slop bin
     rr(TRASH.x, TRASH.y, TRASH.w, TRASH.h, 16); inked('#8f8aa0', 5); rr(TRASH.x + 14, TRASH.y + 14, TRASH.w - 28, 40, 10); inked('#6d6880', 3);
     text('🗑️', TRASH.x + TRASH.w / 2, TRASH.y + 100, 44);
-    // the bowl, top-down: porcelain, blue rim, gold fill line
-    circle(BOWL.x + 10, BOWL.y + 14, BOWL.r + 12); ctx.fillStyle = 'rgba(107,58,58,0.15)'; ctx.fill();
-    circle(BOWL.x, BOWL.y, BOWL.r); inked('#fbf7f0', 6);
-    circle(BOWL.x, BOWL.y, BOWL.r - 14); ctx.lineWidth = 10; ctx.strokeStyle = bowlRim(C.blue); ctx.stroke();
-    circle(BOWL.x, BOWL.y, 70); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(107,58,58,0.2)'; ctx.stroke();
-    const rad = f => 70 + Math.min(f, 1.15) * 120;
-    if (tk && tk.fill > 0) {
-      const r = rad(tk.fill);
-      const g = ctx.createRadialGradient(BOWL.x - 40, BOWL.y - 40, 10, BOWL.x, BOWL.y, r);
-      g.addColorStop(0, '#fbe3a2'); g.addColorStop(1, tk.mixed ? '#b08a5a' : C.broth);
-      circle(BOWL.x, BOWL.y, r); ctx.fillStyle = g; ctx.fill();
-      if (tk.fill > FILL.hi + 0.08) { circle(BOWL.x, BOWL.y, BOWL.r + 30); ctx.fillStyle = 'rgba(241,199,104,0.35)'; ctx.fill(); }
-      if (tk.fat) {                                        // the oil seal: glossy, glinting, no steam
-        circle(BOWL.x, BOWL.y, r - 4); ctx.fillStyle = 'rgba(255,214,90,0.35)'; ctx.fill();
-        for (let i = 0; i < 6; i++) { const a = i * 1.1 + t * 0.2; circle(BOWL.x + Math.cos(a) * r * 0.6, BOWL.y + Math.sin(a) * r * 0.5, 5 + Math.sin(t * 3 + i) * 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); }
+    // the bowl
+    const R0 = BOWL.r, inner = R0 * 0.84;
+    const brad = f => inner * (0.45 + Math.min(f, 1.15) * 0.48);
+    for (const w of st.waves) w.t += st.dt || 1 / 60;
+    st.waves = st.waves.filter(w => w.t < 1);
+    const fat = tk && tk.fat ? Math.min(1, (st.t - (st.fatT[tk.uid] ?? -9)) / 0.7) : 0;
+    const shake = st.shake > 0 ? Math.sin(st.t * 60) * st.shake * 6 : 0;
+    drawBowl(ctx, BOWL.x + shake, BOWL.y, R0, { fill: tk ? tk.fill : 0, fat: fat > 0 ? 1 - (1 - fat) ** 3 : 0, rimCol: bowlRim('#3a6ea5'), t, mixed: tk?.mixed, waves: st.waves });
+    if (tk && tk.fill > FILL.hi + 0.08) { circle(BOWL.x, BOWL.y, R0 + 20); ctx.fillStyle = 'rgba(241,199,104,0.25)'; ctx.fill(); }
+    // the fill line: a gold ring where the broth should reach
+    ctx.setLineDash([14, 10]); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(200,140,30,0.85)';
+    circle(BOWL.x, BOWL.y, brad((FILL.lo + FILL.hi) / 2)); ctx.stroke(); ctx.setLineDash([]);
+    // what's crossed the bridge: it drops in, splashes, settles and floats
+    if (tk) for (const pc of st.pieces[tk.uid] || []) {
+      const age = st.t - pc.born, fall = Math.min(1, age / 0.22);
+      if (fall >= 1 && !pc.landed) {
+        pc.landed = true;
+        splashAt(st.drops, BOWL.x + pc.x, BOWL.y + pc.y, pc.p === 'noodles' ? 16 : 9, pc.p === 'noodles' ? 1.2 : 0.8, tk.fat ? '#f7c94a' : '#f3c46a');
+        st.waves.push({ x: pc.x, y: pc.y, t: 0 }, { x: pc.x, y: pc.y, t: -0.15 });
+        st.shake = pc.p === 'noodles' ? 0.8 : 0.35;
+        const weight = { noodles: 196, pork: 330, fish: 350, ham: 300, egg: 440, jizong: 380, tofu: 400 }[pc.p] || 520;
+        sfx('splash'); note(weight, 0.09, 'sine', 0.16); note(weight * 1.5, 0.05, 'triangle', 0.05, 0.03);
+        if (pc.hot && PARTS[pc.p].rank === 0) setTimeout(() => sfx('sizzle'), 180);
+      }
+      const raw = PARTS[pc.p].rank === 0;
+      const cook = raw ? (pc.hot ? Math.min(1, Math.max(0, (age - 0.25) / 1.6)) : 0) : 1;
+      const bob = fall >= 1 ? Math.sin(st.t * 1.6 + pc.seed) * 1.5 : 0;
+      const land = fall < 1 ? 1 - (1 - fall) ** 2 : 1;
+      const squash = fall >= 1 && age < 0.4 ? 1 + Math.sin((age - 0.22) / 0.18 * Math.PI) * 0.08 : 1;
+      const big = (pc.p === 'noodles' ? 2.3 : 1.55) * BOWL.r / 230;   // food you can see
+      drawFood(ctx, pc.p, BOWL.x + pc.x, BOWL.y + pc.y - (1 - land) * 140 + bob, { rot: pc.rot + Math.sin(st.t * 0.3 + pc.seed) * 0.05, cook: pc.p === 'egg' ? Math.max(0.15, cook) : cook, s: big * (1 + (1 - land) * 0.35) * squash, variant: pc.seed });
+      if (raw && pc.hot && cook > 0 && cook < 1) {                 // it cooks in front of you: bubbles and a wisp of steam
+        for (let k = 0; k < 4; k++) { const q = (st.t * 1.4 + k / 4 + pc.seed) % 1; circle(BOWL.x + pc.x + Math.cos(k * 1.7) * 26, BOWL.y + pc.y + Math.sin(k * 1.7) * 16 - q * 10, 2 + q * 4); ctx.strokeStyle = `rgba(255,255,240,${0.8 * (1 - q)})`; ctx.lineWidth = 2; ctx.stroke(); }
+        const q = (st.t * 0.8 + pc.seed) % 1; ctx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - q) * (1 - cook)})`; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(BOWL.x + pc.x, BOWL.y + pc.y - 10 - q * 60); ctx.quadraticCurveTo(BOWL.x + pc.x + 14, BOWL.y + pc.y - 30 - q * 60, BOWL.x + pc.x, BOWL.y + pc.y - 50 - q * 60); ctx.stroke();
       }
     }
-    // the fill line
-    ctx.setLineDash([14, 10]); ctx.lineWidth = 5; ctx.strokeStyle = C.gold;
-    circle(BOWL.x, BOWL.y, rad((FILL.lo + FILL.hi) / 2)); ctx.stroke(); ctx.setLineDash([]);
-    // what's crossed the bridge so far
-    if (tk) for (const pc of st.pieces[tk.uid] || []) {
-      const age = st.t - pc.born, drop = Math.min(1, age * 5);
-      const cook = PARTS[pc.p].rank === 0 ? (pc.hot ? Math.min(1, age / 1.6) : 0) : 1;
-      piece(pc.p, BOWL.x + pc.x, BOWL.y + pc.y - (1 - drop) * 60, pc.rot, cook, (pc.p === 'noodles' ? 1.7 : 1.25) + (1 - drop) * 0.3, pc.seed);
-    }
     // steam only escapes when there's no oil seal
-    if (tk && tk.fill > 0 && !tk.fat && tk.heat > 0.2) for (let i = 0; i < 4; i++) {
+    if (tk && tk.fill > 0 && fat < 1 && tk.heat > 0.2) for (let i = 0; i < 4; i++) {
       const k = (t * 0.5 + i / 4) % 1;
-      ctx.strokeStyle = `rgba(255,255,255,${(1 - k) * tk.heat})`; ctx.lineWidth = 8; ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(255,255,255,${(1 - k) * tk.heat * 0.7 * (1 - fat)})`; ctx.lineWidth = 9; ctx.lineCap = 'round';
       ctx.beginPath(); const sx = BOWL.x - 90 + i * 60; ctx.moveTo(sx, BOWL.y - 40 - k * 200); ctx.quadraticCurveTo(sx + 20, BOWL.y - 80 - k * 200, sx, BOWL.y - 120 - k * 200); ctx.stroke();
     }
+    // the ladle pouring: a glossy amber stream that wobbles, rings where it lands
+    if (st.pouring && tk) {
+      const lx = BOWL.x - 150, ly = BOWL.y - 190, ex = BOWL.x - 30 + Math.sin(t * 9) * 6, ey = BOWL.y - 10;
+      for (const [w, col] of [[20, 'rgba(200,130,40,0.9)'], [13, '#f3c46a'], [4, 'rgba(255,250,220,0.9)']]) {
+        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(lx + 30, ly + 30); ctx.quadraticCurveTo(BOWL.x - 70 + Math.sin(t * 7) * 8, BOWL.y - 130, ex, ey); ctx.stroke();
+      }
+      if (Math.random() < 0.5) { st.waves.push({ x: ex - BOWL.x, y: ey - BOWL.y, t: 0 }); splashAt(st.drops, ex, ey, 1, 0.5); }
+      let gr = ctx.createRadialGradient(lx - 14, ly - 14, 4, lx, ly, 60); gr.addColorStop(0, '#f4f6f8'); gr.addColorStop(1, '#8a939f');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(lx, ly, 58, 42, 0.6, 0, P2); ctx.fill();
+      rr(lx - 220, ly - 70, 200, 18, 9); inked(C.woodD, 4);
+    }
+    st.drops = drawSplash(ctx, st.drops, st.dt || 1 / 60);
     // thermometer: how hot it still is
     rr(THERMO.x, THERMO.y, 40, THERMO.h, 20); inked('#fbf7ff', 4);
     const heat = tk && tk.fill > 0 ? tk.heat : 0;
@@ -587,12 +693,6 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     circle(THERMO.x + 20, THERMO.y + THERMO.h + 18, 26); inked(heat > COOK_HEAT ? '#f0703a' : '#7fb8f0', 4);
     ctx.setLineDash([6, 6]); ctx.strokeStyle = C.ink; ctx.lineWidth = 2; const cy = THERMO.y + 8 + (THERMO.h - 16) * (1 - COOK_HEAT); ctx.beginPath(); ctx.moveTo(THERMO.x - 12, cy); ctx.lineTo(THERMO.x + 52, cy); ctx.stroke(); ctx.setLineDash([]);
     label('hot', THERMO.x + 20, THERMO.y - 24, 26);
-    // the ladle pouring
-    if (st.pouring && tk) {
-      const lx = BOWL.x - 150, ly = BOWL.y - 190;
-      ctx.strokeStyle = C.broth; ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(lx + 30, ly + 30); ctx.quadraticCurveTo(BOWL.x - 60, BOWL.y - 120, BOWL.x - 30, BOWL.y - 20); ctx.stroke();
-      ellipse(lx, ly, 56, 40, 0.6); inked(C.steelL, 5); rr(lx - 220, ly - 70, 200, 18, 9); inked(C.woodD, 4);
-    }
     // serve button (Good Pizza's green button)
     rr(SERVE.x, SERVE.y, SERVE.w, SERVE.h, 20); inked('#c9e98a', 6);
     rr(SERVE.x + 10, SERVE.y + 8, SERVE.w - 20, SERVE.h - 22, 14); ctx.fillStyle = '#b4dd6f'; ctx.fill();
@@ -650,7 +750,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   await new Promise(resolve => {
     function frame(now) {
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
-      st.t += dt;
+      st.t += dt; st.dt = dt;
       tick(S, dt);
       for (const e of drainEvents(S)) if (e.type === 'arrive') { spawn(S.guests.find(g => g.uid === e.guest)); layout(); }
       if (st.pouring && sel()) pour(S, st.selected, 'hen', dt * 0.42);
@@ -678,6 +778,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       for (const [uid, p] of Object.entries(st.people)) if (p.leaving && p.x >= VW + 190) delete st.people[uid];
       if (!st.selected) st.selected = S.tickets.find(q => !q.served)?.uid || null;
       st.captionT -= dt;
+      st.shake = Math.max(0, st.shake - dt * 3);
       if (!st.ptr.down) st.idleT += dt;
       st.step = nextStep();
       st.camX += (PANEL[st.view] * VW - st.camX) * Math.min(1, dt * 9);
@@ -700,8 +801,15 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (!st.react) drawGuide(st.step, st.t);
       // the dragged saucer, in the glove
       const w = toW({ x: st.ptr.vx, y: st.ptr.vy });
-      if (st.drag?.kind === 'part') piece(st.drag.part, w.x, w.y - 30, 0, st.drag.part === 'egg' ? -1 : 0, 1.1, st.drag.seed);
-      if (st.drag?.kind === 'coil') piece('noodles', w.x, w.y - 30, 0, 1, 1.2, 4);
+      if (st.drag?.kind === 'part') {
+        const h = st.held, k = 1 - Math.exp(-dt * 22), px = h.x;
+        h.x += (w.x - h.x) * k; h.y += (w.y - 40 - h.y) * k;
+        h.rot += (((h.x - px) / Math.max(dt, 1e-3)) * 0.0008 - h.rot) * 0.2;
+        ctx.globalAlpha = 0.3; ctx.fillStyle = '#4a2a1a'; ctx.beginPath(); ctx.ellipse(h.x + 18, h.y + 60, 40, 16, 0, 0, P2); ctx.fill(); ctx.globalAlpha = 1;
+        const raw = PARTS[st.drag.part].rank === 0;
+        drawFood(ctx, st.drag.part, h.x, h.y, { rot: h.rot, cook: st.drag.part === 'egg' ? 'shell' : raw ? 0 : 1, s: st.drag.part === 'noodles' ? 1.5 : 1.25, variant: st.drag.seed });
+      }
+      if (st.drag?.kind === 'coil') drawFood(ctx, 'noodles', w.x, w.y - 30, { s: 1.1, variant: 4 });
       ctx.restore();
       drawHud(st.t);
       if (st.ptr.show) hand(st.ptr.vx + 18, st.ptr.vy + 40, !!st.drag || st.pouring);
