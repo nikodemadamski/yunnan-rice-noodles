@@ -2,6 +2,7 @@
 // big head, a drawn face that swaps expressions.
 
 import * as THREE from 'three';
+import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 
 // One 3-step gradient shared by every material: soft cel shading, like a picture book.
 const GRADIENT = new THREE.DataTexture(new Uint8Array([160, 218, 255]), 3, 1, THREE.RedFormat);
@@ -181,11 +182,82 @@ const shadowGeo = new THREE.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2);
  * opts: skin, shirt, pants, hair, hairStyle (short|bun|long|pony|spiky|bald),
  *       hat (duck|cap|chef|none), hatColor, skirt, blush, glasses, brows, scale, wide, prop (selfie|fan|ladle)
  */
+// --- modelled characters (tools/blender/hero.py): real sculpted geometry,
+// exported as named parts (body, head, arm_L/R, leg_L/R) that this file
+// animates exactly like the round ones, wearing the same drawn faces.
+const MODELS = {};
+export async function loadCharacterModels(names = ['hero_girl']) {
+  const L = new GLTFLoader();
+  await Promise.all(names.map(n => L.loadAsync(new URL(`../assets/chars/${n}.glb`, import.meta.url).href)
+    .then(g => { MODELS[n] = g.scene; }).catch(e => console.warn('model', n, e.message))));
+}
+const MODEL_SCALE = 0.72;              // the model is built bigger (head 0.78 at 2.72); this puts the head where the round ones have it
+
+function modelCharacter(o) {
+  const src = MODELS[o.model];
+  const root = new THREE.Group();
+  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+  shadow.userData.noOutline = true; shadow.position.y = 0.03; shadow.scale.setScalar(1.15);
+  root.add(shadow);
+  const m = src.clone(true);
+  m.updateMatrixWorld(true);
+  const node = n => m.getObjectByName(n);
+  const body = node('body'), head = node('head');
+  const arms = [node('arm_R'), node('arm_L')], legs = [node('leg_R'), node('leg_L')];
+  // head, arms and legs ride on the body, so a bob or a hop moves her as one
+  for (const p of [head, ...arms, ...legs]) body.attach(p);
+  // the town's picture-book shading: toon materials in the model's own colours
+  m.traverse(c => {
+    if (!c.isMesh) return;
+    c.material = mat('#' + c.material.color.getHexString());
+    c.castShadow = true;
+  });
+  m.scale.setScalar(MODEL_SCALE);
+  root.add(m);
+  // the drawn face, on the same patch of the skull as the round characters
+  const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture('normal', o), transparent: true, depthWrite: false });
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.785, 32, 20, Math.PI / 2 - 0.68, 1.36, Math.PI / 2 - 0.5, 1.0), faceMat);
+  face.userData.noOutline = true; face.userData.noShadow = true;
+  head.add(face);
+  // ink only round the big shapes (curls stay soft)
+  for (const c of [...body.children, ...head.children]) if (c.isMesh && !/hair/.test(c.name)) outline(c, 1.03);
+  root.scale.setScalar(o.scale);
+
+  let expr = 'normal', walkPhase = 0;
+  const api = {
+    root, head, arms, body, headY: 2.72 * MODEL_SCALE,
+    get expr() { return expr; },
+    setFace(e) { expr = e || 'normal'; faceMat.map = faceTexture(expr, o); faceMat.needsUpdate = true; },
+    setHat() {},
+    setShirt() {},
+    animate(dt, speed, t) {
+      if (speed > 0.3) {
+        walkPhase += dt * (4 + speed * 1.2);
+        const s = Math.sin(walkPhase);
+        arms[0].rotation.x = s * 0.6; arms[1].rotation.x = -s * 0.6;
+        legs[0].rotation.x = -s * 0.5; legs[1].rotation.x = s * 0.5;
+        body.position.y = Math.abs(Math.cos(walkPhase)) * 0.12;
+        head.rotation.z = Math.sin(walkPhase) * 0.04;
+      } else {
+        for (const a of arms) a.rotation.x *= 0.85;
+        for (const l of legs) l.rotation.x *= 0.8;
+        body.position.y = Math.sin(t * 2.2) * 0.025;
+        head.rotation.z = Math.sin(t * 1.3) * 0.03;
+      }
+    },
+    wave(t) { arms[1].rotation.z = 2.4 + Math.sin(t * 10) * 0.3; },
+    unwave() { arms[1].rotation.z = 0; },
+  };
+  root.userData.char = api;
+  return api;
+}
+
 export function makeCharacter(opts = {}) {
   const o = {
     skin: '#f6d2b0', shirt: '#7fb3e6', pants: '#5a6b8c', hair: '#3a2a20', hairStyle: 'short',
     hat: 'none', hatColor: '#e94b3c', scale: 1, wide: 1, blush: true, ...opts,
   };
+  if (o.model && MODELS[o.model]) return modelCharacter(o);
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);

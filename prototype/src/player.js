@@ -120,7 +120,7 @@ function makeBike() {
 // the two heroes from the character sheets: same backpack, same sneakers
 export const HEROES = {
   girl: {   // a curly messy bun with a daisy clip, a cream knit jumper, rolled-up jeans
-    skin: '#ffe3cf', shirt: '#fcf5ea', knit: true, pants: '#7ea6d4', cuffs: '#9cbde3', hair: '#3f271b', hairStyle: 'messybun',
+    model: 'hero_girl', skin: '#ffe3cf', shirt: '#fcf5ea', knit: true, pants: '#7ea6d4', cuffs: '#9cbde3', hair: '#3f271b', hairStyle: 'messybun',
     flower: true, backpack: '#8f5a34', shoes: '#fbf7f0', sneakers: true, blush: true,
   },
   boy: {    // a round bowl cut with a cowlick, a butter-yellow hoodie, rolled-up jeans

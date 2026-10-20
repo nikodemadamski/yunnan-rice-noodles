@@ -505,7 +505,7 @@ async function cookStep(P, kind) {
 
 async function bagStep(P) {
   const { page, T } = P;
-  const items = await page.evaluate(() => [...document.querySelectorAll('#tray .item')].map((b, i) => ({ i, used: b.classList.contains('used'), sel: b.classList.contains('sel'), rules: b.querySelector('.rule:last-child')?.textContent || '' })));
+  const items = await page.evaluate(() => [...document.querySelectorAll('#tray .item')].map((b, i) => ({ i, used: b.classList.contains('used'), sel: b.classList.contains('sel'), rules: b.querySelector('div.rule')?.textContent || '' })));
   const left = items.filter(x => !x.used);
   if (!left.length) {
     const warn = await page.evaluate(() => document.getElementById('bag-warn').innerText.trim());
@@ -645,7 +645,7 @@ async function storyScene(P, scene, { budgetS }) {
         note(`action button: ${s.prompt}`);
         await T.tapEl('#act-btn', { label: 'action button' }); await sleep(900); continue;
       }
-      if (/Orders/.test(o) && !target) { await T.tapEl('#btn-orders', { label: '📱 Orders' }); await sleep(800); continue; }
+      if (/Orders/.test(o) && !target) { await sleep(1500); const q = await R(); if (!q.panel && !q.G.busy) { await T.tapEl('#btn-orders', { label: '📱 Orders' }); await sleep(800); } continue; }
       if (target) { await navStep(P, nav, joy, s, target, r); await sleep(120); continue; }
     }
     await sleep(300);

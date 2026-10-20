@@ -10,6 +10,7 @@ import { initDressing, updateDressing } from './dressing.js';
 import { paperOverlay } from './textures.js';
 import { player, initPlayer, updatePlayer, updateCamera, teleport, setMode, setHero, heroKind, HEROES } from './player.js';
 import { spriteOf } from './sprites.js';
+import { loadCharacterModels } from './characters.js';
 import { N, SP, initNPCs, updateNPCs } from './npcs.js';
 import { initInput } from './input.js';
 import { initAudio, setMusic, toggleMute, sfx, setEngine, speak, tapStream } from './audio.js';
@@ -26,6 +27,7 @@ import './taste.js';
 const $ = id => document.getElementById(id);
 
 initWorld($('scene'));
+await loadCharacterModels();   // the modelled heroes (assets/chars/*.glb); round stand-ins if they fail
 initPlayer();
 SP.you.char = player.char;                      // the hero's face acts their lines
 initNPCs();
