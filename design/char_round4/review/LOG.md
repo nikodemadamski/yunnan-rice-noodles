@@ -49,3 +49,17 @@ Blender: bpy 4.2.0 (5.2 not installed; awaiting the user's yes).
 - QuadriFlow root cause found: in this bpy 4.2 build it refuses any mesh above a few thousand faces with the
   misleading "needs to be manifold" warning — Blender's own monkey: 7,054 faces OK, 44,054 refused. Decimating
   first (to 11,318 / 21,496) is refused too. Stopped there (rule 7).
+
+## iter_02 — the user's third model (Hugging Face TRELLIS)
+- Source: `design/char_round4/base_trellis/trellis_sample.glb` (user upload). One mesh, 300,317 verts / 291,014 tris,
+  one 2048² base-colour texture, ~1.0 tall. Split at UV seams; welded it is 132,072 verts with 3,171 boundary and
+  10,471 non-manifold edges (not watertight, unlike the second model).
+- Renders: `trellis_{front,three,side,back}.png` (textured), `trellis_clay_*.png` (shape only);
+  sheet `trellis_compare.jpg` (rows: concept · TRELLIS textured · TRELLIS clay · second model clay).
+- IoU (clay): front 0.866 · side 0.728 · back 0.859 (base 0.886/0.725/0.879 · lite 0.856/0.839/0.843).
+- Bands: no backpack (side 50–65% −23…−41%); bun sits high and tilts back (side 5–10% −33%, head 15–25% +9…+10%);
+  hips/jeans +10…+11% too wide at 55–60% and 70–75%; shoes −13…−28% too small.
+- Visual: best face of the three as a *painted* face on a mostly smooth surface (the PDF's method), clean
+  sculpted-looking curls at the sides, readable flower clip, clear rolled cuffs. But: no backpack (straps only),
+  eyes grey not warm brown, hair near-black, jumper and shoes grey-white, bun stands up off the head like a
+  separate lump, cold overall colour.
