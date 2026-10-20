@@ -23,6 +23,8 @@ const OUT = process.argv[2], LAND = process.argv[3] === 'landscape';
     const dbg = await ev(() => { const { S, st } = window.__shop2d; const t = S.tickets.find(t => t.uid === st.selected); return `${st.view} sel=${st.selected} ${t ? `fill=${t.fill.toFixed(2)} fat=${t.fat} noodles=${t.noodles} parts=${t.parts.join(',')}` : ''} baskets=${S.baskets.map(b => b.ticket ? b.ticket + ':' + b.t.toFixed(1) : '-').join('/')} step=${st.step ? st.step.kind + ':' + st.step.word : '-'}`; });
     if (dbg !== globalThis.lastDbg) { console.log(((Date.now() - t0) / 1000).toFixed(0) + 's', dbg); globalThis.lastDbg = dbg; }
     if (s.react) {
+      const ht = await ev(() => window.__shop2d.st.hero?.t || 0);
+      if (ht > 0.9 && !shots.has('hero')) { shots.add('hero'); await p.screenshot({ path: `${OUT}/hero.png` }); }
       const rt = await ev(() => window.__shop2d.st.react?.t || 0);
       for (const [at, nm] of [[0.25, 'react-slide'], [1.0, 'react-eat'], [2.1, 'react-verdict']]) if (rt >= at && !shots.has(nm) && rt < at + 0.9) { shots.add(nm); if (s.view !== 'order') await ev(() => window.__shop2d.go('order')); await p.screenshot({ path: `${OUT}/${nm}.png` }); }
       await W(150); continue;

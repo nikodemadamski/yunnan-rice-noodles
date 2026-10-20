@@ -58,6 +58,9 @@ export function toggleMute() {
   return muted;
 }
 
+export function audioCtx() { return ctx; }
+export function sfxOut() { return master; }
+
 // ---------- Animalese ----------
 // vowel formants (F1, F2), scaled up ×1.2 for a small, cute voice
 const FORMANT = { a: [850, 1600], e: [600, 2300], i: [350, 2700], o: [550, 1000], u: [380, 900], y: [350, 2400], n: [500, 1500] };

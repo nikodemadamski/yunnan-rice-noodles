@@ -24,6 +24,7 @@ export const LOOKS = {   // the cast sheet: big round hair, navy jeans, white sn
 };
 
 import { charSprite, SPRITE } from './sprites.js';
+import { drawFood } from './food.js';
 
 // ------------------------------------------------------------ drawing kit
 export let ctx;
@@ -105,7 +106,10 @@ export function person(look, x, y, s, mood = 'normal', t = 0, blink = false) {
 }
 
 // ------------------------------------------------------------ ingredients, top-down
+const FOODS = ['pork', 'fish', 'egg', 'ham', 'chrys', 'pea', 'chives', 'tofu', 'jizong', 'chilli', 'noodles'];
 export function piece(kind, x, y, rot = 0, cook = 1, s = 1, seed = 1) {
+  // the real thing (food.js: rendered ingredients), the doodle only for anything else
+  if (FOODS.includes(kind)) { drawFood(ctx, kind, x, y, { rot, cook: cook < 0 ? 'shell' : cook, s, variant: seed }); return; }
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
   ctx.lineWidth = 3; ctx.strokeStyle = C.ink;
   const R = rng(seed * 97 + 13);

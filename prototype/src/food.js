@@ -204,11 +204,31 @@ const PAINT = {
   },
 };
 
-/** The painted sprite for one ingredient (cached). cook: 0 raw..1 cooked (snapped to raw/cooked), or 'shell'. */
+// --- rendered food (tools/blender/food.py): real geometry and materials, lit
+// like food photography, same 124 mm box. Loaded in the background; until a
+// picture arrives the painted sprite above stands in.
+const STATES = { pork: [0, 1], fish: [0, 1], egg: ['shell', 0, 1] };
+const KINDS = ['pork', 'fish', 'egg', 'ham', 'chrys', 'pea', 'chives', 'tofu', 'jizong', 'chilli', 'noodles'];
+const shots = new Map();
+const asset = name => new URL(`../assets/food2d/${name}.webp`, import.meta.url).href;
+function load(key, name) {
+  const im = new Image(); im.decoding = 'async';
+  im.onload = () => shots.set(key, im);
+  im.src = asset(name);
+}
+for (const k of KINDS) for (const st of STATES[k] || [1]) for (let v = 0; v < 3; v++) load(`${k}|${st}|${v}`, `${k}_${st}_${v}`);
+for (const g of ['blue', 'celadon', 'red']) load(`bowl|${g}`, `bowl_${g}`);
+load('dish', 'dish');
+load('broth|clear', 'broth_clear'); load('broth|sealed', 'broth_sealed');
+const GLAZE = { '#3a6ea5': 'blue', '#7fb5a0': 'celadon', '#c0392b': 'red' };
+
+/** The sprite for one ingredient (cached). cook: 0 raw..1 cooked (snapped to raw/cooked), or 'shell'. */
 export function foodSprite(kind, cook = 1, variant = 0) {
   const shell = cook === 'shell';
   const state = shell ? 'shell' : cook >= 0.5 ? 1 : 0;
   const key = `${kind}|${state}|${variant % 3}`;
+  const shot = shots.get(key) || shots.get(`${kind}|1|${variant % 3}`);
+  if (shot) return shot;
   if (cache.has(key)) return cache.get(key);
   const c = document.createElement('canvas'); c.width = c.height = SIZE * RES;
   const g = c.getContext('2d'); g.scale(RES, RES); g.translate(SIZE / 2, SIZE / 2);
@@ -220,6 +240,8 @@ export function foodSprite(kind, cook = 1, variant = 0) {
 
 /** Draw an ingredient into `ctx` at (x, y), cross-fading raw → cooked. */
 export function drawFood(ctx, kind, x, y, { rot = 0, cook = 1, s = 1, variant = 0, alpha = 1 } = {}) {
+  // a rendered picture has its light baked in (top left) and its own shadow: turn it only a little
+  if (shots.size) rot = Math.sin(rot) * 0.3;
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
   const half = SIZE / 2;
   if (cook === 'shell' || cook <= 0 || cook >= 1 || !['pork', 'fish', 'egg'].includes(kind)) {
@@ -240,6 +262,10 @@ export function drawFood(ctx, kind, x, y, { rot = 0, cook = 1, s = 1, variant = 
  */
 export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', t = 0, heat = 1, mixed = false, waves = [] } = {}) {
   ctx.save(); ctx.translate(x, y);
+  const shot = shots.get(`bowl|${GLAZE[rimCol] || 'blue'}`);
+  if (shot) ctx.drawImage(shot, -R * 1.25, -R * 1.25, R * 2.5, R * 2.5);   // the rendered porcelain, 2.5 R wide
+  const inner = R * 0.84;
+  if (!shot) {
   // shadow on the counter
   let gr = ctx.createRadialGradient(12, 22, R * 0.7, 12, 22, R * 1.18);
   gr.addColorStop(0, 'rgba(80,45,30,0.38)'); gr.addColorStop(1, 'rgba(80,45,30,0)');
@@ -253,7 +279,6 @@ export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', 
   ctx.lineWidth = 1.5; ctx.strokeStyle = rimCol;
   for (let i = 0; i < 28; i++) { const a = i / 28 * P2; ctx.beginPath(); ctx.arc(Math.cos(a) * R * 0.955, Math.sin(a) * R * 0.955, R * 0.022, a, a + Math.PI); ctx.stroke(); }
   // the inner wall falling away (darker to the bottom right, lit at top left)
-  const inner = R * 0.84;
   gr = ctx.createRadialGradient(-inner * 0.25, -inner * 0.3, inner * 0.2, 0, 0, inner);
   gr.addColorStop(0, '#fbf8f2'); gr.addColorStop(0.75, '#ece5d8'); gr.addColorStop(1, '#bfb2a0');
   ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, inner, 0, P2); ctx.fill();
@@ -261,12 +286,34 @@ export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', 
   gr = ctx.createRadialGradient(0, 0, 0, 0, 0, inner * 0.55);
   gr.addColorStop(0, '#e6ddcf'); gr.addColorStop(1, 'rgba(230,221,207,0)');
   ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, inner * 0.55, 0, P2); ctx.fill();
+  }
   // the broth: rises up the wall as it fills
   if (fill > 0) {
     const br = inner * (0.45 + Math.min(fill, 1.15) * 0.48);
+    const clear = shots.get('broth|clear'), sealed = shots.get('broth|sealed');
+    if (clear) {
+      // the rendered broth, fixed in scale and clipped to the level it's reached;
+      // the oil seal spreads out from the centre over it
+      const S = inner * 1.12;
+      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, br, 0, P2); ctx.clip();
+      ctx.drawImage(clear, -S, -S, S * 2, S * 2);
+      if (fat > 0 && sealed) {
+        const fr = br * Math.min(1, fat);
+        ctx.save(); ctx.beginPath(); ctx.arc(0, 0, fr, 0, P2); ctx.clip();
+        ctx.globalAlpha = Math.min(1, fat * 1.4); ctx.drawImage(sealed, -S + Math.sin(t * 0.3) * 2, -S + Math.cos(t * 0.25) * 2, S * 2, S * 2);
+        ctx.restore();
+      }
+      if (mixed) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#7a4a24'; ctx.fillRect(-br, -br, br * 2, br * 2); }
+      // the wall's shade falls on the broth at the far side, depth reads at the rim
+      gr = ctx.createRadialGradient(br * 0.12, br * 0.14, br * 0.6, 0, 0, br);
+      gr.addColorStop(0, 'rgba(90,50,10,0)'); gr.addColorStop(1, 'rgba(90,50,10,0.28)');
+      ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(-br, -br, br * 2, br * 2);
+      ctx.restore();
+    } else {
     gr = ctx.createRadialGradient(-br * 0.3, -br * 0.35, br * 0.05, 0, 0, br);
     gr.addColorStop(0, mixed ? '#d8b98a' : '#ffe6a6'); gr.addColorStop(0.6, mixed ? '#b48e5e' : '#f3c46a'); gr.addColorStop(1, mixed ? '#8a6a44' : '#d99b3c');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, br, 0, P2); ctx.fill();
+    }
     // meniscus: a bright ring where broth meets porcelain
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,245,215,0.75)'; ctx.beginPath(); ctx.arc(0, 0, br - 1.5, 0, P2); ctx.stroke();
     // ripples from drops and pours
@@ -277,7 +324,7 @@ export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', 
       ctx.beginPath(); ctx.arc(w.x, w.y, 6 + k * br * 0.8, 0, P2); ctx.stroke();
     }
     // the oil seal: spreads from the centre, then a skin of golden fat beads
-    if (fat > 0) {
+    if (fat > 0 && !clear) {
       const fr = br * Math.min(1, fat);
       gr = ctx.createRadialGradient(0, 0, fr * 0.2, 0, 0, fr);
       gr.addColorStop(0, 'rgba(255,214,90,0.35)'); gr.addColorStop(1, 'rgba(255,200,70,0.22)');
@@ -297,8 +344,10 @@ export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', 
     ctx.restore();
   }
   // rim highlight
+  if (!shot) {
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(0, 0, R - 3, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
   ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(120,90,70,0.35)'; ctx.beginPath(); ctx.arc(0, 0, R, 0, P2); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -306,7 +355,11 @@ export function drawBowl(ctx, x, y, R, { fill = 0, fat = 0, rimCol = '#3a6ea5', 
 export function drawDish(ctx, x, y, w, h, kind, { t = 0, glow = 0, locked = false, shell = false, count = 5 } = {}) {
   ctx.save(); ctx.translate(x + w / 2, y + h / 2);
   const rx = w / 2, ry = h / 2;
-  let gr = ctx.createRadialGradient(6, 12, ry * 0.4, 6, 12, rx * 1.05);
+  const shot = shots.get('dish');
+  let gr;
+  if (shot) ctx.drawImage(shot, -rx * 1.25, -ry * 1.25, rx * 2.5, ry * 2.5);
+  else {
+  gr = ctx.createRadialGradient(6, 12, ry * 0.4, 6, 12, rx * 1.05);
   gr.addColorStop(0, 'rgba(80,45,30,0.32)'); gr.addColorStop(1, 'rgba(80,45,30,0)');
   ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(6, 12, rx * 1.05, ry * 1.08, 0, 0, P2); ctx.fill();
   gr = ctx.createRadialGradient(-rx * 0.3, -ry * 0.4, 4, 0, 0, rx);
@@ -315,12 +368,13 @@ export function drawDish(ctx, x, y, w, h, kind, { t = 0, glow = 0, locked = fals
   gr = ctx.createRadialGradient(rx * 0.15, ry * 0.2, 2, 0, 0, rx * 0.82);
   gr.addColorStop(0, '#f6f1e8'); gr.addColorStop(1, '#ddd2c2');
   ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(0, 0, rx * 0.82, ry * 0.78, 0, 0, P2); ctx.fill();
+  }
   if (glow > 0) { ctx.lineWidth = 6; ctx.strokeStyle = `rgba(255,210,80,${glow})`; ctx.beginPath(); ctx.ellipse(0, 0, rx + 4, ry + 4, 0, 0, P2); ctx.stroke(); }
   // a little pile: pieces overlapping, the top one a touch bigger
   const pos = [[-0.32, 0.12], [0.3, 0.1], [0, -0.12], [-0.12, 0.22], [0.16, -0.2]].slice(0, count);
   pos.forEach(([px, py], i) => drawFood(ctx, kind, px * rx, py * ry * 1.1, { rot: (i * 1.9) % 6, cook: shell ? 'shell' : (kind === 'pork' || kind === 'fish' ? 0 : 1), s: Math.min(rx, ry * 1.4) / 62 * (i === pos.length - 1 ? 1.05 : 0.95), variant: i }));
   if (locked) { ctx.fillStyle = 'rgba(70,60,80,0.55)'; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, P2); ctx.fill(); }
-  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(0, 0, rx - 2, ry - 2, 0, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
+  if (!shot) { ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(0, 0, rx - 2, ry - 2, 0, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke(); }
   ctx.restore();
 }
 

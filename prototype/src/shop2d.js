@@ -19,6 +19,7 @@ import {
 } from './shopcore.js';
 import { learn } from './lore.js';
 import { drawFood, drawBowl, drawDish, drawSplash, splashAt } from './food.js';
+import { foley, foleyLoop } from './foley.js';
 import { progress, owns, buy, useBowl, bowlRim, earn, pagesFound, ITEMS, PAGES, heartsFor } from './progress.js';
 import { ctx, use, C, FONT, LOOKS, P2, rr, inked, circle, ellipse, text, label, wrap, rng, checker, grain, patterns, hand, person, piece } from './draw2d.js';
 
@@ -227,6 +228,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   function down(v) {
     const w = toW(v);
     st.ptr.down = true; st.ptr.sx = v.x; st.ptr.sy = v.y; st.drag = null; st.idleT = 0;
+    if (st.hero) { if (st.hero.t > 0.5) st.hero.t = Math.max(st.hero.t, 1.9); return; }   // tap: send it out
     const tab = tabsAt(v); if (tab) { go(tab.id); return; }
     const tk = ticketAt(v); if (tk) { st.selected = tk.uid; sfx('pop'); return; }
     if (st.view === 'order' && st.bubble) {
@@ -237,7 +239,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       }
     }
     if (st.view === 'stove') {
-      if (inR(w, { x: COILS.x, y: COILS.y - COILS.h / 2, w: COILS.w, h: COILS.h })) { st.drag = { kind: 'coil' }; sfx('pop'); return; }
+      if (inR(w, { x: COILS.x, y: COILS.y - COILS.h / 2, w: COILS.w, h: COILS.h })) { st.drag = { kind: 'coil' }; foley('chopsticks', { gain: 0.7 }); return; }
       const bi = BASKETS.findIndex(b => near(w, b, 105));
       if (bi >= 0 && S.baskets[bi].ticket) { lift(bi); return; }
     }
@@ -247,9 +249,9 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (part) {
         if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; }
         if (part === 'noodles' && t.noodles === null) { say('The noodles for this bowl aren’t cooked yet. To the stove! ♨️'); sfx('bump'); return; }
-        st.drag = { kind: 'part', part, seed: Math.floor(Math.random() * 999) }; st.held.x = w.x; st.held.y = w.y - 40; st.held.rot = 0; sfx('pop'); return;
+        st.drag = { kind: 'part', part, seed: Math.floor(Math.random() * 999) }; st.held.x = w.x; st.held.y = w.y - 40; st.held.rot = 0; foley('chopsticks', { gain: 0.8 }); return;
       }
-      if (near(w, POT, POT.r)) { if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; } st.pouring = true; sfx('splash'); return; }
+      if (near(w, POT, POT.r)) { if (!t) { say('👆 Pick a ticket first (top left).'); sfx('bump'); return; } st.pouring = true; foley('ladle_clink', { gain: 0.7 }); foley('pour_broth', { gain: 0.9, delay: 0.08 }); return; }
       if (near(w, OIL, OIL.r)) { oil(); return; }
       if (inR(w, TRASH)) { if (t && (t.fill || t.parts.length)) { resetBowl(S, t.uid); st.pieces[t.uid] = []; sfx('whack'); say('Tipped it out. Start again: broth first.'); } return; }
       if (inR(w, SERVE)) { doServe(); return; }
@@ -281,7 +283,7 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       const t = sel()?.noodles === null && !S.baskets.some(b => b.ticket === st.selected) ? sel()
         : S.tickets.find(q => !q.served && q.noodles === null && !S.baskets.some(b => b.ticket === q.uid));
       if (!t) { say('No ticket needs noodles right now. Take an order 🛎️'); sfx('bump'); return; }
-      startNoodles(S, bi, t.uid); sfx('splash');
+      startNoodles(S, bi, t.uid); foley('plop_heavy', { gain: 0.9, rate: 0.85 });
       for (let k = 0; k < 6; k++) st.ripples.push({ x: BASKETS[bi].x, y: BASKETS[bi].y, t: k * -0.08, col: '#ffffff' });
       return;
     }
@@ -305,7 +307,8 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
         }
       }
       list.push({ p: d.part, x: px, y: py, rot: Math.random() * 6, born: st.t, hot, seed: d.seed });
-      sfx('pop');                                    // let go: the plop comes when it lands
+      if (d.part === 'egg') foley('egg_crack', { gain: 0.9 });   // cracked on the rim as it goes in
+      // let go: the plop comes when it lands
       if (PARTS[d.part].rank === 0) { learn('raw'); pop(hot ? 'Tssss… cooked in seconds' : '…it won’t cook. Too cold!', w.x, w.y - 70, hot ? C.greenD : C.red); }
       if (d.part === 'chrys') learn('chrys');
     }
@@ -316,13 +319,13 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     if (!t.broth) { say('Broth first, then the oil on top.'); sfx('bump'); return; }
     if (!addFat(S, t.uid)) return;
     st.fatT[t.uid] = st.t;
-    sfx('sizzle'); note(880, 0.2, 'sine', 0.08);
+    foley('oil_pour'); foley('sizzle', { gain: 0.35, delay: 0.35 });
     pop('✨ Sealed: a coin-thick layer of oil', BOWL.x, BOWL.y - BOWL.r - 50, C.woodD);
     learn('seal');
   }
   function lift(i) {
     const score = liftNoodles(S, i);
-    sfx('splash');
+    foley('noodle_lift');
     st.lifts.push({ x: BASKETS[i].x, y: BASKETS[i].y, t: 0 });
     pop(score >= 0.95 ? 'Perfect!' : score >= 0.7 ? 'Good' : score < 0.6 ? 'Too firm…' : 'A bit soft', BASKETS[i].x, BASKETS[i].y - 150, score >= 0.95 ? C.greenD : C.ink);
   }
@@ -347,9 +350,55 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
     p.mood = 'normal';
     st.react = { uid: t.guest, tk: t.uid, t: 0, res, mood: res.points >= 80 ? 'happy' : res.points >= 60 ? 'normal' : res.points >= 45 ? 'sad' : 'angry', line: bad ? bad.text : good.length ? `Mm! ${good[0].text}` : 'Mm!' };
     p.tx = O.cx; p.react = true;
+    // the hero shot: before it goes out, the bowl you made fills the screen for a moment
+    st.hero = { tk: t.uid, t: 0, fill: t.fill, fat: t.fat ? 1 : 0, mixed: t.mixed };
+    note(1046, 0.5, 'sine', 0.06); note(1568, 0.6, 'sine', 0.04, 0.12);
     layout();
     go('order');
     st.selected = S.tickets.find(q => !q.served)?.uid || null;
+  }
+
+  // The finished bowl, close: it rises out of the kitchen into the light, steam
+  // curling off the oil, a glint across the glaze, then out to the counter.
+  function drawHero(h) {
+    const k = Math.min(1, h.t / 0.35), out = Math.max(0, (h.t - 1.9) / 0.3), e = 1 - (1 - k) ** 3;
+    const a = (1 - out);
+    ctx.save();
+    ctx.globalAlpha = 0.72 * e * a;
+    const bg = ctx.createRadialGradient(VW / 2, VH / 2, 40, VW / 2, VH / 2, Math.max(VW, VH) * 0.7);
+    bg.addColorStop(0, '#6a3a1e'); bg.addColorStop(1, '#1d0f08');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, VW, VH);
+    ctx.globalAlpha = a;
+    const R = Math.min(VW, VH) * 0.34 * (0.8 + 0.2 * e) * (1 + out * 0.1), cx = VW / 2, cy = VH / 2 + (1 - e) * 120 + out * 160;
+    // warm pool of light under the bowl
+    const pool = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R * 1.6);
+    pool.addColorStop(0, 'rgba(255,200,120,0.35)'); pool.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.fillStyle = pool; ctx.fillRect(cx - R * 1.7, cy - R * 1.7, R * 3.4, R * 3.4);
+    drawBowl(ctx, cx, cy, R, { fill: h.fill, fat: h.fat, rimCol: bowlRim('#3a6ea5'), t: st.t, mixed: h.mixed });
+    const sc = R / BOWL.r;
+    for (const pc of st.pieces[h.tk] || []) {
+      const raw = PARTS[pc.p].rank === 0;
+      drawFood(ctx, pc.p, cx + pc.x * sc, cy + pc.y * sc + Math.sin(st.t * 1.6 + pc.seed) * 2, { rot: pc.rot, cook: raw ? (pc.hot ? 1 : 0) : 1, s: sc * (pc.p === 'noodles' ? 1.6 : 1.1), variant: pc.seed });
+    }
+    // a glint sweeping across the glaze and the oil
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, P2); ctx.clip();
+    const gx = cx - R * 1.6 + Math.min(1, h.t / 1.2) * R * 3.2;
+    const gl = ctx.createLinearGradient(gx - 60, cy - R, gx + 60, cy + R);
+    gl.addColorStop(0, 'rgba(255,255,255,0)'); gl.addColorStop(0.5, 'rgba(255,250,235,0.35)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gl; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+    ctx.restore();
+    // steam: soft curls rising off the bowl
+    for (let i = 0; i < 9; i++) {
+      const q = (h.t * 0.45 + i / 9) % 1, sx = cx + Math.sin(i * 2.3) * R * 0.5 + Math.sin(st.t * 1.4 + i) * 18 * q;
+      const sy = cy - R * 0.2 - q * R * 1.3, r = R * (0.1 + q * 0.22);
+      const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+      sg.addColorStop(0, `rgba(255,255,255,${0.32 * Math.sin(q * Math.PI) * e})`); sg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, r, 0, P2); ctx.fill();
+    }
+    ctx.globalAlpha = a * Math.min(1, Math.max(0, (h.t - 0.3) / 0.3));
+    label('过桥米线', cx, cy - R - 70, 64);
+    label('Order up!', cx, cy + R + 70, 46);
+    ctx.restore();
   }
 
   // test hook: state, plus virtual → client coordinates
@@ -652,8 +701,9 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
         st.waves.push({ x: pc.x, y: pc.y, t: 0 }, { x: pc.x, y: pc.y, t: -0.15 });
         st.shake = pc.p === 'noodles' ? 0.8 : 0.35;
         const weight = { noodles: 196, pork: 330, fish: 350, ham: 300, egg: 440, jizong: 380, tofu: 400 }[pc.p] || 520;
-        sfx('splash'); note(weight, 0.09, 'sine', 0.16); note(weight * 1.5, 0.05, 'triangle', 0.05, 0.03);
-        if (pc.hot && PARTS[pc.p].rank === 0) setTimeout(() => sfx('sizzle'), 180);
+        if (pc.p === 'noodles') foley('noodle_slide');
+        else foley(weight < 450 ? 'plop_heavy' : 'plop_light');
+        if (pc.hot && PARTS[pc.p].rank === 0) foley('sizzle', { delay: 0.12 });
       }
       const raw = PARTS[pc.p].rank === 0;
       const cook = raw ? (pc.hot ? Math.min(1, Math.max(0, (age - 0.25) / 1.6)) : 0) : 1;
@@ -748,11 +798,17 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
   // ------------------------------------------------------------ the loop
   let last = performance.now(), done = false;
   await new Promise(resolve => {
+    let boil = null, simmer = null;
     function frame(now) {
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
       st.t += dt; st.dt = dt;
       tick(S, dt);
-      for (const e of drainEvents(S)) if (e.type === 'arrive') { spawn(S.guests.find(g => g.uid === e.guest)); layout(); }
+      for (const e of drainEvents(S)) if (e.type === 'arrive') { spawn(S.guests.find(g => g.uid === e.guest)); layout(); foley('bell_counter', { gain: 0.5 }); }
+      // the kitchen's bed of sound: the stockpot roars on the stove, the bowl simmers on the counter
+      const boiling = S.baskets.some(b => b.ticket);
+      boil ||= foleyLoop('boil_loop', 0); simmer ||= foleyLoop('simmer_loop', 0);
+      boil.set(st.view === 'stove' ? (boiling ? 0.9 : 0.5) : 0.12);
+      simmer.set(st.view === 'build' && sel()?.fill ? 0.6 : 0);
       if (st.pouring && sel()) pour(S, st.selected, 'hen', dt * 0.42);
       // people walk to their spots, blink, get cross
       for (const p of Object.values(st.people)) {
@@ -763,17 +819,18 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       }
       if (st.react) {
         const r = st.react, p = st.people[r.uid];
-        if (Math.abs(p.x - O.cx) < 10) {
+        if (Math.abs(p.x - O.cx) < 10 && !st.hero) {
           const t0 = r.t; r.t += dt;
           const cross = at => t0 < at && r.t >= at;
           if (cross(0.01)) sfx('whoosh');
           if (cross(0.6)) { p.mood = 'think'; note(392, 0.08, 'sine', 0.08); }
-          for (const at of [0.8, 1.05, 1.3]) if (cross(at)) sfx('splash');      // slurp
+          if (cross(0.75)) foley('slurp');
+          if (cross(1.3)) foley('slurp', { gain: 0.8 });
           if (cross(1.6)) { p.mood = r.mood; sfx(r.res.points >= 85 ? 'reveal' : r.res.points >= 65 ? 'ding' : 'fail'); }
           const hearts = r.res.points >= 85 ? 3 : r.res.points >= 65 ? 2 : 1;
           for (let i = 0; i < hearts; i++) if (cross(1.6 + i * 0.18)) note(660 + i * 220, 0.12, 'triangle', 0.14);
         }
-        if (r.t > 3.4) { st.money += st.react.res.tip; sfx('coin'); p.react = false; p.leaving = true; p.tx = VW + 200; st.react = null; layout(); }
+        if (r.t > 3.4) { st.money += st.react.res.tip; foley('coin_drop'); p.react = false; p.leaving = true; p.tx = VW + 200; st.react = null; layout(); }
       }
       for (const [uid, p] of Object.entries(st.people)) if (p.leaving && p.x >= VW + 190) delete st.people[uid];
       if (!st.selected) st.selected = S.tickets.find(q => !q.served)?.uid || null;
@@ -812,13 +869,14 @@ export async function shopService({ schedule = NIGHT1, title = 'Old Zhao’s · 
       if (st.drag?.kind === 'coil') drawFood(ctx, 'noodles', w.x, w.y - 30, { s: 1.1, variant: 4 });
       ctx.restore();
       drawHud(st.t);
+      if (st.hero) { st.hero.t += dt; drawHero(st.hero); if (st.hero.t > 2.2) { st.hero = null; foley('bowl_set'); } }
       if (st.ptr.show) hand(st.ptr.vx + 18, st.ptr.vy + 40, !!st.drag || st.pouring);
       // paper grain over everything
       ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.09; ctx.fillStyle = grain; ctx.fillRect(0, 0, VW, VH);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       ctx.restore();
 
-      if (!done && (dayOver(S) && !st.react || G.skip)) { done = true; resolve(); return; }
+      if (!done && (dayOver(S) && !st.react || G.skip)) { done = true; boil?.stop(0.6); simmer?.stop(0.6); resolve(); return; }
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

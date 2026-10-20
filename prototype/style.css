@@ -795,6 +795,8 @@ body.grade-flip #scene { filter: saturate(1.7) brightness(1.12); transition: non
 .night-shop small { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.15; }
 .night-shop em { font-style: normal; font-weight: 900; font-size: 13px; color: #8a3b3b; }
 .night-card { max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* on a phone the card scrolls: keep "Close up" in reach instead of below the fold */
+.night-card > .row:last-child { position: sticky; bottom: -10px; background: #fffdf6; padding: 8px 0 10px; margin-bottom: -10px; }
 
 /* title: pick your hero (portraits rendered from the 3D heroes) */
 .hero-pick { display: flex; justify-content: center; gap: 14px; margin-top: 10px; }

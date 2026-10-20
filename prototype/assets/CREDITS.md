@@ -4,3 +4,4 @@
 - `kitchen/`: KayKit Restaurant Bits 1.0 by Kay Lousberg (www.kaylousberg.com), CC0.
 - `food/`: Kenney Food Kit by Kenney (www.kenney.nl), CC0.
 - `../vendor/addons/`: three.js r170 GLTFLoader and BufferGeometryUtils, MIT, © three.js authors.
+- `sfx/`: cooking foley (broth pours, plops, sizzles, bowls, chopsticks, slurps, boil loops, etc.). Original sounds, synthesised from scratch with `tools/foley/synth.py` (no recordings or third-party samples). CC0 1.0.

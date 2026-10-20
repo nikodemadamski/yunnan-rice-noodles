@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foley Preview</title>
+<style>
+  :root { --bg: #fbf5ea; --ink: #3b2a1e; --card: #fff; --line: #e6d6bd; --accent: #c8553d; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #221a14; --ink: #f2e6d4; --card: #2e241c; --line: #4a3a2c; --accent: #e07a5f; } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { margin: 0 0 14px; opacity: .75; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  button { padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: inherit; font: inherit; cursor: pointer; text-align: left; }
+  button small { display: block; opacity: .6; font-size: 12px; }
+  button.loop[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  pre { white-space: pre-wrap; font-size: 12px; opacity: .8; }
+</style>
+</head>
+<body>
+<h1>Noodle-shop foley</h1>
+<p>Tap a sound. Base names pick a random take with slight pitch variation. Serve <code>prototype/</code> and open <code>/tools/foley/preview.html</code>.</p>
+<div id="grid"></div>
+<pre id="log"></pre>
+<script type="module">
+  import { initAudio, audioCtx } from '../../src/audio.js';
+  import { foley, foleyLoop, preloadFoley, foleyDuration, FOLEY_FILES } from '../../src/foley.js';
+
+  const bases = ['pour_broth', 'ladle_clink', 'plop_light', 'plop_heavy', 'sizzle', 'oil_pour', 'egg_crack',
+    'noodle_slide', 'noodle_lift', 'chopsticks', 'bowl_set', 'saucer_set', 'stir', 'slurp', 'knife_chop',
+    'coin_drop', 'bell_counter'];
+  const grid = document.getElementById('grid'), log = document.getElementById('log');
+  const unlock = () => { initAudio(); const c = audioCtx(); if (c && c.state !== 'running') c.resume(); };
+  for (const b of bases) {
+    const el = document.createElement('button');
+    el.innerHTML = `${b}<small>one-shot</small>`;
+    el.onclick = () => { unlock(); foley(b); };
+    grid.append(el);
+  }
+  for (const l of ['boil_loop', 'simmer_loop']) {
+    const el = document.createElement('button');
+    el.className = 'loop'; el.setAttribute('aria-pressed', 'false');
+    el.innerHTML = `${l}<small>loop on/off</small>`;
+    let h = null;
+    el.onclick = () => {
+      unlock();
+      if (h) { h.stop(); h = null; el.setAttribute('aria-pressed', 'false'); }
+      else { h = foleyLoop(l, 0.8); el.setAttribute('aria-pressed', 'true'); }
+    };
+    grid.append(el);
+  }
+  // Decode check (used by the headless test): ?check
+  if (location.search.includes('check')) {
+    initAudio();
+    const t0 = performance.now();
+    preloadFoley().then((ok) => {
+      const rows = FOLEY_FILES.map((f) => `${f}\t${foleyDuration(f).toFixed(3)}s`);
+      log.textContent = rows.join('\n');
+      window.__foleyCheck = { ok, ms: Math.round(performance.now() - t0),
+        durations: Object.fromEntries(FOLEY_FILES.map((f) => [f, foleyDuration(f)])) };
+    });
+  }
+</script>
+</body>
+</html>
