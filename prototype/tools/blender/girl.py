@@ -15,7 +15,7 @@ from food import srgb
 import face_paint
 
 HEAD = Vector((0, 0, 1.62))          # head centre
-HRX, HRY, HRZ = 0.43, 0.40, 0.40     # head radii (wide, soft)
+HRX, HRY, HRZ = 0.44, 0.40, 0.40     # head radii (wide, soft)
 R = random.Random(7)
 
 # ---------------------------------------------------------------- materials
@@ -128,14 +128,14 @@ def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     out = os.environ.get('OUT', '/tmp')
     facepng = os.path.join(out, 'face_normal.png'); face_paint.paint('normal').convert('RGB').save(facepng)
-    skin_face = material('skin_face', '#f7cdb2', rough=0.55, sss=0.3, image=facepng)
-    skin = material('skin', '#f7cdb2', rough=0.55, sss=0.3)
+    skin_face = material('skin_face', '#f8cca8', rough=0.55, sss=0.3, image=facepng)
+    skin = material('skin', '#f8cca8', rough=0.55, sss=0.3)
     blush = material('ear_in', '#f4b3a3', rough=0.6, sss=0.3)
     knit = material('knit', '#efe1c6', rough=0.92, sheen=0.7)
     denim = material('denim', '#5a82bb', rough=0.85, sheen=0.25)
     denim_in = material('denim_in', '#8eacd6', rough=0.85, sheen=0.2)
     shoe = material('shoe', '#fbf8f1', rough=0.55)
-    sole = material('sole', '#eadfca', rough=0.75)
+    sole = material('sole', '#e2c9a2', rough=0.75)
     tan = material('tan', '#d89a59', rough=0.6)
     hair_m = [material(f'hair{i}', c, rough=0.5, sheen=0.5, coat=0.08) for i, c in enumerate(('#2e1910', '#3b2216', '#4a2b1b'))]
     leather = material('leather', '#9a5c38', rough=0.5, coat=0.25)
@@ -148,7 +148,7 @@ def build():
     def head_shape(d):
         k = 1.0
         for sx in (-1, 1):                          # cheeks
-            k += 0.075 * math.exp(-((d.x - sx * 0.55) ** 2 + (d.y + 0.62) ** 2 + (d.z + 0.38) ** 2) / 0.09)
+            k += 0.1 * math.exp(-((d.x - sx * 0.6) ** 2 + (d.y + 0.55) ** 2 + (d.z + 0.42) ** 2) / 0.1)
         k -= 0.05 * math.exp(-((d.x) ** 2 + (d.y + 0.35) ** 2 + (d.z + 0.92) ** 2) / 0.12)   # a small chin
         k += 0.02 * max(0, d.z) ** 2                # a rounder crown
         return k
@@ -182,7 +182,7 @@ def build():
         S, E, W, d = arm_points(sx)
         side = Vector((0, 1, 0))
         sl = sweep(f'sleeve.{nm}', [S - d * 0.06, S + d * 0.1, E, E + d * 0.14, W - d * 0.06],
-                   [(0.12, 0.12), (0.155, 0.15), (0.165, 0.158), (0.158, 0.15), (0.14, 0.135)], knit,
+                   [(0.13, 0.13), (0.18, 0.175), (0.195, 0.19), (0.19, 0.182), (0.16, 0.155)], knit,
                    rings=16, segs=28, side=side, rib=(14, 0.04), caps=(True, False))   # closed at the shoulder: it shows when the arm lifts
         parts[f'sleeve.{nm}'] = (sl, (f'shoulder.{nm}', f'upper_arm.{nm}', f'forearm.{nm}', f'hand.{nm}'))
         cuff = sweep(f'cuff.{nm}', [W - d * 0.08, W + d * 0.01], [(0.12, 0.115), (0.092, 0.088)], knit,
@@ -214,11 +214,11 @@ def build():
         up = sweep(f'upper.{nm}', [(x, 0.1, 0.1), (x, 0.0, 0.11), (x, -0.13, 0.095), (x, -0.22, 0.075)],
                    [(0.1, 0.085), (0.105, 0.09), (0.1, 0.075), (0.075, 0.05)], shoe, rings=10, segs=18, side=(1, 0, 0))
         collar_s = sweep(f'shoecollar.{nm}', [(x, 0.03, 0.12), (x, 0.03, 0.2)], [(0.1, 0.09), (0.095, 0.085)], shoe, rings=4, segs=24, caps=(False, False))
-        tab = blob(f'heeltab.{nm}', (x, 0.12, 0.15), (0.04, 0.02, 0.05), tan, seg=16)
+        tab = blob(f'heeltab.{nm}', (x, 0.1, 0.12), (0.085, 0.04, 0.07), tan, seg=20)
         flash = sweep(f'flash.{nm}', [(x + sx * 0.104, 0.04, 0.08), (x + sx * 0.108, -0.04, 0.1), (x + sx * 0.1, -0.12, 0.085)],
                       [(0.008, 0.02)] * 3, tan, rings=8, segs=10, side=(1, 0, 0))
         for k in range(3):
-            lace = blob(f'lace.{nm}{k}', (x, -0.06 - k * 0.045, 0.19 - k * 0.025), (0.05, 0.012, 0.012), shoe, seg=12)
+            lace = blob(f'lace.{nm}{k}', (x, -0.06 - k * 0.045, 0.19 - k * 0.025), (0.05, 0.012, 0.012), tan, seg=12)
             parts[f'lace.{nm}{k}'] = (lace, (f'foot.{nm}',))
         for o in (so, up, collar_s, tab, flash):
             parts[o.name] = (o, (f'foot.{nm}',))
@@ -231,8 +231,11 @@ def build():
     bag = blob('bag', PB, (0.25, 0.12, 0.27), leather, seg=28, shape=box(3.2))
     flap = blob('flap', PB + Vector((0, 0.015, 0.14)), (0.262, 0.125, 0.15), leather_d, seg=28, shape=box(3.0))
     pocket = blob('pocket', PB + Vector((0, 0.12, -0.1)), (0.16, 0.035, 0.1), leather_d, seg=20, shape=box(3.0))
-    for o in (bag, flap, pocket): parts[o.name] = (o, ('chest',))
-    daisy(parts, PB + Vector((0, 0.158, -0.09)), Vector((0, 1, 0)), 0.045, petal, gold, ('chest',))
+    pflap = blob('pocketflap', PB + Vector((0, 0.15, -0.045)), (0.165, 0.03, 0.045), leather, seg=20, shape=box(3.0))
+    handle = sweep('handle', [PB + Vector((-0.07, 0.0, 0.27)), PB + Vector((-0.05, 0.0, 0.34)), PB + Vector((0.05, 0.0, 0.34)), PB + Vector((0.07, 0.0, 0.27))],
+                   [(0.018, 0.01)] * 4, leather_d, rings=14, segs=8, side=(0, 1, 0))
+    for o in (bag, flap, pocket, pflap, handle): parts[o.name] = (o, ('chest',))
+    daisy(parts, PB + Vector((0, 0.183, -0.05)), Vector((0, 1, 0)), 0.04, petal, gold, ('chest',))   # on the pocket flap
     for sx in (-1, 1):
         st = sweep(f'strap{sx}', [(sx * 0.17, 0.25, 0.86), (sx * 0.24, -0.05, 0.92), (sx * 0.25, -0.24, 1.08), (sx * 0.2, -0.12, 1.2), (sx * 0.17, 0.2, 1.18)],
                    [(0.03, 0.009)] * 5, leather_d, rings=24, segs=8, normal_fn=lambda p: Vector((p.x, p.y, 0)).normalized())
@@ -261,121 +264,165 @@ def on_head(dirv, lift):
 def head_normal(p):
     return (p - HEAD).normalized()
 
-SHELL = 0.06          # the shell's outer surface sits ~this far above the skull; strands lie just over it
+SHELL = 0.04          # the hair's base thickness over the skull
+
+def puff(d):
+    """extra hair volume in head direction d: big and soft over the temples and sides, fuller on top, close at the nape"""
+    side = math.exp(-((abs(d.x) - 0.82) ** 2 / 0.06 + (d.z - 0.22) ** 2 / 0.12)) * (1 if d.y < 0.2 else max(0.25, 1 - (d.y - 0.2) * 1.8))
+    return 0.03 + 0.085 * side + 0.035 * max(0.0, d.z) - 0.02 * max(0.0, -d.z) * max(0.0, d.y)
+
+def hair_r(d):
+    d = d.normalized()
+    rr = 1 / math.sqrt((d.x / HRX) ** 2 + (d.y / HRY) ** 2 + (d.z / HRZ) ** 2)
+    # toward the front hairline the hair thins down onto the skull, so there's no visor edge
+    front = min(1.0, max(0.0, (-d.y - 0.25) / 0.35))
+    f = min(1.0, max(0.0, (d.z - 0.5) / 0.35))
+    k = 1 - front * (1 - (0.2 + 0.8 * f))
+    return rr + (SHELL + puff(d)) * k
+
+def on_hair(dirv, extra=0.0):
+    d = dirv.normalized(); return HEAD + d * (hair_r(d) + extra)
 
 def build_hair(parts, hm, petal, gold):
     shell_m = material('hair_shell', '#2e1910', rough=0.75, sheen=0.4)
-    # the shell: the hair's volume over the skull, pulled up; the face stays clear
-    shell = blob('hair_shell', HEAD + Vector((0, 0.02, 0.02)), (HRX + 0.03, HRY + 0.035, HRZ + 0.04), shell_m, seg=48)
-    bm = bmesh.new(); bm.from_mesh(shell.data)
-    c = HEAD
+    # the volume: a soft puffy shell, the face and ears kept clear
+    bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=48, v_segments=24, radius=1)
+    for v in bm.verts: v.co = on_hair(v.co.normalized() if v.co.length else Vector((0, 0, 1)), -0.012)
     def gone(v):
-        d = (v.co - c); x, y, z = d.x / HRX, d.y / HRY, d.z / HRZ
-        if z > 0.42: return False                  # crown
-        if y > 0.2 and z > -0.66 + 0.75 * abs(x): return False     # the back, the nape curving up behind the ears
-        if abs(x) > 0.62 and y > -0.35 and z > 0.12: return False   # over the ears' tops
+        d = (v.co - HEAD).normalized(); x, y, z = d.x, d.y, d.z
+        if z > 0.5: return False                                      # crown
+        if y > 0.22 and z > -0.7 + 0.8 * abs(x): return False         # the back, the nape curving up behind the ears
+        if abs(x) > 0.55 and y > -0.78 and z > 0.05: return False      # the puffs over the ears, forward to the temples
         return True
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if gone(v)], context='VERTS'); bm.to_mesh(shell.data); bm.free()
-    so = shell.modifiers.new('thick', 'SOLIDIFY'); so.thickness = 0.02; so.offset = -1
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if gone(v)], context='VERTS')
+    shell = mesh_from('hair_shell', bm, shell_m, sub=1)
+    so = shell.modifiers.new('thick', 'SOLIDIFY'); so.thickness = 0.03; so.offset = -1
     shell.modifiers.move(len(shell.modifiers) - 1, 0)
     parts['hair_shell'] = (shell, ('head',))
 
-    BUN = HEAD + Vector((0, 0.12, 0.47))           # the bun sits high, a little back
-    # broad sculpted locks sweeping up from the hairline into the bun (Ghibli / AC: few, chunky, soft)
+    BUN = HEAD + Vector((0, 0.1, 0.52))           # high on the crown, a little back
+    # broad sculpted locks combed up into the bun
     def hairline(a):
-        """elevation (radians) where the shell's edge is, at azimuth a (0 = front)"""
         x, y = math.sin(a), -math.cos(a)
-        if y < -0.35: return 0.5                            # front: under the bangs
-        if y < 0.2: return 0.16                             # over the ears
-        return math.asin(max(-0.95, -0.66 + 0.75 * abs(x)))  # the nape, curving up behind the ears
+        if y < -0.45: return 0.55
+        if y < 0.22: return 0.08
+        return math.asin(max(-0.95, -0.7 + 0.8 * abs(x)))
     n = 26
     for i in range(n):
         a = (i + 0.5) / n * 2 * math.pi + R.uniform(-0.04, 0.04)
         start_dir = Vector((math.sin(a), -math.cos(a), 0))
-        el0 = hairline(a) + 0.04
+        if start_dir.y < -0.45: continue                       # the front belongs to the curtain bangs
+        el0 = hairline(a) + 0.05
         pts = []
         for k in range(8):
             t = k / 7
-            el = el0 + (1.32 - el0) * t
+            el = el0 + (1.3 - el0) * t
             dirv = start_dir * math.cos(el) + Vector((0, 0, 1)) * math.sin(el)
-            p = on_head(dirv, SHELL + 0.004 + 0.022 * math.sin(t * math.pi) ** 0.7)
-            p = p.lerp(BUN + (p - BUN).normalized() * 0.16, max(0, t - 0.72) / 0.28)
+            # the root tucks in under the volume; the lock swells over it, then gathers into the bun
+            p = on_hair(dirv, -0.03 * (1 - t) ** 3 + 0.006 * math.sin(t * math.pi) ** 0.7)
+            p = p.lerp(BUN + (p - BUN).normalized() * 0.2, max(0, t - 0.72) / 0.28)
             pts.append(p)
-        w = R.uniform(0.12, 0.15)
-        o = sweep(f'lock{i}', pts, [(w * 0.55, 0.012), (w, 0.032), (w * 0.95, 0.036), (w * 0.7, 0.03), (w * 0.4, 0.02)], hm[i % 3],
+        w = R.uniform(0.1, 0.115)                              # half-width: neighbours overlap, so it reads as one combed volume
+        o = sweep(f'lock{i}', pts, [(w * 0.6, 0.008), (w, 0.018), (w * 0.95, 0.02), (w * 0.7, 0.018), (w * 0.4, 0.014)], hm[i % 3],
                   rings=22, segs=10, normal_fn=head_normal)
         parts[o.name] = (o, ('head',))
-    # little curls along the nape and behind the ears: a soft, lumpy hairline
+
+    # from the part, the top of the head combs straight back to the bun
+    for i in range(8):
+        sx = -1 if i < 4 else 1; j = i % 4
+        pts = []
+        for k in range(7):
+            t = k / 6
+            d0 = Vector((sx * (0.04 + 0.13 * j), -0.78 + 0.05 * j, 0.62 - 0.04 * j))
+            d1 = Vector((sx * (0.06 + 0.1 * j) * 0.6, 0.15, 1.0))
+            dirv = d0.lerp(d1, t)
+            p = on_hair(dirv, -0.02 * (1 - t) ** 3 + 0.014 * math.sin(t * math.pi))
+            p = p.lerp(BUN + (p - BUN).normalized() * 0.2, max(0, t - 0.7) / 0.3)
+            pts.append(p)
+        w = 0.07
+        o = sweep(f'toplock{i}', pts, [(w * 0.6, 0.012), (w, 0.028), (w * 0.9, 0.03), (w * 0.5, 0.018)], hm[(i + 1) % 3], rings=18, segs=10, normal_fn=head_normal)
+        parts[o.name] = (o, ('head',))
+
+    # curtain bangs: a middle part, two broad swoops out over the temples, stacked three deep
+    for sx in (-1, 1):
+        for k in range(4):
+            pts = []
+            for j in range(10):
+                t = j / 9
+                # from the part at the front of the crown, down across the forehead corner, out to the temple
+                dirv = Vector((sx * (0.03 + 0.06 * k + (0.86 - 0.04 * k) * math.sin(t * 1.45)), -0.75 - 0.2 * math.sin(t * math.pi), 0.78 - (0.6 - 0.05 * k) * t + 0.05 * k))
+                # close on the forehead, rising into the puff at the temple
+                dn = dirv.normalized(); rr = 1 / math.sqrt((dn.x / HRX) ** 2 + (dn.y / HRY) ** 2 + (dn.z / HRZ) ** 2)
+                pts.append(HEAD + dn * (rr + 0.03 + 0.008 * (2 - k) + (SHELL + puff(dn)) * t ** 1.5 * 0.55))
+            tip, prev = pts[-1], pts[-2]                  # the end flips out into a soft curl
+            tdir = (tip - prev).normalized(); nrm = head_normal(tip)
+            for q in range(1, 4):
+                a2 = q / 3 * math.pi * 0.8
+                pts.append(tip + tdir * math.sin(a2) * 0.035 - nrm * (1 - math.cos(a2)) * 0.02)   # turns under, toward the face
+            w = 0.07 - k * 0.006                                   # half-width
+            o = sweep(f'curtain{sx}{k}', pts, [(w * 0.5, 0.014), (w, 0.026), (w * 0.95, 0.026), (w * 0.7, 0.022), (w * 0.3, 0.012)],
+                      hm[(k + (sx > 0)) % 3], rings=36, segs=10, normal_fn=head_normal)
+            parts[o.name] = (o, ('head',))
+    # a few loose wisps falling from the part onto the forehead
+    for i, (x0, ln) in enumerate(((-0.05, 0.5), (0.06, 0.42))):
+        pts = []
+        for j in range(9):
+            t = j / 8
+            dirv = Vector((x0 + 0.12 * math.sin(t * 2.5 + i), -0.9, 0.72 - ln * t))
+            pts.append(on_hair(dirv, 0.02 - 0.05 * t) if t < 0.6 else HEAD + dirv.normalized() * (1 / math.sqrt((dirv.normalized().x / HRX) ** 2 + (dirv.normalized().y / HRY) ** 2 + (dirv.normalized().z / HRZ) ** 2) + 0.012))
+        o = sweep(f'wisp_front{i}', pts, [(0.016, 0.007), (0.013, 0.006), (0.005, 0.004)], hm[2], rings=24, segs=6, normal_fn=head_normal)
+        parts[o.name] = (o, ('head',))
+
+    # the bun: a big pumpkin of soft lobes (grooves meet at the centre), loose curls round it
+    axis = Vector((0, 0.35, 1)).normalized(); u = axis.orthogonal().normalized(); v = axis.cross(u)
+    bmb = bmesh.new(); bmesh.ops.create_uvsphere(bmb, u_segments=56, v_segments=28, radius=1)
+    for vt in bmb.verts:
+        d = vt.co.normalized()
+        ph = math.atan2(d.dot(v), d.dot(u)); up = d.dot(axis)
+        lobe = 1 + 0.085 * math.cos(7 * ph + 0.4) * (1 - abs(up) ** 3)
+        vt.co = BUN + (u * d.dot(u) * 0.3 + v * d.dot(v) * 0.29 + axis * up * (0.24 if up > 0 else 0.2)) * lobe
+    bun = mesh_from('bun', bmb, hm[1], sub=1)
+    parts['bun'] = (bun, ('bun',))
+    for i in range(5):                                  # soft curls tucked round the bun's base
+        a0 = i / 5 * 2 * math.pi + R.uniform(-0.2, 0.2)
+        c = BUN + (u * math.cos(a0) + v * math.sin(a0)) * 0.26 - axis * 0.08
+        tdir = (u * -math.sin(a0) + v * math.cos(a0))
+        out = (c - BUN).normalized()
+        pts = [c + tdir * (0.06 * math.sin(t * 5.5)) + out * (0.04 * (1 - math.cos(t * 5.5))) + axis * 0.03 * t for t in [k / 10 for k in range(11)]]
+        o = sweep(f'buncurl{i}', pts, [(0.045, 0.024), (0.04, 0.02), (0.016, 0.01)], hm[i % 3], rings=20, segs=8)
+        parts[o.name] = (o, ('bun',))
+    for i in range(3):                                  # flyaways on top
+        a0 = R.uniform(0, 6.28)
+        c = BUN + axis * 0.22 + (u * math.cos(a0) + v * math.sin(a0)) * 0.06
+        pts = [c + (u * math.cos(a0 + t * 3) + v * math.sin(a0 + t * 3)) * 0.05 * t + axis * 0.08 * math.sin(t * 2.5) for t in [k / 8 for k in range(9)]]
+        o = sweep(f'flyaway{i}', pts, [(0.012, 0.006), (0.004, 0.003)], hm[2], rings=14, segs=5)
+        parts[o.name] = (o, ('bun',))
+
+    # little curls along the nape and behind the ears
     for i in range(12):
         a = math.pi + (i / 11 - 0.5) * 2.4
         start_dir = Vector((math.sin(a), -math.cos(a), 0))
-        el = hairline(a) + 0.02
-        p0 = on_head(start_dir * math.cos(el) + Vector((0, 0, 1)) * math.sin(el), SHELL + 0.005)
+        el = hairline(a) + 0.03
+        p0 = on_hair(start_dir * math.cos(el) + Vector((0, 0, 1)) * math.sin(el), 0.0)
         nrm = head_normal(p0); dn = Vector((0, 0, -1)); sd = dn.cross(nrm).normalized()
         pts = [p0 + dn * (0.05 * math.sin(t * 2.4)) + sd * (0.03 * (1 - math.cos(t * 2.4))) + nrm * 0.01 * t for t in [k / 6 for k in range(7)]]
-        o = sweep(f'napecurl{i}', pts, [(0.035, 0.016), (0.03, 0.014), (0.012, 0.008)], hm[i % 3], rings=12, segs=8, normal_fn=head_normal)
+        o = sweep(f'napecurl{i}', pts, [(0.026, 0.012), (0.022, 0.01), (0.008, 0.006)], hm[1 + i % 2], rings=12, segs=8, normal_fn=head_normal)
         parts[o.name] = (o, ('head',))
 
-    # the bun: a fat cinnamon-roll spiral on a dome (the sheet's top view), lobes round its base
-    core = blob('bun_core', BUN + Vector((0, 0, 0.0)), (0.25, 0.24, 0.17), hm[0], seg=32)
-    parts['bun_core'] = (core, ('bun',))
-    def dome(r, a, lift=0.0):
-        return BUN + Vector((math.cos(a) * r, math.sin(a) * r, math.sqrt(max(0, 0.27 ** 2 - r * r)) * 0.62 - 0.0 + lift))
-    # two interleaved spirals winding in to a closed, raised centre
-    for j in range(2):
-        ph = j * math.pi
-        spiral = [dome(0.25 * (1 - k / 44) ** 0.9, ph + 0.6 + k / 44 * 2.0 * 2 * math.pi, 0.03 + 0.012 * (k / 44) ** 3) for k in range(45)]
-        o = sweep(f'bun_spiral{j}', spiral, [(0.075, 0.055), (0.09, 0.065), (0.085, 0.065), (0.075, 0.065), (0.07, 0.07)], hm[1 + j], rings=90, segs=10,
-                  normal_fn=lambda p: (p - BUN).normalized())
-        parts[o.name] = (o, ('bun',))
-    for i in range(3):                                 # a couple of loose wisps escaping the bun
-        a0 = R.uniform(0, 6.28)
-        pts = [dome(0.18 + 0.1 * t, a0 + t * 1.6, 0.06 * math.sin(t * 3)) for t in [k / 8 for k in range(9)]]
-        o = sweep(f'bunwisp{i}', pts, [(0.018, 0.01), (0.012, 0.008), (0.004, 0.004)], hm[2], rings=16, segs=6)
-        parts[o.name] = (o, ('bun',))
-
-    # bangs: six soft locks swept from a side part, tips turning under in a gentle curl
-    part = Vector((-0.12, -0.6, 0.86))
-    for i in range(6):
-        f = i / 5
-        x_end = -0.62 + f * 1.3
-        ln = 0.95 - abs(f - 0.45) * 0.35
-        pts = []
-        for k in range(9):
-            t = k / 8
-            dirv = part.lerp(Vector((x_end, -1.0, 0.24 + 0.2 * abs(x_end))), t * ln)
-            dirv += Vector((0.06 * math.sin(t * math.pi) * (1 if f > 0.25 else -1), 0, 0.03 * math.sin(t * 2 * math.pi + i)))
-            pts.append(on_head(dirv, SHELL + 0.026 - 0.03 * t ** 2))
-        tip, prev = pts[-1], pts[-2]
-        tdir = (tip - prev).normalized(); nrm = head_normal(tip)
-        for k in range(1, 4):                            # turn under: toward the face, then back up a touch
-            a2 = k / 3 * math.pi * 0.75
-            pts.append(tip + tdir * math.sin(a2) * 0.03 + nrm * (1 - math.cos(a2)) * 0.022)
-        w = R.uniform(0.1, 0.12)
-        o = sweep(f'bang{i}', pts, [(w * 0.6, 0.016), (w, 0.03), (w * 0.95, 0.03), (w * 0.75, 0.026), (w * 0.4, 0.016)],
-                  hm[i % 3], rings=30, segs=10, normal_fn=head_normal)
-        parts[o.name] = (o, ('head',))
-    # temple tendrils: soft loose S-curls from the hair's edge, just in front of the ears
+    # ringlets: springy spirals hanging from in front of the ears down past the jaw
     for sx in (-1, 1):
         for k in range(2):
-            top = on_head(Vector((sx * 0.9, -0.32 + k * 0.2, 0.22)), SHELL + 0.005)
+            top = on_hair(Vector((sx * 0.92, -0.32 + k * 0.26, 0.08)), -0.02)
+            ln = 0.42 - k * 0.12
             pts = []
-            for j in range(11):
-                t = j / 10
-                p = top + Vector((sx * (0.012 + 0.03 * t), -0.035 * math.sin(t * 2.4 * math.pi + k), -t * (0.3 - k * 0.07)))
-                pts.append(p)
-            o = sweep(f'tendril{sx}{k}', pts, [(0.032, 0.02), (0.03, 0.018), (0.022, 0.014), (0.01, 0.008)], hm[2 - k], rings=30, segs=8,
-                      normal_fn=lambda p, sx=sx: Vector((sx, -0.2, 0)).normalized())
+            for j in range(41):
+                t = j / 40; a = t * 3.2 * 2 * math.pi + k
+                r = 0.034 * (1 - 0.35 * t)
+                pts.append(top + Vector((sx * (0.015 + r * math.cos(a)), r * math.sin(a), -t * ln)))
+            o = sweep(f'ringlet{sx}{k}', pts, [(0.024, 0.016), (0.02, 0.014), (0.012, 0.009)], hm[2 - k], rings=120, segs=7)
             parts[o.name] = (o, ('head',))
-    # wisps at the nape
-    for k in range(4):
-        x = -0.18 + k * 0.12
-        top = on_head(Vector((x, 0.8, -0.55)), 0.03)
-        pts = [top + Vector((0.02 * math.sin(t * 6 + k), 0.015 * t, -t * 0.12)) for t in [j / 6 for j in range(7)]]
-        o = sweep(f'wisp{k}', pts, [(0.022, 0.01), (0.012, 0.006)], hm[k % 3], rings=10, segs=6, normal_fn=head_normal)
-        parts[o.name] = (o, ('head',))
-    # the daisy clip, on her left above the ear
-    daisy(parts, on_head(Vector((0.72, -0.45, 0.55)), SHELL + 0.055), Vector((0.72, -0.45, 0.55)), 0.075, petal, gold, ('head',))
+    # the daisy clip on the puff above her left temple
+    daisy(parts, on_hair(Vector((0.75, -0.55, 0.42)), 0.035), Vector((0.75, -0.55, 0.42)), 0.075, petal, gold, ('head',))
 
 # ---------------------------------------------------------------- skeleton & weights
 BONES = {}
@@ -535,7 +582,7 @@ def export(path):
     os.environ['OUT'] = os.path.dirname(path) or '.'
     parts = build(); rig = build_rig(parts); animate(rig)
     # for a phone: no subdivision on the small dense parts (smooth shading carries them)
-    small = ('lock', 'bang', 'tendril', 'napecurl', 'wisp', 'bun', 'petal', 'heart', 'lace', 'strap', 'thumb', 'flash', 'ear', 'nose', 'hair_shell')
+    small = ('lock', 'toplock', 'curtain', 'ringlet', 'flyaway', 'heeltab', 'handle', 'pocketflap', 'bang', 'tendril', 'napecurl', 'wisp', 'bun', 'petal', 'heart', 'lace', 'strap', 'thumb', 'flash', 'ear', 'nose', 'hair_shell')
     for o in bpy.data.objects:
         if o.type == 'MESH' and o.name.startswith(small):
             for m in [m for m in o.modifiers if m.type == 'SUBSURF']: o.modifiers.remove(m)

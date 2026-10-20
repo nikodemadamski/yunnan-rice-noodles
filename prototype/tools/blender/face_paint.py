@@ -12,8 +12,8 @@ S = 1024                     # texture size
 SS = 2                       # supersampling
 FACE_W, FACE_Z0, FACE_H = 0.5, 1.12, 1.0
 HEAD_Z = 1.62
-SKIN = (250, 214, 190)
-SKIN_SHADE = (240, 196, 172)
+SKIN = (248, 204, 172)          # warm apricot
+SKIN_SHADE = (236, 178, 146)
 
 def px(x, z):
     """head coordinates (x, z) -> pixel (supersampled)"""
@@ -37,9 +37,9 @@ def paint(expr='normal'):
     im.alpha_composite(soft_layer(im.size, lambda d: ell(d, 0, HEAD_Z - 0.3, 0.3, 0.1, SKIN_SHADE + (120,)), 60, SKIN_SHADE))
     # blush: big soft peach ovals under the eyes
     for sx in (-1, 1):
-        im.alpha_composite(soft_layer(im.size, lambda d: ell(d, sx * 0.24, 1.47, 0.085, 0.05, (246, 146, 134, 140)), 38, (246, 146, 134)))
+        im.alpha_composite(soft_layer(im.size, lambda d: ell(d, sx * 0.255, 1.455, 0.1, 0.062, (242, 118, 96, 200)), 34, (242, 118, 96)))
     d = ImageDraw.Draw(im)
-    EY, EX, ERX, ERZ = 1.55, 0.168, 0.066, 0.08
+    EY, EX, ERX, ERZ = 1.545, 0.17, 0.074, 0.086
     ink = (52, 30, 20, 255)
     for sx in (-1, 1):
         x = sx * EX
@@ -54,25 +54,26 @@ def paint(expr='normal'):
         steps = 24
         for i in range(steps):
             t = i / (steps - 1)
-            col = tuple(int(a + (b - a) * t) for a, b in zip((62, 36, 22), (170, 104, 58))) + (255,)
+            col = tuple(int(a + (b - a) * t) for a, b in zip((30, 16, 10), (122, 70, 38))) + (255,)
             ell(di, x, EY + ERZ * 0.62 - t * ERZ * 1.2, ERX * 0.8 * (1 - 0.25 * abs(t - 0.55)), ERZ * 0.35, col)
         mask = Image.new('L', im.size, 0); ell(ImageDraw.Draw(mask), x, EY - ERZ * 0.06, ERX * 0.82, ERZ * 0.86, 255)
         im.paste(iris, (0, 0), Image.composite(iris, Image.new('RGBA', im.size, (0, 0, 0, 0)), mask).getchannel('A'))
         d = ImageDraw.Draw(im)
-        ell(d, x, EY + ERZ * 0.05, ERX * 0.42, ERZ * 0.45, (28, 14, 9, 255))                  # pupil
-        ell(d, x + sx * 0 + ERX * 0.28, EY + ERZ * 0.36, ERX * 0.3, ERZ * 0.27, (255, 255, 255, 255))   # big catch-light (light from the top right)
+        ell(d, x, EY + ERZ * 0.08, ERX * 0.5, ERZ * 0.52, (20, 10, 6, 255))                    # pupil
+        ell(d, x + ERX * 0.3, EY + ERZ * 0.38, ERX * 0.32, ERZ * 0.29, (255, 255, 255, 255))   # big catch-light (light from the top right)
         ell(d, x - ERX * 0.32, EY - ERZ * 0.38, ERX * 0.13, ERZ * 0.11, (255, 255, 255, 235))           # small lower catch-light
         # upper lash line: a thicker arc that flicks out at the corner
         cx, cy = px(x, EY); rx, rz = ERX * k * 1.08, ERZ * k * 1.06
-        d.arc([cx - rx, cy - rz, cx + rx, cy + rz], 195, 345, fill=ink, width=int(0.011 * k))
+        d.arc([cx - rx, cy - rz, cx + rx, cy + rz], 200, 340, fill=ink, width=int(0.016 * k))
         ox = cx + sx * rx * 0.93; oy = cy - rz * 0.42
-        d.line([(ox, oy), (ox + sx * 0.022 * k, oy - 0.016 * k)], fill=ink, width=int(0.009 * k))
+        d.line([(ox, oy), (ox + sx * 0.024 * k, oy - 0.014 * k)], fill=ink, width=int(0.009 * k))
+        d.line([(ox - sx * 0.008 * k, oy - 0.018 * k), (ox + sx * 0.012 * k, oy - 0.034 * k)], fill=ink, width=int(0.008 * k))
     # brows: small, soft, high
     for sx in (-1, 1):
-        cx, cy = px(sx * 0.17, 1.705); r = 0.05 * k
-        d.arc([cx - r, cy - r * 0.45, cx + r, cy + r * 0.6], 205, 335, fill=(92, 56, 36, 255), width=int(0.011 * k))
+        cx, cy = px(sx * 0.165, 1.685); r = 0.052 * k
+        d.arc([cx - r, cy - r * 0.4, cx + r, cy + r * 0.7], 210, 330, fill=(104, 62, 38, 255), width=int(0.02 * k))
     # nose: a tiny warm button with a highlight
-    im.alpha_composite(soft_layer(im.size, lambda dd: ell(dd, 0, 1.49, 0.018, 0.013, (232, 164, 142, 150)), 5, (232, 164, 142)))
+    im.alpha_composite(soft_layer(im.size, lambda dd: ell(dd, 0, 1.49, 0.022, 0.016, (236, 130, 110, 210)), 4, (236, 130, 110)))
     d = ImageDraw.Draw(im)
     ell(d, -0.006, 1.497, 0.006, 0.005, (255, 236, 222, 230))
     # mouth
@@ -87,7 +88,7 @@ def paint(expr='normal'):
     elif expr == 'sad':
         d.arc([cx - 0.03 * k, cy, cx + 0.03 * k, cy + 0.035 * k], 200, 340, fill=(110, 52, 44, 255), width=int(0.008 * k))
     else:
-        d.arc([cx - 0.032 * k, cy - 0.028 * k, cx + 0.032 * k, cy + 0.012 * k], 25, 155, fill=(120, 54, 46, 255), width=int(0.008 * k))
+        d.arc([cx - 0.048 * k, cy - 0.04 * k, cx + 0.048 * k, cy + 0.014 * k], 30, 150, fill=(168, 64, 52, 255), width=int(0.011 * k))
     return im.resize((S, S), Image.LANCZOS)
 
 if __name__ == '__main__':
