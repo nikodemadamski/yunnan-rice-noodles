@@ -32,3 +32,20 @@ Blender: bpy 4.2.0 (5.2 not installed; awaiting the user's yes).
   3. kept only the largest of 8 loose parts (52,316 faces) + recalc normals.
   Same call on a voxel-remeshed test mesh works (7,054 → 1,911 faces).
 - `round4_base.blend` from this attempt is not usable (no quad remesh, wrong labels); not committed.
+
+## iter_01 — the user's second Meshy model ("lite"), compared as shape only
+- Source: `design/char_round4/base_lite/…/Meshy_AI_Daisy_1020225610_generate.obj` (user upload). Geometry only:
+  135,031 verts / 270,378 tris, no UVs, no texture, no colours. 1.9 tall, Y-up. Watertight: 0 boundary edges,
+  0 non-manifold edges, 0 non-manifold verts.
+- Both models rendered in one matte clay material (`CLAY=1`): `lite_clay_*.png`, `base_clay_*.png`;
+  side by side with the concept: `lite_vs_base_clay.jpg`.
+- IoU (base → lite): front 0.886 → 0.856 · side 0.725 → 0.839 · back 0.879 → 0.843.
+- Why: the lite model HAS the backpack (side +0.114). Front/back drop because a thin wire of hair on top of
+  the bun adds height, so after height-normalising everything else reads 5–10% narrow; legs are genuinely
+  15–20% too slim (70–85% bands) and the shoes 27–39% too small (95–100%).
+- Visual (clay): lite = smoother, rounder hair mass and bun, cleaner clothes, no U-artefact on the back of the
+  head, but the eyes are dark holes in the face. Base = carved eyes/nose/smile in the geometry (lumpy without
+  texture), U-artefact at the nape, no backpack.
+- QuadriFlow root cause found: in this bpy 4.2 build it refuses any mesh above a few thousand faces with the
+  misleading "needs to be manifold" warning — Blender's own monkey: 7,054 faces OK, 44,054 refused. Decimating
+  first (to 11,318 / 21,496) is refused too. Stopped there (rule 7).

@@ -17,11 +17,21 @@ samples = int(args[2]) if len(args) > 2 else 32
 
 if src.endswith('.blend'):
     bpy.ops.wm.open_mainfile(filepath=src)
+elif src.endswith('.obj'):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.wm.obj_import(filepath=src, forward_axis='NEGATIVE_Z', up_axis='Y')
 else:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=src)
 
 meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH' and o.visible_get()]
+if os.environ.get('CLAY') == '1':          # shape only: one matte clay material on everything
+    clay = bpy.data.materials.new('clay'); clay.use_nodes = True
+    p = clay.node_tree.nodes['Principled BSDF']
+    p.inputs['Base Color'].default_value = (0.62, 0.55, 0.5, 1); p.inputs['Roughness'].default_value = 0.65
+    for o in meshes:
+        o.data.materials.clear(); o.data.materials.append(clay)
+        for f in o.data.polygons: f.use_smooth = True
 dg = bpy.context.evaluated_depsgraph_get()
 pts = [o.matrix_world @ v.co for o in meshes for v in o.evaluated_get(dg).to_mesh().vertices]
 lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
